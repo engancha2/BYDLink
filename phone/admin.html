@@ -66,7 +66,8 @@
     </div>
 
     <div class="card">
-      <div class="muted" style="margin-bottom:10px">Cuenta de administrador</div>
+      <div class="muted" style="margin-bottom:4px">Cuenta de administrador</div>
+      <div class="muted" id="acctHint" style="margin-bottom:10px;font-size:13px"></div>
       <div class="row" id="pwRow">
         <input id="newPw" type="password" placeholder="Nueva contraseña (mín. 6)" style="max-width:260px">
         <button id="changePw">Cambiar contraseña</button>
@@ -133,12 +134,23 @@
   }catch(e){} }
 
   function setupAccount(u){
-    const isPw=u.providerData[0]&&u.providerData[0].providerId==='password';
-    if(!isPw){ $('#pwRow').innerHTML='<span class="muted">Inicias sesión con Google (no hay contraseña que cambiar aquí).</span>'; return; }
-    $('#changePw').onclick=()=>{const np=$('#newPw').value||''; if(np.length<6){$('#pwMsg').textContent='Mínimo 6 caracteres';return;}
-      u.updatePassword(np).then(()=>{$('#pwMsg').textContent='Contraseña cambiada ✓';$('#newPw').value='';})
-      .catch(e=>{$('#pwMsg').textContent=(e.code||'').indexOf('requires-recent-login')>=0?'Cierra sesión y vuelve a entrar para poder cambiarla.':e.message;});};
-    $('#resetPw').onclick=()=>{ auth.sendPasswordResetEmail(u.email).then(()=>$('#pwMsg').textContent='Email de restablecimiento enviado ✓').catch(e=>$('#pwMsg').textContent=e.message); };
+    const hasPw=(u.providerData||[]).some(p=>p.providerId==='password');
+    $('#acctHint').textContent = hasPw
+      ? ('Entras con tu correo ('+ (u.email||'') +'). Aquí puedes cambiar tu contraseña.')
+      : ('Entras con Google. Crea una contraseña para poder entrar también con tu correo ('+(u.email||'')+').');
+    $('#changePw').textContent = hasPw ? 'Cambiar contraseña' : 'Crear contraseña';
+    $('#changePw').onclick=()=>{
+      const np=$('#newPw').value||''; if(np.length<6){$('#pwMsg').textContent='Mínimo 6 caracteres';return;}
+      const ok=msg=>{$('#pwMsg').textContent=msg;$('#newPw').value='';setTimeout(()=>setupAccount(auth.currentUser),400);};
+      const fail=e=>{$('#pwMsg').textContent=(e.code||'').indexOf('requires-recent-login')>=0?'Por seguridad, cierra sesión y vuelve a entrar; luego reinténtalo.':(e.message);};
+      if(hasPw){ u.updatePassword(np).then(()=>ok('Contraseña cambiada ✓')).catch(fail); }
+      else {
+        const cred=firebase.auth.EmailAuthProvider.credential(u.email, np);
+        u.linkWithCredential(cred).then(()=>ok('Contraseña creada ✓ Ya puedes entrar con tu correo y esta contraseña.')).catch(fail);
+      }
+    };
+    $('#resetPw').onclick=()=>{ if(!u.email){$('#pwMsg').textContent='Tu cuenta no tiene correo';return;}
+      auth.sendPasswordResetEmail(u.email).then(()=>$('#pwMsg').textContent='Email de restablecimiento enviado ✓').catch(e=>$('#pwMsg').textContent=e.message); };
   }
 
   const ADMIN_EMAIL='info@mappscreen.com';
