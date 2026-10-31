@@ -7,7 +7,8 @@ import kotlin.math.sin
 
 /** Coche simulado: permite desarrollar la app del coche sin el coche. */
 class MockCarGateway : CarGateway {
-    private var state = CarState(soc = 72, gear = "P", locked = true, outTemp = 19,
+    private var state = CarState(soc = 72, gear = "P", locked = true, outTemp = 19, rangeKm = 236,
+        energyLeftKwh = 30.4, chargingGun = "none", climate = com.bydlink.carapp.model.Climate(on = false, temp = 21),
         location = Location(41.3870, 2.1700, 0, System.currentTimeMillis()))
     private var cb: ((CarState) -> Unit)? = null
     private var tick = 0

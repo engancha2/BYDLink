@@ -13,8 +13,10 @@ android {
         // La pantalla BYD de este APK es Android 7 (API 25). Mantener minSdk bajo.
         minSdk = 25
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
+        // Subir los dos en cada versión nueva (el coche se actualiza si versionCode es mayor).
+        // Se pueden forzar al compilar: gradle assembleDebug -PvCode=3 -PvName=2.1
+        versionCode = (findProperty("vCode") as String?)?.toInt() ?: 26
+        versionName = (findProperty("vName") as String?) ?: "2.24"
     }
     buildTypes {
         release {
@@ -28,6 +30,14 @@ android {
     }
     kotlinOptions { jvmTarget = "17" }
     buildFeatures { viewBinding = true }
+
+    // El APK sale ya con la versión en el nombre: BYDLink-coche-2.0.apk
+    applicationVariants.all {
+        val v = versionName
+        outputs.all {
+            (this as com.android.build.gradle.internal.api.BaseVariantOutputImpl).outputFileName = "BYDLink-coche-$v.apk"
+        }
+    }
 }
 
 dependencies {
@@ -50,4 +60,7 @@ dependencies {
     // Cliente ADB en Kotlin: auto-permisos vía localhost:5555 (como Vektra/SentryEV/SealNav).
     // TODO: confirmar la última versión disponible al compilar.
     implementation("dev.mobile:dadb:1.2.10")
+
+    // Código QR de vinculación en pantalla (solo el codificador, sin cámara).
+    implementation("com.google.zxing:core:3.5.3")
 }

@@ -34,4 +34,8 @@ class BydPermissionContext(base: Context) : ContextWrapper(base) {
         if (isByd(permission)) return PackageManager.PERMISSION_GRANTED
         return super.checkPermission(permission, pid, uid)
     }
+
+    // Fuera de una app (el ayudante de shell, con el Context del sistema) no hay Application: se devuelve
+    // este mismo wrapper para que el SDK no reciba null.
+    override fun getApplicationContext(): Context = baseContext.applicationContext ?: this
 }

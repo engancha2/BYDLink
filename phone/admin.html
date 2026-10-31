@@ -4,50 +4,117 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>BYDLink · Admin</title>
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
   <style>
-    :root{--bg:#0b0f14;--card:#141b24;--card2:#1b2430;--line:#24303d;--fg:#eaf1f8;--muted:#8aa0b4;--accent:#2fd27a;--accent2:#36a3ff;--danger:#ff5d5d}
-    *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,sans-serif}
+    :root{--bg:#0a0e13;--side:#0f151c;--card:#141b24;--card2:#1a2330;--line:#222d3a;--fg:#e9f0f7;--muted:#8a9db0;
+      --accent:#2fd27a;--accent-soft:rgba(47,210,122,.12);--accent2:#36a3ff;--warn:#f5b740;--danger:#ff5d5d;--r:14px}
+    *{box-sizing:border-box} html,body{height:100%}
+    body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
     [hidden]{display:none!important}
-    .wrap{max-width:1000px;margin:0 auto;padding:20px}
-    h1{font-size:20px;margin:0} .muted{color:var(--muted)}
-    .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
-    .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:16px}
-    .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
-    .kpi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;text-align:center}
-    .kpi .v{font-size:26px;font-weight:800} .kpi .k{color:var(--muted);font-size:12px;margin-top:4px}
+    a{color:var(--accent2)} .muted{color:var(--muted)} .ok{color:var(--accent)} .warn{color:var(--warn)} .bad{color:var(--danger)}
+    h1{font-size:22px;margin:0 0 4px;font-weight:700;letter-spacing:-.01em} h2{font-size:15px;margin:0 0 12px;font-weight:600}
+    svg{width:20px;height:20px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+
+    /* ── acceso ── */
+    .center{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+    .box{width:100%;max-width:360px;display:flex;flex-direction:column;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:28px}
+    .brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:18px}
+    .brand .logo{width:34px;height:34px;border-radius:10px;background:var(--accent);color:#05240f;display:grid;place-items:center;font-weight:900}
+
+    /* ── panel ── */
+    .app{display:grid;grid-template-columns:248px 1fr;min-height:100vh}
+    .side{background:var(--side);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:20px 14px;position:sticky;top:0;height:100vh}
+    .side .brand{padding:4px 10px 22px}
+    .nav{display:flex;flex-direction:column;gap:2px}
+    .nav a{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;color:var(--muted);text-decoration:none;font-weight:600}
+    .nav a:hover{background:var(--card);color:var(--fg)}
+    .nav a.on{background:var(--accent-soft);color:var(--accent)}
+    .nav .count{margin-left:auto;font-size:12px;background:var(--card2);color:var(--fg);border-radius:99px;padding:1px 8px}
+    .side .me{margin-top:auto;border-top:1px solid var(--line);padding:14px 10px 0;font-size:13px}
+    .side .me .who{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:10px}
+    .main{padding:28px 32px;max-width:1180px;width:100%;min-width:0}
+    .head{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;margin-bottom:22px;flex-wrap:wrap}
+    .view{display:none} .view.on{display:block}
+
+    .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:18px 20px;margin-bottom:16px}
+    .kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;margin-bottom:16px}
+    .kpi{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:16px 18px;display:flex;gap:14px;align-items:center}
+    .kpi .ic{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;background:var(--card2);color:var(--accent2)}
+    .kpi .ic.g{background:var(--accent-soft);color:var(--accent)}
+    .kpi .v{font-size:24px;font-weight:800;line-height:1.1} .kpi .k{color:var(--muted);font-size:12.5px}
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+
     table{width:100%;border-collapse:collapse;font-size:14px}
-    th,td{text-align:left;padding:10px;border-bottom:1px solid var(--line)}
-    th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase}
-    .badge{font-size:11px;padding:2px 8px;border-radius:999px;background:var(--card2)}
+    th,td{text-align:left;padding:11px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+    th{color:var(--muted);font-weight:600;font-size:11.5px;text-transform:uppercase;letter-spacing:.04em}
+    tr:last-child td{border-bottom:none}
+    .sub{color:var(--muted);font-size:12px}
+    .badge{display:inline-block;font-size:12px;padding:2px 9px;border-radius:999px;background:var(--card2);font-weight:600}
     .badge.g{color:var(--accent2)} .badge.p{color:var(--accent)}
-    .del{background:transparent;border:1px solid var(--danger);color:var(--danger);font-size:12px;padding:5px 10px;font-weight:600}
-    input{background:var(--card2);border:1px solid var(--line);border-radius:10px;color:var(--fg);padding:11px;font-size:15px;width:100%}
-    button{background:var(--accent);color:#05240f;border:none;border-radius:10px;font-weight:800;padding:11px 16px;cursor:pointer}
+    .badge.ok{color:var(--accent);background:var(--accent-soft)} .badge.warn{color:var(--warn)} .badge.bad{color:var(--danger)}
+    .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:var(--muted)} .dot.ok{background:var(--accent)}
+
+    input,textarea{background:var(--card2);border:1px solid var(--line);border-radius:10px;color:var(--fg);padding:11px 12px;font:inherit;width:100%}
+    input:focus,textarea:focus{outline:none;border-color:var(--accent2)}
+    textarea{min-height:76px;resize:vertical}
+    button{background:var(--accent);color:#05240f;border:none;border-radius:10px;font:inherit;font-weight:700;padding:10px 16px;cursor:pointer}
     button.ghost{background:var(--card2);color:var(--fg);border:1px solid var(--line);font-weight:600}
+    button:disabled{opacity:.5;cursor:default}
+    .del{background:transparent;border:1px solid var(--danger);color:var(--danger);font-size:12px;padding:5px 10px}
     .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-    .center{min-height:70vh;display:flex;align-items:center;justify-content:center}
-    .box{width:100%;max-width:340px;display:flex;flex-direction:column;gap:10px}
-    a{color:var(--accent2)}
     .err{color:var(--danger);font-size:13px;min-height:16px}
-    @media(max-width:640px){.kpis{grid-template-columns:1fr 1fr}}
+    .drop{border:1.5px dashed var(--line);border-radius:var(--r);padding:22px;text-align:center;color:var(--muted);cursor:pointer;display:block}
+    .drop:hover{border-color:var(--accent2);color:var(--fg)}
+    .drop input{display:none}
+    .apk{background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin:12px 0;font-size:14px}
+    .bar{height:8px;border-radius:99px;background:var(--card2);overflow:hidden;margin-top:12px}
+    .bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .2s}
+    .pub{display:flex;gap:16px;align-items:center}
+    .pub .ver{font-size:30px;font-weight:800;color:var(--accent)}
+    .hint{font-size:12.5px;color:var(--muted);margin:12px 0 0}
+    .langs{display:flex;gap:8px;flex-wrap:wrap}
+
+    @media(max-width:860px){
+      .app{grid-template-columns:1fr;grid-template-rows:auto 1fr}
+      .side .me .lbl{display:none} .side .me button{padding:9px 10px}
+      .side{position:sticky;height:auto;flex-direction:row;align-items:center;padding:10px 12px;gap:8px;z-index:5;overflow-x:auto}
+      .side .brand{padding:0 6px 0 0} .side .brand span{display:none}
+      .nav{flex-direction:row} .nav a{padding:8px 10px;white-space:nowrap} .nav a b{display:none} .nav .count{display:none}
+      .side .me{margin:0 0 0 auto;border:none;padding:0} .side .me .who{display:none}
+      .main{padding:18px 16px} .grid2{grid-template-columns:1fr}
+    }
   </style>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
   <script src="firebase-config.js" onerror="window.__noCfg=true"></script>
+  <script src="apkinfo.js"></script>
 </head>
 <body>
-  <!-- Login -->
+  <svg width="0" height="0" style="position:absolute">
+    <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></symbol>
+    <symbol id="i-car" viewBox="0 0 24 24"><path d="M5 16l1.5-5A2 2 0 0 1 8.4 9.5h7.2a2 2 0 0 1 1.9 1.5L19 16"/><rect x="3" y="16" width="18" height="4" rx="1.5"/><circle cx="7" cy="18" r=".6"/><circle cx="17" cy="18" r=".6"/></symbol>
+    <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 16V4"/><path d="M7 9l5-5 5 5"/><path d="M4 20h16"/></symbol>
+    <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7"/><path d="M18 14a6 6 0 0 1 3.5 6"/></symbol>
+    <symbol id="i-key" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9"/><path d="M16 7l3 3"/></symbol>
+    <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
+    <symbol id="i-out" viewBox="0 0 24 24"><path d="M15 4h4v16h-4"/><path d="M10 8l-4 4 4 4"/><path d="M6 12h10"/></symbol>
+    <symbol id="i-wifi" viewBox="0 0 24 24"><path d="M2 9a15 15 0 0 1 20 0"/><path d="M5.5 12.5a10 10 0 0 1 13 0"/><path d="M9 16a5 5 0 0 1 6 0"/><circle cx="12" cy="19" r=".7"/></symbol>
+    <symbol id="i-new" viewBox="0 0 24 24"><circle cx="10" cy="8" r="4"/><path d="M3 21a7 7 0 0 1 12-4.9"/><path d="M19 15v6M16 18h6"/></symbol>
+    <symbol id="i-pulse" viewBox="0 0 24 24"><path d="M3 12h4l2-5 4 10 2-5h6"/></symbol>
+  </svg>
+
+  <!-- Acceso -->
   <div id="login" class="center" hidden>
     <div class="box">
-      <h1 style="text-align:center">BYDLink · Admin</h1>
-      <div class="muted" style="text-align:center">Acceso de administrador</div>
+      <div class="brand"><div class="logo">B</div><span>BYDLink · Admin</span></div>
+      <div class="muted">Acceso de administrador</div>
       <button id="gBtn" class="ghost">Continuar con Google</button>
-      <input id="email" type="email" placeholder="Correo">
-      <input id="pass" type="password" placeholder="Contraseña">
+      <input id="email" type="email" placeholder="Correo" autocomplete="username">
+      <input id="pass" type="password" placeholder="Contraseña" autocomplete="current-password">
       <div id="loginErr" class="err"></div>
       <button id="inBtn">Entrar</button>
-      <div class="muted" id="regToggle" style="text-align:center;cursor:pointer">Crear cuenta nueva</div>
+      <div class="muted" id="regToggle" style="text-align:center;cursor:pointer;font-size:14px">Crear cuenta nueva</div>
     </div>
   </div>
 
@@ -60,60 +127,114 @@
     </div>
   </div>
 
-  <!-- Dashboard -->
-  <div id="dash" class="wrap" hidden>
-    <div class="top">
-      <h1>BYDLink · Admin</h1>
-      <div class="row"><span class="muted" id="who"></span><button id="outBtn" class="ghost">Salir</button></div>
-    </div>
+  <!-- Panel -->
+  <div id="dash" class="app" hidden>
+    <aside class="side">
+      <div class="brand"><div class="logo">B</div><span>BYDLink Admin</span></div>
+      <nav class="nav">
+        <a href="#resumen" data-v="resumen"><svg><use href="#i-home"/></svg><b>Resumen</b></a>
+        <a href="#coches" data-v="coches"><svg><use href="#i-car"/></svg><b>Coches</b><span class="count" id="navCars">0</span></a>
+        <a href="#actualizaciones" data-v="actualizaciones"><svg><use href="#i-up"/></svg><b>Actualizaciones</b></a>
+        <a href="#usuarios" data-v="usuarios"><svg><use href="#i-users"/></svg><b>Usuarios</b><span class="count" id="navUsers">0</span></a>
+        <a href="#integraciones" data-v="integraciones"><svg><use href="#i-key"/></svg><b>Integraciones</b></a>
+        <a href="#cuenta" data-v="cuenta"><svg><use href="#i-user"/></svg><b>Mi cuenta</b></a>
+      </nav>
+      <div class="me"><div class="who muted" id="who"></div><button id="outBtn" class="ghost" title="Salir"><span style="display:flex;gap:8px;align-items:center"><svg><use href="#i-out"/></svg><span class="lbl">Salir</span></span></button></div>
+    </aside>
 
-    <div class="card">
-      <div class="muted" style="margin-bottom:4px">Cuenta de administrador</div>
-      <div class="muted" id="acctHint" style="margin-bottom:10px;font-size:13px"></div>
-      <div class="row" id="pwRow">
-        <input id="newPw" type="password" placeholder="Nueva contraseña (mín. 6)" style="max-width:260px">
-        <button id="changePw">Cambiar contraseña</button>
-        <button id="resetPw" class="ghost">Email de reset</button>
-        <span id="pwMsg" class="muted"></span>
-      </div>
-    </div>
+    <main class="main">
+      <!-- Resumen -->
+      <section class="view" data-view="resumen">
+        <div class="head"><div><h1>Resumen</h1><div class="muted">Cómo va BYDLink ahora mismo</div></div></div>
+        <div class="kpis">
+          <div class="kpi"><div class="ic"><svg><use href="#i-users"/></svg></div><div><div class="v" id="kTotal">0</div><div class="k">Usuarios</div></div></div>
+          <div class="kpi"><div class="ic"><svg><use href="#i-new"/></svg></div><div><div class="v" id="kNew">0</div><div class="k">Nuevos (7 días)</div></div></div>
+          <div class="kpi"><div class="ic"><svg><use href="#i-pulse"/></svg></div><div><div class="v" id="kActive">0</div><div class="k">Activos (7 días)</div></div></div>
+          <div class="kpi"><div class="ic g"><svg><use href="#i-car"/></svg></div><div><div class="v" id="kCars">0</div><div class="k">Coches vinculados</div></div></div>
+          <div class="kpi"><div class="ic g"><svg><use href="#i-wifi"/></svg></div><div><div class="v" id="kOnline">0</div><div class="k">Coches en línea</div></div></div>
+          <div class="kpi"><div class="ic g"><svg><use href="#i-up"/></svg></div><div><div class="v" id="kVersion">—</div><div class="k">Versión publicada</div></div></div>
+        </div>
+        <div class="grid2">
+          <div class="card"><h2>Coches</h2><div id="carMini" class="muted">Cargando…</div></div>
+          <div class="card"><h2>Última actualización publicada</h2><div id="updMini" class="muted">Cargando…</div></div>
+        </div>
+      </section>
 
-    <div class="kpis">
-      <div class="kpi"><div class="v" id="kTotal">0</div><div class="k">Usuarios</div></div>
-      <div class="kpi"><div class="v" id="kNew">0</div><div class="k">Nuevos (7 días)</div></div>
-      <div class="kpi"><div class="v" id="kActive">0</div><div class="k">Activos (7 días)</div></div>
-      <div class="kpi"><div class="v" id="kGoogle">0</div><div class="k">Con Google</div></div>
-    </div>
+      <!-- Coches -->
+      <section class="view" data-view="coches">
+        <div class="head"><div><h1>Coches</h1><div class="muted">Versión de la app, actualizaciones y conexión de cada coche</div></div></div>
+        <div class="card" style="overflow:auto">
+          <table>
+            <thead><tr><th>Coche</th><th>Dueño</th><th>Versión</th><th>Actualización</th><th>Energía</th><th>Conexión</th></tr></thead>
+            <tbody id="carRows"></tbody>
+          </table>
+        </div>
+      </section>
 
-    <div class="card">
-      <div class="muted" style="margin-bottom:8px">Usuarios por idioma</div>
-      <div id="byLang" class="row"></div>
-    </div>
+      <!-- Actualizaciones -->
+      <section class="view" data-view="actualizaciones">
+        <div class="head"><div><h1>Actualizaciones</h1><div class="muted">La app de los coches se actualiza sola desde aquí</div></div></div>
+        <div class="card" id="updCard"><h2>Publicada ahora</h2><div id="updNow">Cargando…</div></div>
+        <div class="card">
+          <h2>Publicar una versión nueva</h2>
+          <label class="drop" id="drop"><input id="apkFile" type="file" accept=".apk,application/vnd.android.package-archive">
+            <svg style="width:28px;height:28px;margin-bottom:6px"><use href="#i-up"/></svg><div><b>Elige el APK</b> (BYDLink-coche-x.y.apk)</div>
+            <div class="sub">o arrástralo aquí</div></label>
+          <div id="apkInfo" class="apk" hidden></div>
+          <div id="apkForm" hidden>
+            <textarea id="apkNotes" placeholder="Novedades de esta versión (las verá el usuario en el coche)"></textarea>
+            <div class="row" style="margin-top:12px"><button id="apkPublish">Publicar actualización</button><span id="apkMsg" class="muted"></span></div>
+            <div class="bar" id="apkBar" hidden><i></i></div>
+          </div>
+          <p class="hint">Los coches con BYDLink 2.0 o más nueva la bajan solos (también por 4G y con el coche apagado) y se instalan cuando están <b>parados</b>. Solo aceptan un APK de BYDLink más nuevo y firmado con la misma clave. Antes de compilar, sube <b>versionCode</b> y <b>versionName</b> en <code>car-app/app/build.gradle.kts</code>.</p>
+        </div>
+      </section>
 
-    <div class="card">
-      <div class="row" style="justify-content:space-between;margin-bottom:8px">
-        <div class="muted">Usuarios</div>
-        <input id="search" placeholder="Buscar correo…" style="max-width:220px">
-      </div>
-      <div style="overflow:auto">
-        <table>
-          <thead><tr><th>Correo</th><th>Acceso</th><th>Alta</th><th>Último acceso</th><th>Idioma</th><th>Zona</th><th></th></tr></thead>
-          <tbody id="rows"></tbody>
-        </table>
-      </div>
-    </div>
+      <!-- Usuarios -->
+      <section class="view" data-view="usuarios">
+        <div class="head"><div><h1>Usuarios</h1><div class="muted">Cuentas de la web y la app del móvil</div></div>
+          <input id="search" placeholder="Buscar correo…" style="max-width:260px"></div>
+        <div class="kpis">
+          <div class="kpi"><div class="ic"><svg><use href="#i-users"/></svg></div><div><div class="v" id="kTotal2">0</div><div class="k">Total</div></div></div>
+          <div class="kpi"><div class="ic"><svg><use href="#i-key"/></svg></div><div><div class="v" id="kGoogle">0</div><div class="k">Con Google</div></div></div>
+        </div>
+        <div class="card"><h2>Por idioma</h2><div id="byLang" class="langs"></div></div>
+        <div class="card" style="overflow:auto">
+          <table>
+            <thead><tr><th>Correo</th><th>Acceso</th><th>Alta</th><th>Último acceso</th><th>Idioma</th><th>Zona</th><th></th></tr></thead>
+            <tbody id="rows"></tbody>
+          </table>
+        </div>
+      </section>
 
-    <div class="card">
-      <div class="muted" style="margin-bottom:10px">Integraciones (claves)</div>
-      <div class="row" style="margin-bottom:10px">
-        <div style="flex:1;min-width:220px"><div class="muted" style="font-size:12px">Resend API key (para emails)</div>
-          <input id="resendKey" type="password" placeholder="re_..."></div>
-        <div style="flex:1;min-width:220px"><div class="muted" style="font-size:12px">Remitente (email verificado en Resend)</div>
-          <input id="resendFrom" placeholder="BYDLink &lt;no-reply@bydhack.com&gt;"></div>
-      </div>
-      <div class="row"><button id="saveCfg">Guardar claves</button><span id="cfgMsg" class="muted"></span></div>
-      <p class="muted" style="font-size:12px;margin-top:10px">La key se guarda en la base de datos (solo admins) y la usa el envío de emails (Firebase Functions). La recuperación de contraseña básica ya funciona con el email de Firebase sin esto. Google sign-in se configura en Firebase (sin key aquí).</p>
-    </div>
+      <!-- Integraciones -->
+      <section class="view" data-view="integraciones">
+        <div class="head"><div><h1>Integraciones</h1><div class="muted">Claves de servicios externos</div></div></div>
+        <div class="card">
+          <h2>Correo (Resend)</h2>
+          <div class="grid2" style="margin-bottom:12px">
+            <div><div class="sub" style="margin-bottom:6px">Resend API key</div><input id="resendKey" type="password" placeholder="re_..."></div>
+            <div><div class="sub" style="margin-bottom:6px">Remitente (email verificado en Resend)</div><input id="resendFrom" placeholder="BYDLink &lt;no-reply@bydhack.com&gt;"></div>
+          </div>
+          <div class="row"><button id="saveCfg">Guardar claves</button><span id="cfgMsg" class="muted"></span></div>
+          <p class="hint">La key se guarda en la base de datos (solo admins) y la usa el envío de emails. La recuperación de contraseña básica ya funciona con el email de Firebase sin esto. Google se configura en Firebase.</p>
+        </div>
+      </section>
+
+      <!-- Mi cuenta -->
+      <section class="view" data-view="cuenta">
+        <div class="head"><div><h1>Mi cuenta</h1><div class="muted" id="acctHint"></div></div></div>
+        <div class="card">
+          <h2>Contraseña</h2>
+          <div class="row" id="pwRow">
+            <input id="newPw" type="password" placeholder="Nueva contraseña (mín. 6)" style="max-width:280px" autocomplete="new-password">
+            <button id="changePw">Cambiar contraseña</button>
+            <button id="resetPw" class="ghost">Enviarme email de reset</button>
+          </div>
+          <div id="pwMsg" class="muted" style="margin-top:10px"></div>
+        </div>
+      </section>
+    </main>
   </div>
 
 <script>
@@ -121,8 +242,24 @@
   if (!window.FIREBASE_CONFIG || window.__noCfg) { document.body.innerHTML='<p style="padding:20px">Falta firebase-config.js</p>'; return; }
   firebase.initializeApp(window.FIREBASE_CONFIG);
   const auth=firebase.auth(), db=firebase.database();
-  const $=s=>document.querySelector(s);
+  // Pruebas en el PC: emuladores de Firebase con ?emu (solo en localhost).
+  if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname) && new URLSearchParams(location.search).has('emu')) {
+    auth.useEmulator('http://127.0.0.1:9099',{disableWarnings:true}); db.useEmulator('127.0.0.1',9000);
+  }
+  const $=s=>document.querySelector(s), $$=s=>Array.from(document.querySelectorAll(s));
+  const esc=v=>String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
   const show=id=>['login','denied','dash'].forEach(x=>$('#'+x).hidden=(x!==id));
+  const ago=t=>{if(!t)return'—';const m=Math.round((Date.now()-t)/6e4);return m<2?'ahora':m<60?'hace '+m+' min':m<1440?'hace '+Math.round(m/60)+' h':'hace '+Math.round(m/1440)+' d';};
+
+  // ───────── menú: una sección a la vez (#resumen, #coches...) ─────────
+  const VIEWS=['resumen','coches','actualizaciones','usuarios','integraciones','cuenta'];
+  function route(){
+    const v=VIEWS.indexOf((location.hash||'').slice(1))>=0?location.hash.slice(1):'resumen';
+    $$('.view').forEach(s=>s.classList.toggle('on',s.dataset.view===v));
+    $$('.nav a').forEach(a=>a.classList.toggle('on',a.dataset.v===v));
+    window.scrollTo(0,0);
+  }
+  window.addEventListener('hashchange',route); route();
 
   let regMode=false;
   const authMsg=e=>{const c=(e&&e.code)||'';
@@ -140,6 +277,7 @@
     const e=$('#email').value.trim(), p=$('#pass').value;
     if(!e||!p){$('#loginErr').textContent='Pon correo y contraseña';return;}
     (regMode?auth.createUserWithEmailAndPassword(e,p):auth.signInWithEmailAndPassword(e,p)).catch(err=>$('#loginErr').textContent=authMsg(err)); };
+  $('#pass').addEventListener('keydown',e=>{if(e.key==='Enter')$('#inBtn').click();});
   $('#gBtn').onclick=()=>auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(e=>$('#loginErr').textContent=e.message);
   $('#outBtn').onclick=$('#outBtn2').onclick=()=>auth.signOut();
 
@@ -152,7 +290,7 @@
   function setupAccount(u){
     const hasPw=(u.providerData||[]).some(p=>p.providerId==='password');
     $('#acctHint').textContent = hasPw
-      ? ('Entras con tu correo ('+ (u.email||'') +'). Aquí puedes cambiar tu contraseña.')
+      ? ('Entras con tu correo ('+ (u.email||'') +').')
       : ('Entras con Google. Crea una contraseña para poder entrar también con tu correo ('+(u.email||'')+').');
     $('#changePw').textContent = hasPw ? 'Cambiar contraseña' : 'Crear contraseña';
     $('#changePw').onclick=()=>{
@@ -176,38 +314,37 @@
     db.ref('admins/'+u.uid).once('value').then(s=>{
       const isAdmin = s.exists() || ADMIN_EMAILS.indexOf(u.email)>=0;
       if(!isAdmin){ $('#deniedEmail').textContent=u.email||u.uid; show('denied'); return; }
-      $('#who').textContent=u.email||'admin'; show('dash'); loadUsers(); setupAccount(u);
+      $('#who').textContent=u.email||'admin'; show('dash'); route(); loadUsers(); setupAccount(u); setupUpdates(u);
       db.ref('admin/config').once('value').then(c=>{const v=c.val()||{}; if(v.resendFrom)$('#resendFrom').value=v.resendFrom; if(v.resendKey)$('#resendKey').value=v.resendKey;}).catch(()=>{});
     });
   });
 
+  // ───────── usuarios ─────────
   let USERS=[];
   function loadUsers(){
     db.ref('users').on('value',snap=>{
       USERS=[]; snap.forEach(c=>{const o=c.val()||{};o.uid=c.key;USERS.push(o);});
-      render();
+      render(); watchCars();
     });
   }
   function render(){
     const now=Date.now(), wk=now-7*864e5;
-    $('#kTotal').textContent=USERS.length;
+    $('#kTotal').textContent=$('#kTotal2').textContent=$('#navUsers').textContent=USERS.length;
     $('#kNew').textContent=USERS.filter(u=>(u.createdAt||0)>=wk).length;
     $('#kActive').textContent=USERS.filter(u=>(u.lastLoginAt||0)>=wk).length;
     $('#kGoogle').textContent=USERS.filter(u=>(u.provider||'').indexOf('google')>=0).length;
-    // por idioma
     const langs={}; USERS.forEach(u=>{const l=(u.lang||'?').split('-')[0];langs[l]=(langs[l]||0)+1;});
-    $('#byLang').innerHTML=Object.entries(langs).sort((a,b)=>b[1]-a[1]).slice(0,8)
-      .map(([l,n])=>`<span class="badge">${l}: <b>${n}</b></span>`).join(' ');
-    // tabla
+    $('#byLang').innerHTML=Object.entries(langs).sort((a,b)=>b[1]-a[1]).slice(0,10)
+      .map(([l,n])=>`<span class="badge">${esc(l)} · <b>${n}</b></span>`).join('')||'<span class="muted">—</span>';
     const q=($('#search').value||'').toLowerCase();
     const fmt=t=>t?new Date(t).toLocaleDateString('es-ES',{day:'2-digit',month:'short',year:'2-digit'}):'—';
     $('#rows').innerHTML=USERS
       .filter(u=>!q||(u.email||'').toLowerCase().includes(q))
       .sort((a,b)=>(b.createdAt||0)-(a.createdAt||0))
       .map(u=>{const g=(u.provider||'').indexOf('google')>=0;
-        return `<tr><td>${u.email||'—'}</td><td><span class="badge ${g?'g':'p'}">${g?'Google':'Email'}</span></td>
-        <td>${fmt(u.createdAt)}</td><td>${fmt(u.lastLoginAt)}</td><td>${(u.lang||'—')}</td><td>${(u.tz||'—')}</td><td><button class="del" data-uid="${u.uid}" data-email="${u.email||''}">Borrar</button></td></tr>`;}).join('');
-    if(!USERS.length) $('#rows').innerHTML='<tr><td colspan="7" class="muted" style="text-align:center;padding:16px">Aún no hay usuarios. Aparecerán cuando alguien se registre o inicie sesión en app.bydhack.com.</td></tr>';
+        return `<tr><td>${esc(u.email||'—')}${u.name?'<div class="sub">'+esc(u.name)+'</div>':''}</td><td><span class="badge ${g?'g':'p'}">${g?'Google':'Email'}</span></td>
+        <td>${fmt(u.createdAt)}</td><td>${fmt(u.lastLoginAt)}</td><td>${esc(u.lang||'—')}</td><td>${esc(u.tz||'—')}</td><td><button class="del" data-uid="${esc(u.uid)}" data-email="${esc(u.email||'')}">Borrar</button></td></tr>`;}).join('');
+    if(!USERS.length) $('#rows').innerHTML='<tr><td colspan="7" class="muted" style="text-align:center;padding:18px">Aún no hay usuarios. Aparecerán cuando alguien se registre o inicie sesión en app.bydhack.com.</td></tr>';
   }
   document.addEventListener('input',e=>{if(e.target.id==='search')render();});
   document.addEventListener('click',e=>{
@@ -217,6 +354,123 @@
     else if(!confirm('¿Borrar al usuario '+em+' de la lista?')) return;
     db.ref('users/'+uid).remove().catch(err=>alert(err.message));
   });
+
+  // ───────── coches: versión, actualización, energía y conexión ─────────
+  const CARS={}, META={};
+  const UPD={aldia:['Al día','ok'],descargando:['Descargando','warn'],esperando:['Esperando a que esté parado','warn'],instalando:['Instalando','warn'],
+    lista:['Lista: falta pulsar «Instalar» en el coche','warn'],actualizada:['Actualizada','ok'],error:['Error','bad']};
+  function watchCars(){
+    USERS.forEach(u=>Object.keys(u.cars||{}).forEach(id=>{
+      const c=CARS[id]||(CARS[id]={owners:new Set(),name:''});
+      c.owners.add(u.email||u.uid);
+      if(!c.name) c.name=(u.cars[id]||{}).name||'';
+      if(!(id in META)){ META[id]=null; db.ref('cars/'+id+'/meta').on('value',s=>{META[id]=s.val()||{};renderCars();},()=>{META[id]={};renderCars();}); }
+    }));
+    renderCars();
+  }
+  const isOnline=m=>!!m.online&&(!m.lastSeen||Date.now()-m.lastSeen<36e5*24);
+  function energy(m){
+    const p=m.power||{};
+    if(p.accOn==null) return '<span class="muted">—</span>';
+    return (p.accOn?'<span class="badge ok">Encendido</span>':'<span class="badge">Apagado</span>')
+      +(!p.accOn&&p.keepAwake?' <span class="sub">despierto por BYDLink</span>':'')
+      +(p.aux12v?'<div class="sub">12 V: '+String(p.aux12v.toFixed?p.aux12v.toFixed(1):p.aux12v).replace('.',',')+' V</div>':'')
+      +(p.reason?'<div class="sub">'+esc(p.reason)+'</div>':'');
+  }
+  function updCell(m){
+    const u=m.update||{}, st=UPD[u.state];
+    return st
+      ?'<span class="badge '+st[1]+'">'+st[0]+(u.state==='descargando'&&u.progress!=null?' '+u.progress+'%':'')+'</span>'
+        +(u.version?' <span class="sub">'+esc(u.version)+'</span>':'')
+        +(u.msg&&u.state!=='descargando'?'<div class="sub">'+esc(u.msg)+'</div>':'')
+      :'<span class="muted">—</span>';
+  }
+  function renderCars(){
+    const ids=Object.keys(CARS);
+    const online=ids.filter(id=>isOnline(META[id]||{})).length;
+    $('#kCars').textContent=$('#navCars').textContent=ids.length;
+    $('#kOnline').textContent=online;
+    const conn=m=>isOnline(m)?'<span class="ok"><span class="dot ok"></span>En línea</span>':'<span class="muted"><span class="dot"></span>'+ago(m.lastSeen)+'</span>';
+    $('#carRows').innerHTML=ids.length?ids.map(id=>{
+      const m=META[id]||{}, c=CARS[id];
+      return '<tr><td><b>'+esc(c.name||m.name||'Mi BYD')+'</b><div class="sub">'+esc(id)+'</div></td>'
+        +'<td>'+esc([...c.owners].join(', '))+'</td>'
+        +'<td>'+(m.appVersion?'<b>'+esc(m.appVersion)+'</b>':'—')+'</td><td>'+updCell(m)+'</td>'
+        +'<td>'+energy(m)+'</td><td>'+conn(m)+'</td></tr>';
+    }).join(''):'<tr><td colspan="6" class="muted" style="text-align:center;padding:18px">Aún no hay coches vinculados.</td></tr>';
+    $('#carMini').innerHTML=ids.length?'<table><tbody>'+ids.slice(0,6).map(id=>{
+      const m=META[id]||{}, c=CARS[id];
+      return '<tr><td><b>'+esc(c.name||m.name||'Mi BYD')+'</b><div class="sub">BYDLink '+esc(m.appVersion||'—')+'</div></td><td>'+conn(m)+'</td></tr>';
+    }).join('')+'</tbody></table>':'<span class="muted">Aún no hay coches vinculados.</span>';
+  }
+
+  // ───────── publicar una actualización (APK troceado en la base de datos) ─────────
+  const CHUNK=768*1024;   // ~1 MB en base64 por trozo
+  let LATEST=null, PICK=null;
+  const mb=n=>(n/1048576).toFixed(1).replace('.',',')+' MB';
+  function setupUpdates(u){
+    db.ref('updates/latest').on('value',s=>{
+      LATEST=s.val();
+      $('#kVersion').textContent=LATEST?LATEST.versionName:'—';
+      const html=LATEST
+        ?'<div class="pub"><div class="ver">'+esc(LATEST.versionName)+'</div><div><div>BYDLink · código '+esc(LATEST.versionCode)+' · '+mb(LATEST.size||0)+'</div>'
+          +'<div class="sub">'+new Date(LATEST.ts||0).toLocaleString('es-ES')+(LATEST.by?' · '+esc(LATEST.by):'')+'</div></div></div>'
+          +(LATEST.notes?'<div class="muted" style="margin-top:10px">'+esc(LATEST.notes)+'</div>':'')
+        :'<span class="muted">Todavía no se ha publicado ninguna actualización.</span>';
+      $('#updNow').innerHTML=html; $('#updMini').innerHTML=html;
+      if(PICK) showPick();
+    });
+    const pickFile=f=>{
+      PICK=null; $('#apkForm').hidden=true; $('#apkMsg').textContent='';
+      if(!f){ $('#apkInfo').hidden=true; return; }
+      $('#apkInfo').hidden=false; $('#apkInfo').textContent='Leyendo '+f.name+'…';
+      f.arrayBuffer().then(buf=>ApkInfo.read(buf).then(info=>{ PICK={buf,info}; showPick(); }))
+        .catch(err=>{ $('#apkInfo').innerHTML='<span class="bad">'+esc(err.message)+'</span>'; });
+    };
+    $('#apkFile').onchange=e=>pickFile(e.target.files[0]);
+    const drop=$('#drop');
+    drop.addEventListener('dragover',e=>{e.preventDefault();drop.style.borderColor='var(--accent2)';});
+    drop.addEventListener('dragleave',()=>{drop.style.borderColor='';});
+    drop.addEventListener('drop',e=>{e.preventDefault();drop.style.borderColor='';pickFile(e.dataTransfer.files[0]);});
+    $('#apkPublish').onclick=()=>publish(u);
+  }
+  function showPick(){
+    const i=PICK.info; let ok=false, note;
+    if(i.package!=='com.bydlink.carapp') note='<span class="bad">No es la app del coche de BYDLink ('+esc(i.package)+').</span>';
+    else if(LATEST&&i.versionCode<=LATEST.versionCode) note='<span class="bad">No es más nueva que la publicada (código '+esc(LATEST.versionCode)+'). Sube versionCode al compilar.</span>';
+    else { ok=true; note='<span class="ok">Lista para publicar.</span>'; }
+    $('#apkInfo').innerHTML='<b>BYDLink '+esc(i.versionName)+'</b> <span class="muted">· código '+esc(i.versionCode)+' · '+mb(PICK.buf.byteLength)+'</span><div style="margin-top:4px">'+note+'</div>';
+    $('#apkForm').hidden=!ok;
+  }
+  function b64(u8){ let s=''; for(let i=0;i<u8.length;i+=0x8000) s+=String.fromCharCode.apply(null,u8.subarray(i,i+0x8000)); return btoa(s); }
+  async function publish(u){
+    if(!PICK) return;
+    const {buf,info}=PICK, btn=$('#apkPublish'), bar=$('#apkBar'), msg=t=>{$('#apkMsg').textContent=t;};
+    if(!confirm('¿Publicar BYDLink '+info.versionName+' para TODOS los coches?')) return;
+    btn.disabled=true; $('#apkFile').disabled=true; bar.hidden=false;
+    try{
+      const hash=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',buf))).map(b=>b.toString(16).padStart(2,'0')).join('');
+      const n=Math.ceil(buf.byteLength/CHUNK), base='updates/files/'+info.versionCode;
+      await db.ref(base).remove();
+      for(let i=0;i<n;i++){
+        await db.ref(base+'/'+i).set(b64(new Uint8Array(buf,i*CHUNK,Math.min(CHUNK,buf.byteLength-i*CHUNK))));
+        bar.firstElementChild.style.width=((i+1)*100/n)+'%'; msg('Subiendo… '+Math.round((i+1)*100/n)+'%');
+      }
+      await db.ref('updates/stored/'+info.versionCode).set(buf.byteLength);
+      // Lo último: anunciarla. Así ningún coche empieza a bajar una versión a medio subir.
+      await db.ref('updates/latest').set({versionCode:info.versionCode,versionName:info.versionName,package:info.package,
+        size:buf.byteLength,sha256:hash,chunks:n,chunkSize:CHUNK,notes:$('#apkNotes').value.trim()||null,
+        ts:firebase.database.ServerValue.TIMESTAMP,by:u.email||u.uid});
+      // Borrar las versiones anteriores para no llenar la base de datos.
+      const st=(await db.ref('updates/stored').once('value')).val()||{};
+      await Promise.all(Object.keys(st).filter(k=>k!==String(info.versionCode)).map(k=>
+        db.ref('updates/files/'+k).remove().then(()=>db.ref('updates/stored/'+k).remove())));
+      msg('Publicada ✓ Los coches la instalarán cuando estén parados.');
+      PICK=null; $('#apkForm').hidden=true; $('#apkInfo').hidden=true; $('#apkFile').value=''; $('#apkNotes').value='';
+    }catch(e){ msg('Error: '+(e.message||e)); }
+    btn.disabled=false; $('#apkFile').disabled=false;
+    setTimeout(()=>{bar.hidden=true;bar.firstElementChild.style.width='0';},1500);
+  }
 
   $('#saveCfg').onclick=()=>{
     db.ref('admin/config').update({resendKey:$('#resendKey').value.trim(),resendFrom:$('#resendFrom').value.trim()})

@@ -11,6 +11,12 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS"/>
     <uses-permission android:name="android.permission.READ_LOGS"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CAMERA"/>
+    <!-- Página de permisos: pedir que Android no la duerma para ahorrar batería (si no hay ADB). -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"/>
+    <!-- Actualizaciones sin ADB: instalar con confirmación del sistema. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>
     <!-- Permisos del SDK BYD (COMMON = runtime, se conceden por ADB con pm grant). -->
     <uses-permission android:name="android.permission.BYDAUTO_AC_COMMON"/>
     <uses-permission android:name="android.permission.BYDAUTO_BODYWORK_COMMON"/>
@@ -23,11 +29,20 @@
     <uses-permission android:name="android.permission.BYDAUTO_SPEED_COMMON"/>
     <uses-permission android:name="android.permission.BYDAUTO_STATISTIC_COMMON"/>
 
+    <!-- Pantallas del sistema que abre SystemScreens (en Android 11+ hay que declararlas para verlas). -->
+    <queries>
+        <package android:name="com.byd.carsettings"/>
+        <intent><action android:name="android.byd.intent.action.INPUT_CODE_VERIFICATION"/></intent>
+        <intent><action android:name="android.settings.APPLICATION_DEVELOPMENT_SETTINGS"/></intent>
+        <intent><action android:name="android.settings.SETTINGS"/></intent>
+    </queries>
+
     <application
         android:name=".App"
         android:label="@string/app_name"
         android:icon="@drawable/ic_launcher"
         android:allowBackup="false"
+        android:networkSecurityConfig="@xml/network_security_config"
         android:supportsRtl="true"
         android:theme="@style/Theme.BYDLink">
 
@@ -37,23 +52,84 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+        <activity android:name=".ui.PermissionsActivity" android:exported="false" android:label="Permisos y arranque"/>
+        <activity android:name=".ui.UpdatesActivity" android:exported="false" android:label="Actualizaciones"/>
+        <!-- Pantalla de inicio (lanzador) OPCIONAL: el alias con la categoría HOME está apagado de fábrica y solo se
+             enciende si el usuario lo pide en BYDLink (ui/LauncherMode). Así no se ofrece como lanzador sin querer. -->
+        <activity
+            android:name=".ui.HomeActivity"
+            android:exported="true"
+            android:label="BYDLink Inicio"
+            android:launchMode="singleTask"
+            android:clearTaskOnLaunch="true"
+            android:stateNotNeeded="true"
+            android:resumeWhilePausing="true"
+            android:excludeFromRecents="true"
+            android:taskAffinity="com.bydlink.carapp.home"/>
+        <!-- Solo para ver qué música suena (MediaSessionManager); no lee notificaciones. -->
+        <service
+            android:name=".service.MediaListener"
+            android:exported="true"
+            android:label="BYDLink (música)"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter><action android:name="android.service.notification.NotificationListenerService"/></intent-filter>
+        </service>
+        <activity-alias
+            android:name=".ui.HomeAlias"
+            android:targetActivity=".ui.HomeActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:label="BYDLink Inicio">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.HOME"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+            </intent-filter>
+        </activity-alias>
+        <!-- Invisible: el vigilante (usuario shell, tiene DUMP) la abre para levantar la app sin pasar por el
+             control de arranque de BYD, que solo filtra servicios, avisos y proveedores. -->
+        <activity
+            android:name=".ui.WakeActivity"
+            android:exported="true"
+            android:permission="android.permission.DUMP"
+            android:theme="@android:style/Theme.NoDisplay"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:taskAffinity="com.bydlink.carapp.wake"/>
 
-        <!-- Servicio en primer plano: mantiene la conexión con Firebase y el coche. -->
+        <!-- Servicio en primer plano: mantiene la conexión con Firebase y el coche.
+             Exportado SOLO para quien tenga DUMP (el sistema y el usuario shell): así el vigilante
+             puede volver a arrancarlo aunque se haya forzado la detención. Ninguna app normal puede. -->
         <service
             android:name=".service.MainService"
             android:enabled="true"
-            android:exported="false"
+            android:exported="true"
+            android:permission="android.permission.DUMP"
             android:foregroundServiceType="location|camera"/>
 
         <receiver android:name=".service.BootReceiver" android:enabled="true" android:exported="true">
             <intent-filter android:priority="9900">
                 <action android:name="android.intent.action.BOOT_COMPLETED"/>
                 <action android:name="android.intent.action.QUICKBOOT_POWERON"/>
+                <action android:name="com.htc.intent.action.QUICKBOOT_POWERON"/>
+                <!-- Avisos de BYD al dar contacto / cambiar el modo de energía. -->
+                <action android:name="com.byd.action.ACC_ON"/>
+                <action android:name="com.byd.action.IGN_ON"/>
+                <action android:name="com.bydaccmode.ACC_MODE_CHANGED"/>
+                <action android:name="android.intent.action.USER_PRESENT"/>
+                <!-- Tras actualizarse, volver a arrancar el servicio. -->
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
+                <!-- Como DiPlus/BYDMate: algunos DiLink entregan el arranque con estas categorías. -->
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.HOME"/>
             </intent-filter>
         </receiver>
 
         <!-- Mantenerse vivo (anti-hibernación): watchdog + job periódico. -->
         <receiver android:name=".service.RestartReceiver" android:exported="false"/>
+        <receiver android:name=".update.InstallResultReceiver" android:exported="false"/>
+        <!-- Test de cámara en un proceso APARTE: si la librería nativa de BYD peta, no tumba MainService. -->
+        <service android:name=".camera.CamTestService" android:process=":camtest" android:exported="false"/>
         <service
             android:name=".service.KeepAliveJobService"
             android:permission="android.permission.BIND_JOB_SERVICE"

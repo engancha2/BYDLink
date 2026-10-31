@@ -4,23 +4,28 @@
       "$carId": {
         ".read": "auth != null && (root.child('access/'+$carId+'/'+auth.uid).exists() || !root.child('access/'+$carId).exists())",
         ".write": "auth != null && (root.child('access/'+$carId+'/'+auth.uid).exists() || !root.child('access/'+$carId).exists())",
-        "status":      { ".indexOn": ["ts"] },
-        "trips":       { ".indexOn": ["start"] },
-        "sentryEvents":{ ".indexOn": ["ts"] },
-        "commands":    { ".indexOn": ["ts"] },
-        "responses":   { ".indexOn": ["ts"] }
+        "meta":             { ".read": "auth != null && (root.child('admins').child(auth.uid).exists() || auth.token.email == 'info@mappscreen.com' || auth.token.email == 'xavicruzrubio@gmail.com')" },
+        "status":           { ".indexOn": ["ts"] },
+        "trips":            { ".indexOn": ["start"] },
+        "sentryEvents":     { ".indexOn": ["ts"] },
+        "chargingSessions": { ".indexOn": ["start"] },
+        "commands":         { ".indexOn": ["ts"] },
+        "responses":        { ".indexOn": ["ts"] }
       }
     },
     "access": {
       "$carId": {
-        ".read": "auth != null",
-        ".write": "auth != null"
+        "$uid": {
+          ".read": "auth != null && auth.uid == $uid",
+          ".write": "auth != null && auth.uid == $uid && (!newData.exists() || data.exists() || !data.parent().exists() || (newData.isString() && newData.val().matches(/^[A-Z0-9]{6}$/) && root.child('pairing/'+newData.val()+'/carId').val() == $carId))"
+        }
       }
     },
     "pairing": {
       "$code": {
         ".read": "auth != null",
-        ".write": "auth != null"
+        ".write": "auth != null && ((newData.exists() && root.child('access/'+newData.child('carId').val()+'/'+auth.uid).exists() && (!data.exists() || data.child('carId').val() == newData.child('carId').val())) || (!newData.exists() && root.child('access/'+data.child('carId').val()+'/'+auth.uid).exists()))",
+        ".validate": "$code.matches(/^[A-Z0-9]{6}$/) && newData.child('carId').isString()"
       }
     },
     "users": {
@@ -34,6 +39,12 @@
     "admins": {
       ".read": "auth != null",
       "$uid": { ".write": false }
+    },
+    "updates": {
+      ".write": "auth != null && (root.child('admins').child(auth.uid).exists() || auth.token.email == 'info@mappscreen.com' || auth.token.email == 'xavicruzrubio@gmail.com')",
+      "latest": { ".read": "auth != null" },
+      "files":  { "$code": { "$i": { ".read": "auth != null" } } },
+      "stored": { ".read": "auth != null && (root.child('admins').child(auth.uid).exists() || auth.token.email == 'info@mappscreen.com' || auth.token.email == 'xavicruzrubio@gmail.com')" }
     },
     "admin": {
       ".read": "auth != null && (root.child('admins').child(auth.uid).exists() || auth.token.email == 'info@mappscreen.com' || auth.token.email == 'xavicruzrubio@gmail.com')",

@@ -3,298 +3,495 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#0b0f14">
+  <meta name="theme-color" content="#0a0d12" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#f3f5f8" media="(prefers-color-scheme: light)">
+  <meta name="color-scheme" content="dark light">
+  <meta name="description" content="BYDLink: controla y vigila tu BYD desde el móvil.">
   <title>BYDLink</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icon.svg">
-  <!-- Mapa (OpenStreetMap vía Leaflet). Si no hay internet, el resto de la app sigue funcionando. -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css"
-        integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A==" crossorigin="">
+        integrity="sha512-Zcn6bjR/8RZbLEpLIeOwNtzREBAJnUKESxces60Mpoj+2okopSAcSUIUOseddDm0cxnGQzxIR7vJgsLZbdLE3w==" crossorigin="">
   <link rel="stylesheet" href="style.css">
 </head>
-<body data-mode="demo">
-  <!-- Pantalla de acceso (login / registro) — se muestra en modo firebase sin sesión -->
-  <div id="authGate" class="auth-gate" hidden>
-    <div class="auth-box">
-      <div class="auth-logo">BYDLink</div>
-      <div class="auth-sub" id="authSub">Entra para controlar tu coche</div>
-      <button id="googleBtn" class="auth-google">
-        <span class="g">G</span> Continuar con Google
-      </button>
-      <div class="auth-or"><span>o</span></div>
-      <input id="authEmail" type="email" placeholder="Correo" autocomplete="email">
-      <input id="authPass" type="password" placeholder="Contraseña" autocomplete="current-password">
-      <div id="authError" class="auth-error"></div>
-      <button id="authSubmit" class="auth-btn">Entrar</button>
-      <div class="auth-links">
-        <span id="authToggle">¿No tienes cuenta? <b>Crear una</b></span>
-        <span id="authForgot">¿Olvidaste la contraseña?</span>
-      </div>
+<body>
+  <!-- Iconos (trazo 2px, 24×24) -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5.5 9v11.5h13V9"/><path d="M10 20.5v-6h4v6"/></symbol>
+      <symbol id="i-map" viewBox="0 0 24 24"><path d="M9 4 3 6.2v13.8l6-2.2 6 2.2 6-2.2V4l-6 2.2L9 4z"/><path d="M9 4v13.8M15 6.2V20"/></symbol>
+      <symbol id="i-video" viewBox="0 0 24 24"><rect x="2.5" y="6" width="13" height="12" rx="2.5"/><path d="m15.5 10.5 6-3.5v10l-6-3.5"/></symbol>
+      <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3 4.5 6v5.5c0 4.6 3.2 8.2 7.5 9.5 4.3-1.3 7.5-4.9 7.5-9.5V6L12 3z"/><path d="m9 12 2 2 4-4"/></symbol>
+      <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/></symbol>
+      <symbol id="i-lock" viewBox="0 0 24 24"><rect x="4.5" y="10.5" width="15" height="10" rx="2.5"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></symbol>
+      <symbol id="i-unlock" viewBox="0 0 24 24"><rect x="4.5" y="10.5" width="15" height="10" rx="2.5"/><path d="M8 10.5V7.5a4 4 0 0 1 7.6-1.7"/></symbol>
+      <symbol id="i-snow" viewBox="0 0 24 24"><path d="M12 2.5v19M3.8 7.2l16.4 9.6M20.2 7.2 3.8 16.8"/><path d="m9.5 4 2.5 2 2.5-2M9.5 20l2.5-2 2.5 2"/></symbol>
+      <symbol id="i-window" viewBox="0 0 24 24"><path d="M4 19.5h16"/><path d="M5 19.5V11l5-5.5h9v14"/><path d="M12 9v6M9.5 12.5 12 15l2.5-2.5"/></symbol>
+      <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 2.5 4.5 13.5H11l-1 8 8.5-11H12l1-8z"/></symbol>
+      <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s-7-6-7-11.5a7 7 0 0 1 14 0C19 15 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></symbol>
+      <symbol id="i-nav" viewBox="0 0 24 24"><path d="m3.5 10.5 17-7-7 17-2-8-8-2z"/></symbol>
+      <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></symbol>
+      <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+      <symbol id="i-right" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></symbol>
+      <symbol id="i-left" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></symbol>
+      <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+      <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+      <symbol id="i-car" viewBox="0 0 24 24"><path d="M5 11 6.8 6.4A2 2 0 0 1 8.7 5h6.6a2 2 0 0 1 1.9 1.4L19 11"/><rect x="3" y="11" width="18" height="6.5" rx="2"/><path d="M6 17.5V19.5M18 17.5V19.5"/><circle cx="7.5" cy="14.2" r="1"/><circle cx="16.5" cy="14.2" r="1"/></symbol>
+      <symbol id="i-cloud-off" viewBox="0 0 24 24"><path d="m3 3 18 18"/><path d="M8.5 6.6A6 6 0 0 1 17.5 10a4 4 0 0 1 2.8 6.6M16 18H7a4.5 4.5 0 0 1-1.6-8.7"/></symbol>
+      <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.6-5.9L20 8.5"/><path d="M20 3.5v5h-5"/></symbol>
+      <symbol id="i-logout" viewBox="0 0 24 24"><path d="M9.5 20.5H6a2 2 0 0 1-2-2v-13a2 2 0 0 1 2-2h3.5"/><path d="m15.5 16.5 4.5-4.5-4.5-4.5M20 12H9.5"/></symbol>
+      <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+      <symbol id="i-eye-off" viewBox="0 0 24 24"><path d="m3 3 18 18"/><path d="M10.6 5.6A9.6 9.6 0 0 1 12 5.5C18 5.5 21.5 12 21.5 12a17 17 0 0 1-2.9 3.7M6.2 6.9C3.9 8.6 2.5 12 2.5 12S6 18.5 12 18.5a9 9 0 0 0 4.1-1"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></symbol>
+      <symbol id="i-heat" viewBox="0 0 24 24"><path d="M7 20c-1.6-1.8 1.6-3.7 0-5.5S8.6 10.8 7 9 8.6 5.3 7 3.5M12 20c-1.6-1.8 1.6-3.7 0-5.5s1.6-3.7 0-5.5 1.6-3.7 0-5.5M17 20c-1.6-1.8 1.6-3.7 0-5.5s1.6-3.7 0-5.5 1.6-3.7 0-5.5"/></symbol>
+      <symbol id="i-fan" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1.6"/><path d="M12 10.4C11 7 11.8 3.5 14.6 3.5c2 0 2.7 2.3 1.2 3.7L13.4 9.8M13.6 12c3.4-1 6.9-.2 6.9 2.6 0 2-2.3 2.7-3.7 1.2l-2.6-2.4M12 13.6c1 3.4.2 6.9-2.6 6.9-2 0-2.7-2.3-1.2-3.7l2.4-2.6M10.4 12C7 13 3.5 12.2 3.5 9.4c0-2 2.3-2.7 3.7-1.2l2.6 2.4"/></symbol>
+      <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
+      <symbol id="i-alert" viewBox="0 0 24 24"><path d="M10.3 4 2.6 17.5A2 2 0 0 0 4.3 20.5h15.4a2 2 0 0 0 1.7-3L13.7 4a2 2 0 0 0-3.4 0z"/><path d="M12 9.5v4.5M12 17h.01"/></symbol>
+      <symbol id="i-expand" viewBox="0 0 24 24"><path d="M8.5 3.5h-5v5M15.5 3.5h5v5M8.5 20.5h-5v-5M15.5 20.5h5v-5"/></symbol>
+      <symbol id="i-power" viewBox="0 0 24 24"><path d="M12 3v8.5"/><path d="M6.3 6.8a8 8 0 1 0 11.4 0"/></symbol>
+      <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></symbol>
+      <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4.5 20.5a7.5 7.5 0 0 1 15 0"/></symbol>
+      <symbol id="i-route" viewBox="0 0 24 24"><circle cx="6" cy="18.5" r="2"/><circle cx="18" cy="5.5" r="2"/><path d="M8 18.5h8.5a3.3 3.3 0 0 0 0-6.6h-9a3.3 3.3 0 0 1 0-6.6H16"/></symbol>
+      <symbol id="i-pencil" viewBox="0 0 24 24"><path d="M15.5 4.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4L15.5 4.5z"/></symbol>
+      <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol>
+      <symbol id="i-camera" viewBox="0 0 24 24"><path d="M4 8.5A2.5 2.5 0 0 1 6.5 6H8l1.5-2h5L16 6h1.5A2.5 2.5 0 0 1 20 8.5v8a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 16.5z"/><circle cx="12" cy="12.5" r="3.5"/></symbol>
+      <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 19.5h14"/></symbol>
+      <symbol id="i-qr" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="6.5" height="6.5" rx="1.3"/><rect x="14" y="3.5" width="6.5" height="6.5" rx="1.3"/><rect x="3.5" y="14" width="6.5" height="6.5" rx="1.3"/><path d="M14 14h2.5v2.5H14zM18 18h2.5v2.5H18zM14 20.5h1.5M20.5 14v1.5"/></symbol>
+      <symbol id="i-scan" viewBox="0 0 24 24"><path d="M3.5 8V5.5a2 2 0 0 1 2-2H8M16 3.5h2.5a2 2 0 0 1 2 2V8M20.5 16v2.5a2 2 0 0 1-2 2H16M8 20.5H5.5a2 2 0 0 1-2-2V16"/><path d="M7 12h10"/></symbol>
+      <symbol id="i-sparkle" viewBox="0 0 24 24"><path d="M12 3.5 13.8 9 19.5 10.5 13.8 12.2 12 18l-1.8-5.8L4.5 10.5 10.2 9z"/></symbol>
+      <symbol id="i-logo" viewBox="0 0 32 32"><path d="M7 19.5 9.6 12A3 3 0 0 1 12.4 10h7.2a3 3 0 0 1 2.8 2l2.6 7.5" stroke-width="2.4"/><rect x="5" y="19" width="22" height="7" rx="2.5" stroke-width="2.4"/><path d="M16 3.5v3M10.5 5.5l1.2 2M21.5 5.5l-1.2 2" stroke-width="2.2"/></symbol>
+    </defs>
+  </svg>
+
+  <!-- ═══════════ Cargando ═══════════ -->
+  <div id="scrLoading" class="screen splash">
+    <div class="splash-in">
+      <span class="brand-mark big"><svg><use href="#i-logo"/></svg></span>
+      <div class="spinner" aria-label="Cargando"></div>
     </div>
   </div>
 
-  <!-- Barra superior -->
-  <header class="topbar">
-    <div class="car">
-      <span id="carDot" class="dot"></span>
-      <div>
-        <div id="carName" class="car-name">Mi BYD</div>
-        <div id="carState" class="car-sub">conectando…</div>
+  <!-- ═══════════ Acceso ═══════════ -->
+  <div id="scrAuth" class="screen auth" hidden>
+    <div class="auth-wrap">
+      <div class="brand"><span class="brand-mark"><svg><use href="#i-logo"/></svg></span><span>BYDLink</span></div>
+      <div id="authPair" class="banner info" hidden>
+        <svg><use href="#i-link"/></svg>
+        <div><b>Tu coche está listo para vincularse</b><span>Entra o crea una cuenta y se vinculará solo.</span></div>
+      </div>
+      <h1 id="authTitle">Entra en tu cuenta</h1>
+      <p class="lead">Mira y controla tu BYD desde el móvil, y úsalo como cámara de vigilancia cuando está aparcado.</p>
+
+      <button id="googleBtn" class="btn btn-google btn-block" type="button">
+        <svg class="g-logo" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3a12 12 0 0 1-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>
+        Continuar con Google
+      </button>
+
+      <div class="divider"><span>o con tu correo</span></div>
+
+      <form id="authForm" novalidate>
+        <label class="field">
+          <span>Correo</span>
+          <input id="authEmail" type="email" inputmode="email" autocomplete="email" placeholder="tu@correo.com" required>
+        </label>
+        <label class="field">
+          <span>Contraseña</span>
+          <span class="pw">
+            <input id="authPass" type="password" autocomplete="current-password" placeholder="Mínimo 6 caracteres" minlength="6" required>
+            <button type="button" id="pwToggle" class="icon-btn" aria-label="Mostrar contraseña"><svg><use href="#i-eye"/></svg></button>
+          </span>
+        </label>
+        <p id="authMsg" class="form-msg" role="alert"></p>
+        <button type="submit" id="authSubmit" class="btn btn-primary btn-block">Entrar</button>
+      </form>
+
+      <div class="auth-links">
+        <button type="button" id="authForgot" class="link">¿Has olvidado la contraseña?</button>
+        <p><span id="authSwitchTxt">¿Aún no tienes cuenta?</span> <button type="button" id="authToggle" class="link strong">Crear cuenta</button></p>
+      </div>
+
+      <a href="?demo" class="btn btn-ghost btn-block" id="demoLink"><svg><use href="#i-sparkle"/></svg>Probar la demo sin cuenta</a>
+      <p class="fine">Versión <span data-ver></span> · Software libre (GPLv3) · No afiliado a BYD · <a href="https://bydhack.com" target="_blank" rel="noopener">bydhack.com</a></p>
+    </div>
+  </div>
+
+  <!-- ═══════════ Vincular coche ═══════════ -->
+  <div id="scrPair" class="screen pair" hidden>
+    <div class="auth-wrap">
+      <button type="button" id="pairBack" class="back" hidden><svg><use href="#i-left"/></svg>Volver</button>
+      <div class="pair-hero"><svg><use href="#i-qr"/></svg></div>
+      <h1>Vincula tu coche</h1>
+      <p class="lead">Abre <b>BYDLink</b> en la pantalla del coche y escanea el código QR que aparece.</p>
+      <button type="button" id="scanBtn" class="btn btn-primary btn-block btn-lg"><svg><use href="#i-scan"/></svg>Escanear el QR del coche</button>
+      <div class="divider"><span>o escribe el código de 6 caracteres</span></div>
+      <form id="pairForm" novalidate>
+        <input id="pairCode" class="code-input" maxlength="6" autocomplete="off" autocapitalize="characters"
+               spellcheck="false" inputmode="text" placeholder="ABC123" aria-label="Código de vinculación">
+        <p id="pairMsg" class="form-msg" role="alert"></p>
+        <button type="submit" id="pairSubmit" class="btn btn-soft btn-block" disabled>Vincular coche</button>
+      </form>
+      <p class="fine">¿Aún no tienes BYDLink en el coche? Instálala en su pantalla: <a href="https://bydhack.com" target="_blank" rel="noopener">bydhack.com</a></p>
+      <div class="pair-foot">
+        <a href="?demo" class="link">Ver la demo</a>
+        <span aria-hidden="true">·</span>
+        <button type="button" id="pairLogout" class="link">Cerrar sesión</button>
+      </div>
+      <p class="fine" id="pairAcct"></p>
+    </div>
+  </div>
+
+  <!-- ═══════════ App ═══════════ -->
+  <div id="scrApp" class="screen app" hidden>
+    <header class="topbar">
+      <button type="button" class="car-id" id="carIdBtn" aria-label="Cambiar de coche o ver ajustes">
+        <span class="car-name" id="carName">Mi BYD</span>
+        <span class="car-conn" id="carConn"><i class="dot"></i><span id="carConnTxt">Conectando…</span></span>
+      </button>
+      <div class="top-soc" id="topSoc" aria-label="Batería"><span id="topSocTxt">--%</span><i class="mini-batt"><i id="topSocFill"></i></i></div>
+    </header>
+
+    <div class="banners">
+      <div id="bnDemo" class="banner info" hidden>
+        <svg><use href="#i-sparkle"/></svg>
+        <div><b>Modo demo</b><span>Coche simulado, nada es real.</span></div>
+        <a href="./" class="banner-act">Salir</a>
+      </div>
+      <div id="bnNet" class="banner warn" hidden>
+        <svg><use href="#i-cloud-off"/></svg>
+        <div><b>Sin conexión a internet</b><span>Los datos se actualizarán cuando vuelvas a tener red.</span></div>
+      </div>
+      <div id="bnOffline" class="banner muted" hidden>
+        <svg><use href="#i-power"/></svg>
+        <div><b id="bnOfflineTitle">Coche desconectado</b><span id="bnOfflineTxt">Mostrando los últimos datos recibidos.</span></div>
+      </div>
+      <div id="bnDenied" class="banner danger" hidden>
+        <svg><use href="#i-alert"/></svg>
+        <div><b>Sin permiso para este coche</b><span>Vuelve a vincularlo con el código de la pantalla.</span></div>
+        <button type="button" class="banner-act" data-action="pair-again">Vincular</button>
       </div>
     </div>
-    <div class="top-battery">
-      <span id="topSoc">--%</span>
-      <div class="minibatt"><i id="topBattFill"></i></div>
-    </div>
-  </header>
 
-  <span id="demoBadge" class="demo-badge">MODO DEMO</span>
-
-  <main>
-    <!-- ───────── INICIO ───────── -->
-    <section class="view" data-view="home">
-      <div class="hero card">
-        <div class="ring" id="socRing">
-          <svg viewBox="0 0 120 120">
-            <circle class="ring-bg" cx="60" cy="60" r="52"></circle>
-            <circle class="ring-fg" id="socArc" cx="60" cy="60" r="52"></circle>
-          </svg>
-          <div class="ring-label">
-            <div id="socBig" class="soc-big">--</div>
-            <div class="soc-unit">%</div>
+    <main id="views">
+      <!-- ───── INICIO ───── -->
+      <section class="view" data-view="home">
+        <button type="button" class="card battery" id="batteryCard" data-goto="charge">
+          <div class="bat-top">
+            <div class="bat-soc"><span id="socVal">--</span><small>%</small></div>
+            <div class="bat-range"><span><b id="rangeVal">--</b> km</span><small>autonomía</small></div>
           </div>
-        </div>
-        <div class="hero-side">
-          <div class="stat"><span class="k">Autonomía</span><span id="rangeVal" class="v">-- km</span></div>
-          <div class="stat"><span class="k">Estado</span><span id="chargeVal" class="v">—</span></div>
-          <div class="stat"><span class="k">Marcha</span><span id="gearVal" class="v">P</span></div>
-          <div class="stat"><span class="k">Temp. ext.</span><span id="tempVal" class="v">-- °</span></div>
-        </div>
-      </div>
-
-      <div class="grid2">
-        <button class="card tile" id="lockTile">
-          <span class="tile-ico" id="lockIco">🔒</span>
-          <span class="tile-k">Cierre</span>
-          <span class="tile-v" id="lockVal">Cerrado</span>
+          <div class="bat-bar"><i id="socFill"></i></div>
+          <div class="bat-foot">
+            <span class="chip" id="driveChip"><svg><use href="#i-car" id="driveIco"/></svg><span id="driveTxt">Sin datos</span></span>
+            <span class="chip" id="outChip" hidden title="Temperatura exterior"><svg><use href="#i-heat" id="outIco"/></svg><span id="outTxt"></span></span>
+            <span class="more">Carga<svg><use href="#i-right"/></svg></span>
+          </div>
         </button>
-        <button class="card tile" id="climateTile">
-          <span class="tile-ico">❄️</span>
-          <span class="tile-k">Clima</span>
-          <span class="tile-v" id="climateVal">Apagado</span>
-        </button>
-      </div>
 
-      <div class="card">
-        <div class="card-title">Telemetría</div>
-        <div class="telem">
-          <div class="tm"><span class="tm-v" id="tmPower">-- kW</span><span class="tm-k">Potencia</span></div>
-          <div class="tm"><span class="tm-v" id="tmCons">-- </span><span class="tm-k">Consumo kWh/100</span></div>
-          <div class="tm"><span class="tm-v" id="tmOdo">-- km</span><span class="tm-k">Odómetro</span></div>
-          <div class="tm"><span class="tm-v" id="tmVolt">-- V</span><span class="tm-k">Batería</span></div>
+        <div class="card car-card">
+          <div class="car-stage" id="carStage">
+            <svg class="car-svg" viewBox="0 0 200 400" role="img" aria-labelledby="carSummary">
+              <rect class="wheel" x="22" y="72" width="20" height="54" rx="8"/>
+              <rect class="wheel" x="158" y="72" width="20" height="54" rx="8"/>
+              <rect class="wheel" x="22" y="280" width="20" height="54" rx="8"/>
+              <rect class="wheel" x="158" y="280" width="20" height="54" rx="8"/>
+              <path class="mirror" d="M36 150 22 146c-4 0-4 12 0 12l14 2z"/>
+              <path class="mirror" d="M164 150l14-4c4 0 4 12 0 12l-14 2z"/>
+              <path class="body" d="M100 22c32 0 54 8 60 30 4 14 5 38 5 68v180c0 40-3 62-11 72-10 10-30 14-54 14s-44-4-54-14c-8-10-11-32-11-72V120c0-30 1-54 5-68 6-22 28-30 60-30z"/>
+              <path class="lid" data-door="hood" d="M46 62c14-26 94-26 108 0l-3 64c-30-8-72-8-102 0z"/>
+              <path class="glass" d="M50 140c20-14 80-14 100 0l-8 38c-22-6-62-6-84 0z"/>
+              <rect class="roof" x="58" y="182" width="84" height="106" rx="14"/>
+              <path class="glass" d="M58 292c22 6 62 6 84 0l6 30c-24 10-72 10-96 0z"/>
+              <path class="lid" data-door="trunk" d="M51 332c30 10 68 10 98 0l2 28c-22 16-80 16-102 0z"/>
+              <path class="win" data-win="fl" d="M41 150l13 4v76H40z"/>
+              <path class="win" data-win="rl" d="M40 236h14v56l-13 2z"/>
+              <path class="win" data-win="fr" d="M159 150l-13 4v76h14z"/>
+              <path class="win" data-win="rr" d="M160 236h-14v56l13 2z"/>
+              <rect class="door door-l" data-door="fl" x="31" y="148" width="7" height="84" rx="3.5"/>
+              <rect class="door door-l" data-door="rl" x="31" y="236" width="7" height="72" rx="3.5"/>
+              <rect class="door door-r" data-door="fr" x="162" y="148" width="7" height="84" rx="3.5"/>
+              <rect class="door door-r" data-door="rr" x="162" y="236" width="7" height="72" rx="3.5"/>
+              <path class="light head" d="M47 52c8-12 22-19 34-20M153 52c-8-12-22-19-34-20"/>
+              <path class="light tail" d="M46 362c8 10 20 16 32 18M154 362c-8 10-20 16-32 18"/>
+              <g class="lock-badge" id="lockBadge">
+                <circle cx="100" cy="235" r="21"/>
+                <use id="lockBadgeIco" href="#i-lock" x="88" y="223" width="24" height="24"/>
+              </g>
+            </svg>
+            <div class="tp tp-fl" data-tyre="fl"><em>Del. izq.</em><b>--</b><span>bar</span></div>
+            <div class="tp tp-fr" data-tyre="fr"><em>Del. der.</em><b>--</b><span>bar</span></div>
+            <div class="tp tp-rl" data-tyre="rl"><em>Tras. izq.</em><b>--</b><span>bar</span></div>
+            <div class="tp tp-rr" data-tyre="rr"><em>Tras. der.</em><b>--</b><span>bar</span></div>
+          </div>
+          <p class="car-summary" id="carSummary">Esperando datos del coche…</p>
         </div>
-      </div>
 
-      <div class="card">
-        <div class="card-title">Puertas y maletero</div>
-        <div class="doors" id="doorsGrid">
-          <div class="door" data-door="fl">Del. izq.</div>
-          <div class="door" data-door="fr">Del. der.</div>
-          <div class="door" data-door="rl">Tras. izq.</div>
-          <div class="door" data-door="rr">Tras. der.</div>
-          <div class="door" data-door="trunk">Maletero</div>
-          <div class="door" data-door="hood">Capó</div>
+        <div class="controls" id="controls">
+          <button type="button" class="ctl" id="ctlLock">
+            <span class="ctl-ico"><svg><use href="#i-lock" id="ctlLockIco"/></svg></span>
+            <span class="ctl-k">Cierre</span><span class="ctl-v" id="ctlLockV">—</span>
+          </button>
+          <button type="button" class="ctl" id="ctlClimate">
+            <span class="ctl-ico"><svg><use href="#i-snow"/></svg></span>
+            <span class="ctl-k">Clima</span><span class="ctl-v" id="ctlClimateV">Apagado</span>
+          </button>
+          <button type="button" class="ctl" id="ctlWindows">
+            <span class="ctl-ico"><svg><use href="#i-window"/></svg></span>
+            <span class="ctl-k">Ventanas</span><span class="ctl-v" id="ctlWindowsV">—</span>
+          </button>
+          <button type="button" class="ctl" id="ctlSentry">
+            <span class="ctl-ico"><svg><use href="#i-shield"/></svg></span>
+            <span class="ctl-k">Centinela</span><span class="ctl-v" id="ctlSentryV">—</span>
+          </button>
         </div>
-      </div>
 
-      <div class="card">
-        <div class="card-title">Ventanas</div>
-        <div class="doors" id="windowsGrid">
-          <div class="door" data-win="fl">Del. izq.</div>
-          <div class="door" data-win="fr">Del. der.</div>
-          <div class="door" data-win="rl">Tras. izq.</div>
-          <div class="door" data-win="rr">Tras. der.</div>
-          <div class="door" data-win="sunroof">Techo</div>
-        </div>
-        <div class="win-actions">
-          <button class="btn-wide" id="winClose">⬆ Subir todas</button>
-          <button class="btn-wide" id="winOpen">⬇ Bajar todas</button>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-title">Confort de asientos</div>
-        <div class="seat-row">
-          <span>Conductor</span>
-          <div class="stepper" data-seat="driver">
-            <button data-d="-1">−</button>
-            <span class="seat-stage" id="seatDriver">0</span>
-            <button data-d="1">+</button>
+        <div class="card" data-cap="seats">
+          <h2 class="card-h">Asientos</h2>
+          <div class="seat-row" data-cap="seatComfort">
+            <span class="seat-name">Conductor</span>
+            <div class="seg seat-seg" data-seat="driver" role="group" aria-label="Asiento del conductor">
+              <button type="button" data-v="-2" class="cool" data-cap="seatVent" aria-label="Ventilación 2"><svg><use href="#i-fan"/></svg>2</button>
+              <button type="button" data-v="-1" class="cool" data-cap="seatVent" aria-label="Ventilación 1"><svg><use href="#i-fan"/></svg>1</button>
+              <button type="button" data-v="0" aria-label="Apagado">Off</button>
+              <button type="button" data-v="1" class="heat" data-cap="seatHeat" aria-label="Calefacción 1"><svg><use href="#i-heat"/></svg>1</button>
+              <button type="button" data-v="2" class="heat" data-cap="seatHeat" aria-label="Calefacción 2"><svg><use href="#i-heat"/></svg>2</button>
+            </div>
+          </div>
+          <div class="seat-row" data-cap="seatComfort">
+            <span class="seat-name">Acompañante</span>
+            <div class="seg seat-seg" data-seat="passenger" role="group" aria-label="Asiento del acompañante">
+              <button type="button" data-v="-2" class="cool" data-cap="seatVent" aria-label="Ventilación 2"><svg><use href="#i-fan"/></svg>2</button>
+              <button type="button" data-v="-1" class="cool" data-cap="seatVent" aria-label="Ventilación 1"><svg><use href="#i-fan"/></svg>1</button>
+              <button type="button" data-v="0" aria-label="Apagado">Off</button>
+              <button type="button" data-v="1" class="heat" data-cap="seatHeat" aria-label="Calefacción 1"><svg><use href="#i-heat"/></svg>1</button>
+              <button type="button" data-v="2" class="heat" data-cap="seatHeat" aria-label="Calefacción 2"><svg><use href="#i-heat"/></svg>2</button>
+            </div>
           </div>
         </div>
-        <div class="seat-row">
-          <span>Pasajero</span>
-          <div class="stepper" data-seat="passenger">
-            <button data-d="-1">−</button>
-            <span class="seat-stage" id="seatPassenger">0</span>
-            <button data-d="1">+</button>
+
+        <div class="card loc-card">
+          <div class="loc-head">
+            <span class="loc-ico"><svg><use href="#i-pin"/></svg></span>
+            <div class="loc-txt">
+              <h2 class="card-h">Ubicación</h2>
+              <p id="locAddr" class="loc-addr">Sin ubicación todavía</p>
+              <p id="locWhen" class="hint"></p>
+            </div>
+          </div>
+          <div class="loc-actions" id="locActions" hidden>
+            <a id="locNav" class="btn btn-soft" target="_blank" rel="noopener"><svg><use href="#i-nav"/></svg>Cómo llegar</a>
+            <button type="button" class="btn btn-soft" data-goto="map"><svg><use href="#i-map"/></svg>Ver mapa</button>
           </div>
         </div>
-        <div class="seat-legend">− ventilación · + calefacción (−2 a +2)</div>
-      </div>
 
-      <div class="card">
-        <div class="card-title">Neumáticos (bar)</div>
-        <div class="tyres" id="tyresGrid">
-          <div class="tyre" data-tyre="fl"><span class="tp">--</span><span class="tl">Del. izq.</span></div>
-          <div class="tyre" data-tyre="fr"><span class="tp">--</span><span class="tl">Del. der.</span></div>
-          <div class="tyre" data-tyre="rl"><span class="tp">--</span><span class="tl">Tras. izq.</span></div>
-          <div class="tyre" data-tyre="rr"><span class="tp">--</span><span class="tl">Tras. der.</span></div>
+        <div class="card">
+          <h2 class="card-h">Datos del coche</h2>
+          <dl class="facts">
+            <div><dt>Temperatura exterior</dt><dd id="fTemp">—</dd></div>
+            <div><dt>Marcha</dt><dd id="fGear">—</dd></div>
+            <div><dt>Cuentakilómetros</dt><dd id="fOdo">—</dd></div>
+            <div><dt>Potencia</dt><dd id="fPower">—</dd></div>
+            <div><dt>Consumo medio</dt><dd id="fCons">—</dd></div>
+            <div><dt>Tensión batería</dt><dd id="fVolt">—</dd></div>
+          </dl>
+          <p class="hint" id="factsWhen"></p>
         </div>
-      </div>
-    </section>
+      </section>
 
-    <!-- ───────── MAPA ───────── -->
-    <section class="view" data-view="map" hidden>
-      <div id="map"></div>
-      <div class="card">
-        <div class="card-title">Viajes</div>
-        <div id="tripList" class="trip-list"><div class="empty">Sin viajes</div></div>
-      </div>
-    </section>
-
-    <!-- ───────── CÁMARA ───────── -->
-    <section class="view" data-view="cam" hidden>
-      <div class="cam-wrap card">
-        <video id="liveVideo" playsinline autoplay muted></video>
-        <div id="camPlaceholder" class="cam-ph">
-          <div>📷</div>
-          <p>Pulsa una cámara para ver en vivo</p>
+      <!-- ───── MAPA ───── -->
+      <section class="view" data-view="map" hidden>
+        <div class="map-wrap card">
+          <div id="map"></div>
+          <button type="button" id="mapCenter" class="map-fab" aria-label="Centrar en el coche"><svg><use href="#i-target"/></svg></button>
+          <div id="mapEmpty" class="map-empty" hidden><svg><use href="#i-pin"/></svg><p>El coche aún no ha enviado su ubicación.</p></div>
         </div>
-        <div id="camStatus" class="cam-status" hidden></div>
-      </div>
-      <div class="cam-buttons">
-        <button class="cambtn" data-cam="front">Frontal</button>
-        <button class="cambtn" data-cam="back">Trasera</button>
-        <button class="cambtn" data-cam="left">Izquierda</button>
-        <button class="cambtn" data-cam="right">Derecha</button>
-      </div>
-      <button id="camStop" class="btn-wide danger" hidden>Detener</button>
-    </section>
+        <div class="card">
+          <h2 class="card-h">Viajes</h2>
+          <div id="tripList" class="list"></div>
+        </div>
+      </section>
 
-    <!-- ───────── CENTINELA ───────── -->
-    <section class="view" data-view="sentry" hidden>
-      <div class="card">
-        <div class="row-between">
+      <!-- ───── CÁMARAS ───── -->
+      <section class="view" data-view="cam" hidden>
+        <div class="cam card" id="camBox" data-state="idle">
+          <video id="camVideo" playsinline autoplay muted></video>
+          <img id="camImg" alt="">
+          <div class="cam-overlay">
+            <div class="cam-msg">
+              <span class="cam-msg-ico"><svg><use href="#i-video"/></svg></span>
+              <div class="spinner sm"></div>
+              <p id="camMsg">Elige una cámara para verla en directo</p>
+              <button type="button" id="camRetry" class="btn btn-soft">
+                <svg><use href="#i-refresh"/></svg>Reintentar</button>
+            </div>
+          </div>
+          <div class="cam-hud">
+            <span class="live-pill"><i></i>EN DIRECTO</span>
+            <span class="cam-name" id="camName"></span>
+            <span class="cam-age" id="camAge"></span>
+            <button type="button" id="camFull" class="icon-btn on-video" aria-label="Pantalla completa"><svg><use href="#i-expand"/></svg></button>
+          </div>
+        </div>
+        <div class="seg cam-seg" id="camSeg" role="group" aria-label="Cámara">
+          <button type="button" data-cam="front">Frontal</button>
+          <button type="button" data-cam="back">Trasera</button>
+          <button type="button" data-cam="left">Izquierda</button>
+          <button type="button" data-cam="right">Derecha</button>
+          <button type="button" data-cam="mosaic">4 en 1</button>
+        </div>
+        <div class="row2 cam-actions">
+          <button type="button" id="camPhoto" class="btn btn-soft"><svg><use href="#i-camera"/></svg>Hacer foto</button>
+          <button type="button" id="camStop" class="btn btn-danger-soft" hidden>Detener</button>
+        </div>
+        <div class="seg cam-quality" id="camQuality" role="group" aria-label="Calidad">
+          <button type="button" data-q="jpeg" class="active">Ligero (funciona siempre)</button>
+          <button type="button" data-q="hd">Vídeo HD (beta)</button>
+        </div>
+        <div class="cam-diag"><button type="button" class="link" id="camTest">Probar la cámara del coche</button><span id="camDiag"></span></div>
+        <p class="hint center" id="camHint">Imágenes del coche cada medio segundo por internet: funcionan con cualquier red. El vídeo HD va directo del coche al móvil y puede no conectar fuera de casa.</p>
+      </section>
+
+      <!-- ───── CENTINELA ───── -->
+      <section class="view" data-view="sentry" hidden>
+        <div class="card sentry-hero" id="sentryHero">
+          <div class="sh-top">
+            <span class="sh-ico"><svg><use href="#i-shield"/></svg></span>
+            <div class="sh-txt"><h2>Centinela</h2><p id="sentryTxt">—</p></div>
+            <label class="switch" aria-label="Activar centinela"><input type="checkbox" id="sentrySwitch"><span></span></label>
+          </div>
+          <p class="hint">Con el coche aparcado, vigila con las cámaras y te avisa si detecta movimiento cerca.</p>
+          <div class="range-head"><span>Sensibilidad</span><output id="sensOut">5</output></div>
+          <input type="range" id="sensRange" min="1" max="10" step="1" value="5" aria-label="Sensibilidad">
+          <div class="range-legend"><span>Baja · menos avisos</span><span>Alta · más avisos</span></div>
+        </div>
+        <div class="card">
+          <h2 class="card-h">Detecciones</h2>
+          <div id="eventList" class="list"></div>
+        </div>
+      </section>
+
+      <!-- ───── CARGA ───── -->
+      <section class="view" data-view="charge" hidden>
+        <button type="button" class="back" data-goto="home"><svg><use href="#i-left"/></svg>Inicio</button>
+        <div class="card charge-now" id="chargeNow">
           <div>
-            <div class="card-title" style="margin:0">Centinela</div>
-            <div class="muted" id="sentryStateTxt">—</div>
+            <h2 class="card-h">Carga actual</h2>
+            <p id="chargeNowTxt" class="charge-now-txt">—</p>
           </div>
-          <label class="switch"><input type="checkbox" id="sentrySwitch"><span></span></label>
+          <div class="charge-soc"><span id="chargeNowSoc">--</span><small>%</small></div>
         </div>
-        <div class="slider-row">
-          <span class="muted">Sensibilidad</span>
-          <input type="range" id="sentrySens" min="1" max="10" value="5">
-          <span id="sentrySensVal">5</span>
+        <div class="kpis" id="chgKpis" hidden>
+          <div class="card kpi"><b id="chgCount">0</b><span>cargas</span></div>
+          <div class="card kpi"><b id="chgKwh">0</b><span>kWh</span></div>
+          <div class="card kpi"><b id="chgCost">0 €</b><span>coste</span></div>
         </div>
-      </div>
-      <div class="card">
-        <div class="card-title">Eventos recientes</div>
-        <div id="sentryList" class="event-list"><div class="empty">Sin eventos</div></div>
-      </div>
-    </section>
-
-    <!-- ───────── CARGA ───────── -->
-    <section class="view" data-view="charge" hidden>
-      <div class="card charge-now">
-        <div>
-          <div class="card-title" style="margin:0">Carga actual</div>
-          <div id="chargeNowTxt" class="muted">—</div>
+        <div class="card" id="chgChartCard" hidden>
+          <h2 class="card-h">Energía por carga</h2>
+          <div id="chgChart" class="chart"></div>
+          <div class="legend"><span><i class="ac"></i>AC · lenta</span><span><i class="dc"></i>DC · rápida</span></div>
         </div>
-        <div id="chargeNowSoc" class="charge-soc">--%</div>
-      </div>
-      <div class="grid3">
-        <div class="card kpi"><div class="kpi-v" id="chgCount">0</div><div class="kpi-k">sesiones</div></div>
-        <div class="card kpi"><div class="kpi-v" id="chgKwh">0</div><div class="kpi-k">kWh total</div></div>
-        <div class="card kpi"><div class="kpi-v" id="chgCost">0€</div><div class="kpi-k">coste</div></div>
-      </div>
-      <div class="card">
-        <div class="card-title">Energía por sesión (kWh)</div>
-        <div id="chgChart" class="chart"></div>
-      </div>
-      <div class="card">
-        <div class="card-title">Historial de cargas</div>
-        <div id="chgList" class="charge-list"><div class="empty">Sin cargas</div></div>
-      </div>
-    </section>
-
-    <!-- ───────── AJUSTES ───────── -->
-    <section class="view" data-view="settings" hidden>
-      <div class="card" id="acctCard" hidden>
-        <div class="card-title">Cuenta</div>
-        <div class="stat"><span class="k">Usuario</span><span id="acctEmail" class="v">—</span></div>
-        <button id="logoutBtn" class="btn-wide danger" style="margin-top:10px">Cerrar sesión</button>
-      </div>
-      <div class="card">
-        <div class="card-title">Coche</div>
-        <div class="stat"><span class="k">ID del coche</span><span id="setCarId" class="v">—</span></div>
-        <div class="stat"><span class="k">Conexión</span><span id="setMode" class="v">—</span></div>
-        <div class="stat"><span class="k">Versión app coche</span><span id="setAppVer" class="v">—</span></div>
-      </div>
-
-      <div class="card" id="pairCard" hidden>
-        <div class="card-title">Vincular coche</div>
-        <div class="muted" id="pairStatus">Introduce el código que aparece en la pantalla del coche.</div>
-        <div class="pair-row">
-          <input id="pairCode" type="text" maxlength="6" placeholder="CÓDIGO" autocapitalize="characters" autocomplete="off">
-          <button id="pairBtn" class="btn-wide">Vincular</button>
+        <div class="card">
+          <h2 class="card-h">Historial</h2>
+          <div id="chgList" class="list"></div>
         </div>
-        <button id="unpairBtn" class="btn-wide danger" hidden>Desvincular este coche</button>
-      </div>
-      <div class="card">
-        <div class="card-title">Superposición en vídeo (overlays)</div>
-        <label class="opt"><span>Batería</span><label class="switch sm"><input type="checkbox" data-cfg="overlays.soc"><span></span></label></label>
-        <label class="opt"><span>Velocidad</span><label class="switch sm"><input type="checkbox" data-cfg="overlays.speed"><span></span></label></label>
-        <label class="opt"><span>Cinturón</span><label class="switch sm"><input type="checkbox" data-cfg="overlays.seatbelt"><span></span></label></label>
-      </div>
-      <div class="card">
-        <div class="card-title">Notificaciones</div>
-        <label class="opt"><span>Movimiento (centinela)</span><label class="switch sm"><input type="checkbox" data-cfg="notifications.sentryMovement"><span></span></label></label>
-        <label class="opt"><span>Apertura de puertas</span><label class="switch sm"><input type="checkbox" data-cfg="notifications.doorOpenClose"><span></span></label></label>
-      </div>
-      <div class="card">
-        <div class="card-title">Dashcam</div>
-        <label class="opt"><span>Grabación activa</span><label class="switch sm"><input type="checkbox" data-cfg="dashcam.on"><span></span></label></label>
-      </div>
-      <div class="card">
-        <div class="card-title">Automatizaciones</div>
-        <label class="opt"><span>Subir ventanas al cerrar el coche</span><label class="switch sm"><input type="checkbox" data-auto="autoCloseWindowsOnLock"><span></span></label></label>
-        <div class="muted" style="margin-top:2px">Si al cerrar hay ventanas abiertas, se suben solas (lo que el Surf trae capado).</div>
-      </div>
-      <p class="footnote">BYDLink · proyecto propio. En modo demo los datos son simulados.</p>
-    </section>
-  </main>
+      </section>
 
-  <!-- Navegación inferior -->
-  <nav class="tabbar">
-    <button class="tab active" data-go="home"><span>🏠</span>Inicio</button>
-    <button class="tab" data-go="map"><span>🗺️</span>Mapa</button>
-    <button class="tab" data-go="cam"><span>📷</span>Cámara</button>
-    <button class="tab" data-go="sentry"><span>🛡️</span>Centinela</button>
-    <button class="tab" data-go="charge"><span>🔌</span>Carga</button>
-    <button class="tab" data-go="settings"><span>⚙️</span>Ajustes</button>
-  </nav>
+      <!-- ───── AJUSTES ───── -->
+      <section class="view" data-view="settings" hidden>
+        <div class="card">
+          <h2 class="card-h">Mis coches</h2>
+          <div id="carList" class="list"></div>
+          <button type="button" class="btn btn-soft btn-block" id="addCarBtn"><svg><use href="#i-plus"/></svg>Vincular otro coche</button>
+        </div>
 
-  <!-- Firebase (compat) — sólo se usa si existe phone/firebase-config.js con datos reales -->
+        <div class="card">
+          <h2 class="card-h">Automatizaciones</h2>
+          <label class="row-switch">
+            <span><b>Subir ventanas al cerrar</b><small>Si cierras el coche con alguna ventana abierta, se suben solas.</small></span>
+            <span class="switch"><input type="checkbox" data-auto="autoCloseWindowsOnLock"><span></span></span>
+          </label>
+        </div>
+
+        <div class="card" id="powerCard">
+          <h2 class="card-h">Con el coche apagado</h2>
+          <label class="row-switch">
+            <span><b>Seguir conectado</b><small>Al quitar el contacto, el coche no se duerme y puedes verlo y vigilarlo desde aquí. Se deja dormir solo si la batería de 12 V o la principal bajan, para que siempre puedas arrancar.</small></span>
+            <span class="switch"><input type="checkbox" id="pwKeep"><span></span></span>
+          </label>
+          <div class="pw-opts" id="pwOpts">
+            <label class="pw-opt"><span>Como máximo</span>
+              <select id="pwHours"><option value="4">4 horas</option><option value="8">8 horas</option><option value="12">12 horas</option><option value="24">24 horas</option><option value="48">48 horas</option></select></label>
+            <label class="pw-opt"><span>Si la batería baja del</span>
+              <select id="pwSoc"><option value="10">10 %</option><option value="20">20 %</option><option value="30">30 %</option><option value="40">40 %</option></select></label>
+          </div>
+          <p class="pw-status" id="pwStatus"></p>
+        </div>
+
+        <div class="card">
+          <h2 class="card-h">Información del coche</h2>
+          <dl class="kv">
+            <div><dt>Estado</dt><dd id="infoConn">—</dd></div>
+            <div><dt>Último dato</dt><dd id="infoSeen">—</dd></div>
+            <div><dt>App del coche</dt><dd id="infoVer">—</dd></div>
+            <div><dt>Identificador</dt><dd id="infoId" class="mono">—</dd></div>
+          </dl>
+        </div>
+
+        <div class="card">
+          <h2 class="card-h">Próximamente</h2>
+          <ul class="soon">
+            <li>Avisos en el móvil cuando el centinela detecte algo</li>
+            <li>Clips de vídeo del centinela y dashcam</li>
+            <li>Historial automático de viajes y cargas</li>
+          </ul>
+        </div>
+
+        <div class="card" id="acctCard">
+          <h2 class="card-h">Cuenta</h2>
+          <dl class="kv"><div><dt>Sesión</dt><dd id="acctEmail">—</dd></div></dl>
+          <button type="button" id="logoutBtn" class="btn btn-danger-soft btn-block"><svg><use href="#i-logout"/></svg>Cerrar sesión</button>
+        </div>
+
+        <p class="fine">BYDLink web · versión <span data-ver></span> · software libre (GPLv3) · <a href="https://bydhack.com" target="_blank" rel="noopener">bydhack.com</a><br>Proyecto de la comunidad, no afiliado a BYD.</p>
+      </section>
+    </main>
+
+    <nav class="tabbar" aria-label="Secciones">
+      <button type="button" class="tab active" data-goto="home"><svg><use href="#i-home"/></svg><span>Inicio</span></button>
+      <button type="button" class="tab" data-goto="map"><svg><use href="#i-map"/></svg><span>Mapa</span></button>
+      <button type="button" class="tab" data-goto="cam"><svg><use href="#i-video"/></svg><span>Cámaras</span></button>
+      <button type="button" class="tab" data-goto="sentry"><svg><use href="#i-shield"/></svg><span>Centinela</span></button>
+      <button type="button" class="tab" data-goto="settings"><svg><use href="#i-sliders"/></svg><span>Ajustes</span></button>
+    </nav>
+  </div>
+
+  <!-- Hoja inferior (diálogos) -->
+  <div id="sheet" class="sheet" hidden>
+    <div class="sheet-backdrop" data-close></div>
+    <div class="sheet-panel" role="dialog" aria-modal="true">
+      <div class="sheet-grip" data-close></div>
+      <div id="sheetBody"></div>
+    </div>
+  </div>
+
+  <!-- Lector de QR (cámara del móvil) -->
+  <div id="scanner" class="scanner" hidden role="dialog" aria-modal="true" aria-label="Escanear código QR">
+    <video id="scanVideo" playsinline muted autoplay></video>
+    <div class="scan-frame" aria-hidden="true"><i></i></div>
+    <button type="button" id="scanClose" class="icon-btn on-video scan-close" aria-label="Cerrar"><svg><use href="#i-x"/></svg></button>
+    <p id="scanMsg" class="scan-msg">Apunta al código QR de la pantalla del coche</p>
+  </div>
+
+  <div id="toasts" class="toasts" aria-live="polite"></div>
+
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
   <script src="firebase-config.js" onerror="window.__noFirebaseConfig=true"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"
-          integrity="sha512-BwHfrr4c9kmRkLw6iXFdzcdWV/PGkVgiIyIWLLlTSXzWQzxuSg4DiQUCpauz/EWjgk5TYQqX/kvn9pG1NpYfQ==" crossorigin=""></script>
+          integrity="sha512-BwHfrr4c9kmRkLw6iXFdzcdWV/PGkVgiIyIWLLlTSXzWQzxuSg4DiQUCpauz/EWjgk5TYQqX/kvn9pG1NpYfqg==" crossorigin=""></script>
   <script src="backend.js"></script>
   <script src="webrtc.js"></script>
   <script src="app.js"></script>
+  <script src="extras.js"></script>
 </body>
 </html>
