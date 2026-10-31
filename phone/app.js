@@ -306,12 +306,13 @@
   if (Backend.requiresAuth) {
     setupAuthUI();
     Backend.onAuth(user => {
-      if (user) {
+      if (user && !user.isAnonymous) {
         $('#authGate').hidden = true;
         $('#acctCard').hidden = false;
         $('#acctEmail').textContent = user.email || user.displayName || '(Google)';
         Backend.init().then(startSubscriptions);
       } else {
+        if (user && user.isAnonymous) Backend.logout();
         $('#authGate').hidden = false;
       }
     });

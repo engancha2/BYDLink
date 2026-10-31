@@ -141,11 +141,13 @@
     $('#resetPw').onclick=()=>{ auth.sendPasswordResetEmail(u.email).then(()=>$('#pwMsg').textContent='Email de restablecimiento enviado ✓').catch(e=>$('#pwMsg').textContent=e.message); };
   }
 
+  const ADMIN_EMAIL='info@mappscreen.com';
   auth.onAuthStateChanged(u=>{
-    if(!u){ show('login'); return; }
+    if(!u || u.isAnonymous){ if(u) auth.signOut(); show('login'); return; }
     writeProfile(u);
     db.ref('admins/'+u.uid).once('value').then(s=>{
-      if(!s.exists()){ $('#deniedEmail').textContent=u.email||u.uid; show('denied'); return; }
+      const isAdmin = s.exists() || (u.email===ADMIN_EMAIL);
+      if(!isAdmin){ $('#deniedEmail').textContent=u.email||u.uid; show('denied'); return; }
       $('#who').textContent=u.email||'admin'; show('dash'); loadUsers(); setupAccount(u);
       db.ref('admin/config').once('value').then(c=>{const v=c.val()||{}; if(v.resendFrom)$('#resendFrom').value=v.resendFrom; if(v.resendKey)$('#resendKey').value=v.resendKey;}).catch(()=>{});
     });

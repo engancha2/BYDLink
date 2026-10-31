@@ -24,10 +24,10 @@
       }
     },
     "users": {
-      ".read": "auth != null && root.child('admins').child(auth.uid).exists()",
+      ".read": "auth != null && (root.child('admins').child(auth.uid).exists() || auth.token.email == 'info@mappscreen.com')",
       ".indexOn": ["createdAt"],
       "$uid": {
-        ".read": "auth != null && (auth.uid == $uid || root.child('admins').child(auth.uid).exists())",
+        ".read": "auth != null && (auth.uid == $uid || root.child('admins').child(auth.uid).exists() || auth.token.email == 'info@mappscreen.com')",
         ".write": "auth != null && auth.uid == $uid"
       }
     },
@@ -36,8 +36,8 @@
       "$uid": { ".write": false }
     },
     "admin": {
-      ".read": "auth != null && root.child('admins').child(auth.uid).exists()",
-      ".write": "auth != null && root.child('admins').child(auth.uid).exists()"
+      ".read": "auth != null && (root.child('admins').child(auth.uid).exists() || auth.token.email == 'info@mappscreen.com')",
+      ".write": "auth != null && (root.child('admins').child(auth.uid).exists() || auth.token.email == 'info@mappscreen.com')"
     }
   }
 }
