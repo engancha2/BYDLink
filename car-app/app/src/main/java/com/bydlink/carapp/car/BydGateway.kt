@@ -23,20 +23,25 @@ class BydGateway(ctx: Context) : CarGateway {
     private val tyre by lazy { BydReflect.device(pctx, "android.hardware.bydauto.tyre.BYDAutoTyreDevice") }
     private val statistic by lazy { BydReflect.device(pctx, "android.hardware.bydauto.statistic.BYDAutoStatisticDevice") }
 
-    // TODO: calibrar el mapeo de marcha con el valor real de getCurrentGear() (re-sondeo).
-    private fun gearName(code: Int?) = when (code) { 2 -> "R"; 3 -> "N"; 4 -> "D"; 1 -> "P"; else -> code?.let { "P" } ?: "P" }
+    // Marcha: en el Surf, getCurrentGear()=3 cuando está en P. R/N/D por calibrar al conducir.
+    private fun gearName(code: Int?) = when (code) { 3 -> "P"; 4 -> "R"; 2 -> "N"; 1 -> "D"; else -> "P" }
+
+    /** Filtra los valores centinela del SDK (N/A): 65535, -10011/-10013, -2147482645… */
+    private fun san(v: Int?): Int? = if (v == null || v == 65535 || v <= -10000) null else v
 
     override fun readState(): CarState {
-        val soc = BydReflect.callIntArg(body, "getBatteryCapacity") ?: BydReflect.callInt(statistic, "getRemainingBatteryPower") ?: 0
+        // getBatteryCapacity() viene en medios-% (144 = 72%).
+        val socRaw = san(BydReflect.callInt(body, "getBatteryCapacity"))
+        val soc = ((socRaw ?: 0) / 2).coerceIn(0, 100)
         return CarState(
             ts = System.currentTimeMillis(),
             soc = soc,
-            charging = (BydReflect.callInt(charge, "getChargingState", "getChargerWorkState", "getChargerState") ?: 0) > 0,
+            charging = (san(BydReflect.callInt(charge, "getChargingState")) ?: 0) > 0,
             chargingPower = (BydReflect.callFloat(charge, "getChargingPower") ?: 0f).toInt(),
             chargeRestMin = chargingRestMin(),
             gear = gearName(BydReflect.callInt(gearbox, "getCurrentGear")),
             speed = (BydReflect.callFloat(speedDev, "getCurrentSpeed") ?: 0f).toInt(),
-            locked = true,  // lock state no expuesto por bodywork en este modelo (ver doorlock más adelante)
+            locked = true,  // lock state no expuesto por bodywork en este modelo
             doors = readDoors(),
             windows = readWindows(),
             tyres = readTyres(),
@@ -44,12 +49,12 @@ class BydGateway(ctx: Context) : CarGateway {
                 driver = (BydReflect.callIntArg(instrument, "getSafetyBeltStatus", 0) ?: 0) == 1,
                 passenger = (BydReflect.callIntArg(instrument, "getSafetyBeltStatus", 1) ?: 0) == 1
             ),
-            outTemp = (BydReflect.callIntArg(ac, "getTemprature", 4) ?: 0),
+            outTemp = (san(BydReflect.callInt(ac, "getOutCarTemperature")) ?: 0),
             tempUnit = if ((BydReflect.callInt(ac, "getTemperatureUnit") ?: 1) == 0) "F" else "C",
-            odometer = BydReflect.callInt(statistic, "getTotalMileageValue") ?: 0,
-            rangeKm = BydReflect.callInt(statistic, "getElecDrivingRangeValue", "getEVMileageValue") ?: 0,
+            odometer = san(BydReflect.callInt(statistic, "getTotalMileageValue")) ?: 0,
+            rangeKm = san(BydReflect.callInt(statistic, "getElecDrivingRangeValue")) ?: 0,
             power = 0,
-            voltage = BydReflect.callInt(body, "getBatteryVoltageLevel", "getBatteryPowerValue") ?: 0,
+            voltage = 0,
             location = lastLocation
         )
     }

@@ -104,6 +104,14 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun runDiagnostics() {
+        // 0) Código de vinculación con el móvil (lo primero: es lo que se busca)
+        line("== VINCULAR CON EL MÓVIL ==")
+        var code: String? = null
+        for (i in 0 until 15) { code = BuildConfigCompat.pairCode(applicationContext); if (code != null) break; Thread.sleep(1000) }
+        if (code != null) line("  CÓDIGO: $code\n  En el móvil: app.bydhack.com → Ajustes → Vincular coche")
+        else line("  generando código… reabre en unos segundos o mira la notificación")
+        line("")
+
         // 1) ADB local → conceder permisos + abrir ADB en red
         line("Probando ADB local (localhost:5555)…")
         val shell = CarShell(filesDir)
