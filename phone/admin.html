@@ -46,6 +46,7 @@
       <input id="pass" type="password" placeholder="Contraseña">
       <div id="loginErr" class="err"></div>
       <button id="inBtn">Entrar</button>
+      <div class="muted" id="regToggle" style="text-align:center;cursor:pointer">Crear cuenta nueva</div>
     </div>
   </div>
 
@@ -122,8 +123,22 @@
   const $=s=>document.querySelector(s);
   const show=id=>['login','denied','dash'].forEach(x=>$('#'+x).hidden=(x!==id));
 
+  let regMode=false;
+  const authMsg=e=>{const c=(e&&e.code)||'';
+    if(c.indexOf('wrong-password')>=0||c.indexOf('invalid-credential')>=0)return 'Correo o contraseña incorrectos';
+    if(c.indexOf('user-not-found')>=0)return 'No existe esa cuenta. Pulsa "Crear cuenta nueva".';
+    if(c.indexOf('email-already-in-use')>=0)return 'Ese correo ya existe. Pulsa "Ya tengo cuenta, entrar".';
+    if(c.indexOf('weak-password')>=0)return 'Contraseña muy corta (mínimo 6).';
+    if(c.indexOf('invalid-email')>=0)return 'Correo no válido.';
+    return (e&&e.message)||'Error';};
+  $('#regToggle').onclick=()=>{regMode=!regMode;
+    $('#inBtn').textContent=regMode?'Crear cuenta':'Entrar';
+    $('#regToggle').textContent=regMode?'Ya tengo cuenta, entrar':'Crear cuenta nueva';
+    $('#loginErr').textContent='';};
   $('#inBtn').onclick=()=>{ $('#loginErr').textContent='';
-    auth.signInWithEmailAndPassword($('#email').value.trim(),$('#pass').value).catch(e=>$('#loginErr').textContent=e.message); };
+    const e=$('#email').value.trim(), p=$('#pass').value;
+    if(!e||!p){$('#loginErr').textContent='Pon correo y contraseña';return;}
+    (regMode?auth.createUserWithEmailAndPassword(e,p):auth.signInWithEmailAndPassword(e,p)).catch(err=>$('#loginErr').textContent=authMsg(err)); };
   $('#gBtn').onclick=()=>auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(e=>$('#loginErr').textContent=e.message);
   $('#outBtn').onclick=$('#outBtn2').onclick=()=>auth.signOut();
 
@@ -153,12 +168,12 @@
       auth.sendPasswordResetEmail(u.email).then(()=>$('#pwMsg').textContent='Email de restablecimiento enviado ✓').catch(e=>$('#pwMsg').textContent=e.message); };
   }
 
-  const ADMIN_EMAIL='info@mappscreen.com';
+  const ADMIN_EMAILS=['info@mappscreen.com','xavicruzrubio@gmail.com'];
   auth.onAuthStateChanged(u=>{
     if(!u || u.isAnonymous){ if(u) auth.signOut(); show('login'); return; }
     writeProfile(u);
     db.ref('admins/'+u.uid).once('value').then(s=>{
-      const isAdmin = s.exists() || (u.email===ADMIN_EMAIL);
+      const isAdmin = s.exists() || ADMIN_EMAILS.indexOf(u.email)>=0;
       if(!isAdmin){ $('#deniedEmail').textContent=u.email||u.uid; show('denied'); return; }
       $('#who').textContent=u.email||'admin'; show('dash'); loadUsers(); setupAccount(u);
       db.ref('admin/config').once('value').then(c=>{const v=c.val()||{}; if(v.resendFrom)$('#resendFrom').value=v.resendFrom; if(v.resendKey)$('#resendKey').value=v.resendKey;}).catch(()=>{});
