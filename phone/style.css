@@ -129,6 +129,22 @@ main{padding:14px 14px 0;max-width:720px;margin:0 auto;overflow-x:hidden}
 .empty{color:var(--muted);font-size:13px;text-align:center;padding:14px}
 .footnote{color:var(--muted);font-size:11px;text-align:center;margin:8px 0 4px}
 
+/* Acceso (login / registro) */
+.auth-gate{position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:24px}
+.auth-box{width:100%;max-width:360px;display:flex;flex-direction:column;gap:12px}
+.auth-logo{font-size:30px;font-weight:800;text-align:center;letter-spacing:.5px}
+.auth-sub{color:var(--muted);text-align:center;margin-bottom:6px}
+.auth-gate input{background:var(--card2);border:1px solid var(--line);border-radius:12px;color:var(--fg);font-size:16px;padding:14px;width:100%}
+.auth-btn{background:var(--accent);color:#05240f;border:none;border-radius:12px;font-size:16px;font-weight:800;padding:14px;cursor:pointer}
+.auth-google{display:flex;align-items:center;justify-content:center;gap:10px;background:#fff;color:#1a1a1a;border:none;border-radius:12px;font-size:15px;font-weight:700;padding:13px;cursor:pointer}
+.auth-google .g{font-weight:900;color:#4285F4;font-size:17px}
+.auth-or{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:12px}
+.auth-or::before,.auth-or::after{content:"";flex:1;height:1px;background:var(--line)}
+.auth-error{color:var(--danger);font-size:13px;min-height:16px;text-align:center}
+.auth-links{display:flex;flex-direction:column;gap:8px;text-align:center;color:var(--muted);font-size:13px;margin-top:4px}
+.auth-links b{color:var(--accent2)}
+.auth-links span{cursor:pointer}
+
 /* Vinculación */
 .pair-row{display:flex;gap:10px;margin-top:10px}
 .pair-row input{flex:1;background:var(--card2);border:1px solid var(--line);border-radius:10px;

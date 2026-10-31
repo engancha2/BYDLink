@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BYDLink · Admin</title>
+  <style>
+    :root{--bg:#0b0f14;--card:#141b24;--card2:#1b2430;--line:#24303d;--fg:#eaf1f8;--muted:#8aa0b4;--accent:#2fd27a;--accent2:#36a3ff;--danger:#ff5d5d}
+    *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,sans-serif}
+    .wrap{max-width:1000px;margin:0 auto;padding:20px}
+    h1{font-size:20px;margin:0} .muted{color:var(--muted)}
+    .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:16px}
+    .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+    .kpi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;text-align:center}
+    .kpi .v{font-size:26px;font-weight:800} .kpi .k{color:var(--muted);font-size:12px;margin-top:4px}
+    table{width:100%;border-collapse:collapse;font-size:14px}
+    th,td{text-align:left;padding:10px;border-bottom:1px solid var(--line)}
+    th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase}
+    .badge{font-size:11px;padding:2px 8px;border-radius:999px;background:var(--card2)}
+    .badge.g{color:var(--accent2)} .badge.p{color:var(--accent)}
+    input{background:var(--card2);border:1px solid var(--line);border-radius:10px;color:var(--fg);padding:11px;font-size:15px;width:100%}
+    button{background:var(--accent);color:#05240f;border:none;border-radius:10px;font-weight:800;padding:11px 16px;cursor:pointer}
+    button.ghost{background:var(--card2);color:var(--fg);border:1px solid var(--line);font-weight:600}
+    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .center{min-height:70vh;display:flex;align-items:center;justify-content:center}
+    .box{width:100%;max-width:340px;display:flex;flex-direction:column;gap:10px}
+    a{color:var(--accent2)}
+    .err{color:var(--danger);font-size:13px;min-height:16px}
+    @media(max-width:640px){.kpis{grid-template-columns:1fr 1fr}}
+  </style>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+  <script src="firebase-config.js" onerror="window.__noCfg=true"></script>
+</head>
+<body>
+  <!-- Login -->
+  <div id="login" class="center" hidden>
+    <div class="box">
+      <h1 style="text-align:center">BYDLink · Admin</h1>
+      <div class="muted" style="text-align:center">Acceso de administrador</div>
+      <button id="gBtn" class="ghost">Continuar con Google</button>
+      <input id="email" type="email" placeholder="Correo">
+      <input id="pass" type="password" placeholder="Contraseña">
+      <div id="loginErr" class="err"></div>
+      <button id="inBtn">Entrar</button>
+    </div>
+  </div>
+
+  <!-- No autorizado -->
+  <div id="denied" class="center" hidden>
+    <div class="box" style="text-align:center">
+      <h1>Sin acceso</h1>
+      <p class="muted">Esta cuenta (<b id="deniedEmail"></b>) no es administradora.</p>
+      <button id="outBtn2" class="ghost">Cerrar sesión</button>
+    </div>
+  </div>
+
+  <!-- Dashboard -->
+  <div id="dash" class="wrap" hidden>
+    <div class="top">
+      <h1>BYDLink · Admin</h1>
+      <div class="row"><span class="muted" id="who"></span><button id="outBtn" class="ghost">Salir</button></div>
+    </div>
+
+    <div class="kpis">
+      <div class="kpi"><div class="v" id="kTotal">0</div><div class="k">Usuarios</div></div>
+      <div class="kpi"><div class="v" id="kNew">0</div><div class="k">Nuevos (7 días)</div></div>
+      <div class="kpi"><div class="v" id="kActive">0</div><div class="k">Activos (7 días)</div></div>
+      <div class="kpi"><div class="v" id="kGoogle">0</div><div class="k">Con Google</div></div>
+    </div>
+
+    <div class="card">
+      <div class="muted" style="margin-bottom:8px">Usuarios por idioma</div>
+      <div id="byLang" class="row"></div>
+    </div>
+
+    <div class="card">
+      <div class="row" style="justify-content:space-between;margin-bottom:8px">
+        <div class="muted">Usuarios</div>
+        <input id="search" placeholder="Buscar correo…" style="max-width:220px">
+      </div>
+      <div style="overflow:auto">
+        <table>
+          <thead><tr><th>Correo</th><th>Acceso</th><th>Alta</th><th>Último acceso</th><th>Idioma</th><th>Zona</th></tr></thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="muted" style="margin-bottom:10px">Integraciones (claves)</div>
+      <div class="row" style="margin-bottom:10px">
+        <div style="flex:1;min-width:220px"><div class="muted" style="font-size:12px">Resend API key (para emails)</div>
+          <input id="resendKey" type="password" placeholder="re_..."></div>
+        <div style="flex:1;min-width:220px"><div class="muted" style="font-size:12px">Remitente (email verificado en Resend)</div>
+          <input id="resendFrom" placeholder="BYDLink &lt;no-reply@bydhack.com&gt;"></div>
+      </div>
+      <div class="row"><button id="saveCfg">Guardar claves</button><span id="cfgMsg" class="muted"></span></div>
+      <p class="muted" style="font-size:12px;margin-top:10px">La key se guarda en la base de datos (solo admins) y la usa el envío de emails (Firebase Functions). La recuperación de contraseña básica ya funciona con el email de Firebase sin esto. Google sign-in se configura en Firebase (sin key aquí).</p>
+    </div>
+  </div>
+
+<script>
+(function(){
+  if (!window.FIREBASE_CONFIG || window.__noCfg) { document.body.innerHTML='<p style="padding:20px">Falta firebase-config.js</p>'; return; }
+  firebase.initializeApp(window.FIREBASE_CONFIG);
+  const auth=firebase.auth(), db=firebase.database();
+  const $=s=>document.querySelector(s);
+  const show=id=>['login','denied','dash'].forEach(x=>$('#'+x).hidden=(x!==id));
+
+  $('#inBtn').onclick=()=>{ $('#loginErr').textContent='';
+    auth.signInWithEmailAndPassword($('#email').value.trim(),$('#pass').value).catch(e=>$('#loginErr').textContent=e.message); };
+  $('#gBtn').onclick=()=>auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(e=>$('#loginErr').textContent=e.message);
+  $('#outBtn').onclick=$('#outBtn2').onclick=()=>auth.signOut();
+
+  auth.onAuthStateChanged(u=>{
+    if(!u){ show('login'); return; }
+    db.ref('admins/'+u.uid).once('value').then(s=>{
+      if(!s.exists()){ $('#deniedEmail').textContent=u.email||u.uid; show('denied'); return; }
+      $('#who').textContent=u.email||'admin'; show('dash'); loadUsers();
+      db.ref('admin/config').once('value').then(c=>{const v=c.val()||{}; if(v.resendFrom)$('#resendFrom').value=v.resendFrom; if(v.resendKey)$('#resendKey').value=v.resendKey;});
+    });
+  });
+
+  let USERS=[];
+  function loadUsers(){
+    db.ref('users').on('value',snap=>{
+      USERS=[]; snap.forEach(c=>{const o=c.val()||{};o.uid=c.key;USERS.push(o);});
+      render();
+    });
+  }
+  function render(){
+    const now=Date.now(), wk=now-7*864e5;
+    $('#kTotal').textContent=USERS.length;
+    $('#kNew').textContent=USERS.filter(u=>(u.createdAt||0)>=wk).length;
+    $('#kActive').textContent=USERS.filter(u=>(u.lastLoginAt||0)>=wk).length;
+    $('#kGoogle').textContent=USERS.filter(u=>(u.provider||'').indexOf('google')>=0).length;
+    // por idioma
+    const langs={}; USERS.forEach(u=>{const l=(u.lang||'?').split('-')[0];langs[l]=(langs[l]||0)+1;});
+    $('#byLang').innerHTML=Object.entries(langs).sort((a,b)=>b[1]-a[1]).slice(0,8)
+      .map(([l,n])=>`<span class="badge">${l}: <b>${n}</b></span>`).join(' ');
+    // tabla
+    const q=($('#search').value||'').toLowerCase();
+    const fmt=t=>t?new Date(t).toLocaleDateString('es-ES',{day:'2-digit',month:'short',year:'2-digit'}):'—';
+    $('#rows').innerHTML=USERS
+      .filter(u=>!q||(u.email||'').toLowerCase().includes(q))
+      .sort((a,b)=>(b.createdAt||0)-(a.createdAt||0))
+      .map(u=>{const g=(u.provider||'').indexOf('google')>=0;
+        return `<tr><td>${u.email||'—'}</td><td><span class="badge ${g?'g':'p'}">${g?'Google':'Email'}</span></td>
+        <td>${fmt(u.createdAt)}</td><td>${fmt(u.lastLoginAt)}</td><td>${(u.lang||'—')}</td><td>${(u.tz||'—')}</td></tr>`;}).join('');
+  }
+  document.addEventListener('input',e=>{if(e.target.id==='search')render();});
+
+  $('#saveCfg').onclick=()=>{
+    db.ref('admin/config').update({resendKey:$('#resendKey').value.trim(),resendFrom:$('#resendFrom').value.trim()})
+      .then(()=>{$('#cfgMsg').textContent='Guardado ✓';setTimeout(()=>$('#cfgMsg').textContent='',2000);})
+      .catch(e=>$('#cfgMsg').textContent=e.message);
+  };
+})();
+</script>
+</body>
+</html>

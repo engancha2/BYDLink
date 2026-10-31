@@ -199,7 +199,27 @@
     try { carId = localStorage.getItem('bydlink_carId'); } catch (e) {}
     carId = carId || window.CAR_ID || 'mi-byd';
     const root = db.ref('cars/' + carId);
-    const authReady = auth.signInAnonymously().catch(e => console.error('auth', e));
+
+    // Login real (email / Google). authReady resuelve cuando hay un usuario autenticado.
+    let _resolveAuth; const authReady = new Promise(r => { _resolveAuth = r; });
+    auth.onAuthStateChanged(u => { if (u) { writeProfile(u); _resolveAuth(u); } });
+
+    function writeProfile(u) {
+      try {
+        const ref = db.ref('users/' + u.uid);
+        ref.update({
+          email: u.email || null,
+          name: u.displayName || null,
+          provider: (u.providerData && u.providerData[0] && u.providerData[0].providerId) || 'password',
+          lastLoginAt: firebase.database.ServerValue.TIMESTAMP,
+          lang: navigator.language || null,
+          tz: (Intl.DateTimeFormat().resolvedOptions().timeZone) || null
+        });
+        ref.child('createdAt').once('value').then(s => {
+          if (!s.exists()) ref.child('createdAt').set(firebase.database.ServerValue.TIMESTAMP);
+        }).catch(() => {});
+      } catch (e) {}
+    }
 
     function sub(path, cb, asList) {
       root.child(path).on('value', snap => {
@@ -215,6 +235,14 @@
     return {
       mode: 'firebase',
       carId,
+      requiresAuth: true,
+      onAuth(cb) { auth.onAuthStateChanged(cb); },
+      currentUser() { return auth.currentUser; },
+      register(email, pw) { return auth.createUserWithEmailAndPassword(email, pw).then(c => { writeProfile(c.user); return c.user; }); },
+      login(email, pw) { return auth.signInWithEmailAndPassword(email, pw); },
+      loginGoogle() { return auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); },
+      logout() { return auth.signOut(); },
+      resetPassword(email) { return auth.sendPasswordResetEmail(email); },
       init() { return authReady; },
       onMeta(cb) { sub('meta', cb); },
       onStatus(cb) { sub('status', cb); },

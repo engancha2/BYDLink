@@ -289,8 +289,10 @@
   function getPath(o, p) { return p.split('.').reduce((a, k) => (a == null ? a : a[k]), o); }
   function setPath(o, p, v) { const ks = p.split('.'); let c = o; ks.forEach((k, i) => { if (i === ks.length - 1) c[k] = v; else c = c[k] = c[k] || {}; }); return o; }
 
-  // ---------- Arranque ----------
-  Backend.init().then(() => {
+  // ---------- Autenticación / arranque ----------
+  let _started = false;
+  function startSubscriptions() {
+    if (_started) return; _started = true;
     Backend.onMeta(renderMeta);
     Backend.onStatus(renderStatus);
     Backend.onConfig(renderConfig);
@@ -299,10 +301,62 @@
     Backend.onSentryEvents(renderSentry);
     if (Backend.onCharging) Backend.onCharging(renderCharging);
     document.body.dataset.mode = Backend.mode;
-  });
+  }
 
-  // En demo, arrancar el coche simulado "en marcha" tras unos segundos (para ver el mapa moverse).
-  if (Backend.mode === 'demo') setTimeout(() => Backend.sendCommand('drive', { on: true }), 4000);
+  if (Backend.requiresAuth) {
+    setupAuthUI();
+    Backend.onAuth(user => {
+      if (user) {
+        $('#authGate').hidden = true;
+        $('#acctCard').hidden = false;
+        $('#acctEmail').textContent = user.email || user.displayName || '(Google)';
+        Backend.init().then(startSubscriptions);
+      } else {
+        $('#authGate').hidden = false;
+      }
+    });
+  } else {
+    Backend.init().then(startSubscriptions);
+    if (Backend.mode === 'demo') setTimeout(() => Backend.sendCommand('drive', { on: true }), 4000);
+  }
+
+  function setupAuthUI() {
+    let mode = 'login';
+    const err = m => { $('#authError').textContent = m || ''; };
+    $('#authToggle').addEventListener('click', () => {
+      mode = (mode === 'login') ? 'register' : 'login';
+      $('#authSub').textContent = mode === 'login' ? 'Entra para controlar tu coche' : 'Crea tu cuenta';
+      $('#authSubmit').textContent = mode === 'login' ? 'Entrar' : 'Crear cuenta';
+      $('#authToggle').innerHTML = mode === 'login' ? '¿No tienes cuenta? <b>Crear una</b>' : '¿Ya tienes cuenta? <b>Entrar</b>';
+      err('');
+    });
+    $('#authSubmit').addEventListener('click', () => {
+      const email = $('#authEmail').value.trim(), pw = $('#authPass').value;
+      if (!email || !pw) return err('Pon correo y contraseña');
+      err('');
+      (mode === 'login' ? Backend.login(email, pw) : Backend.register(email, pw)).catch(e => err(authMsg(e)));
+    });
+    $('#authPass').addEventListener('keydown', e => { if (e.key === 'Enter') $('#authSubmit').click(); });
+    $('#googleBtn').addEventListener('click', () => { err(''); Backend.loginGoogle().catch(e => err(authMsg(e))); });
+    $('#authForgot').addEventListener('click', () => {
+      const email = $('#authEmail').value.trim();
+      if (!email) return err('Escribe tu correo arriba y vuelve a pulsar');
+      Backend.resetPassword(email).then(() => err('Te envié un correo para restablecerla ✓')).catch(e => err(authMsg(e)));
+    });
+    const lo = $('#logoutBtn'); if (lo) lo.addEventListener('click', () => Backend.logout().then(() => location.reload()));
+  }
+
+  function authMsg(e) {
+    const c = (e && e.code) || '';
+    if (c.indexOf('wrong-password') >= 0 || c.indexOf('invalid-credential') >= 0) return 'Correo o contraseña incorrectos';
+    if (c.indexOf('user-not-found') >= 0) return 'No existe esa cuenta';
+    if (c.indexOf('email-already-in-use') >= 0) return 'Ese correo ya está registrado';
+    if (c.indexOf('weak-password') >= 0) return 'Contraseña muy corta (mínimo 6)';
+    if (c.indexOf('invalid-email') >= 0) return 'Correo no válido';
+    if (c.indexOf('popup-closed') >= 0 || c.indexOf('cancelled-popup') >= 0) return '';
+    if (c.indexOf('operation-not-allowed') >= 0) return 'Ese método de acceso no está habilitado todavía';
+    return (e && e.message) || 'Error';
+  }
 
   // Service worker (sólo si se sirve por http/https).
   if ('serviceWorker' in navigator && location.protocol.startsWith('http'))

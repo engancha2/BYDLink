@@ -22,6 +22,22 @@
         ".read": "auth != null",
         ".write": "auth != null"
       }
+    },
+    "users": {
+      ".read": "auth != null && root.child('admins').child(auth.uid).exists()",
+      ".indexOn": ["createdAt"],
+      "$uid": {
+        ".read": "auth != null && (auth.uid == $uid || root.child('admins').child(auth.uid).exists())",
+        ".write": "auth != null && auth.uid == $uid"
+      }
+    },
+    "admins": {
+      ".read": "auth != null",
+      "$uid": { ".write": false }
+    },
+    "admin": {
+      ".read": "auth != null && root.child('admins').child(auth.uid).exists()",
+      ".write": "auth != null && root.child('admins').child(auth.uid).exists()"
     }
   }
 }
