@@ -10,7 +10,7 @@ import java.util.UUID
  *  - USE_BYD_SDK: false para probar en móvil/emulador (coche simulado); true en el coche.
  */
 object BuildConfigCompat {
-    const val USE_BYD_SDK: Boolean = false
+    const val USE_BYD_SDK: Boolean = true   // true = lee el coche real; false = simulado (para probar sin coche)
     private const val PREFS = "bydlink"
 
     fun carId(ctx: Context): String {
