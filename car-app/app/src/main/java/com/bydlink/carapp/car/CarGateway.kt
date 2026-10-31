@@ -18,6 +18,7 @@ interface CarGateway {
 
     // --- Acciones ---
     fun setLock(locked: Boolean)
+    fun setWindows(open: Boolean)
     fun setClimate(on: Boolean, temp: Int)
     /** stage -2..2 (negativo ventilación, positivo calefacción). */
     fun setSeatComfort(driver: Int?, passenger: Int?)

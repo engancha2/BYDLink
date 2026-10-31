@@ -50,6 +50,9 @@ class BmmCameraLoader(private val ctx: Context) {
 
     fun loadedFrom(): String? = jarPath
 
+    /** Carga una clase del jar BMM por nombre (para la cámara, por reflexión). */
+    fun clazz(name: String): Class<*>? = cls(name)
+
     /** Nº de cámaras del coche. NormalCamera.getCameraNumbers() (estático). */
     fun cameraNumbers(): Int {
         val cls = cls("android.hardware.NormalCamera") ?: return 0

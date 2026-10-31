@@ -33,6 +33,9 @@ class MockCarGateway : CarGateway {
     override fun stop() { cb = null }
 
     override fun setLock(locked: Boolean) { state = state.copy(locked = locked); cb?.invoke(state) }
+    override fun setWindows(open: Boolean) {
+        state = state.copy(windows = com.bydlink.carapp.model.Windows(open, open, open, open, false)); cb?.invoke(state)
+    }
     override fun setClimate(on: Boolean, temp: Int) {}
     override fun setSeatComfort(driver: Int?, passenger: Int?) {}
     override fun loadSeatMemory(slot: Int) {}

@@ -77,10 +77,13 @@ Para Firebase: ver [`firebase/SETUP.md`](firebase/SETUP.md).
 - [x] App móvil (web/PWA) completa, publicada y conectada a Firebase
 - [x] Firebase: reglas, auth, datos
 - [x] Ingeniería inversa del método de cámaras (BMM) documentada
-- [x] App del coche: diagnóstico + auto-permisos (`dadb`) + carga de cámaras (scaffold)
-- [ ] App del coche: telemetría real + control + WebRTC + centinela (en desarrollo)
+- [x] App del coche: telemetría + control + GPS + cámaras BMM + **centinela** + WebRTC
+      (implementado por reflexión, model-agnostic; **pendiente de verificar en coche real**)
+- [x] App del coche: persistencia anti-hibernación + auto-permisos (`dadb`) + diagnóstico
+- [ ] Verificación/afinado en coche (firmas del SDK, ids de cámara) — vía diagnóstico + comunidad
 - [ ] Cuentas de usuario + emparejamiento multiusuario
-- [ ] Empaquetado y publicación
+- [ ] Grabación de clips de centinela/dashcam a .mp4
+- [ ] Empaquetado (APK firmado) y publicación
 
 ## Contribuir
 
