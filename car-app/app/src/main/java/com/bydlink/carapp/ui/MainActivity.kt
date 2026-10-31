@@ -32,6 +32,7 @@ class MainActivity : AppCompatActivity() {
         btn("Abrir opciones de desarrollador") { openDevOptions() }
         btn("Abrir ajustes del sistema") { open(Settings.ACTION_SETTINGS) }
         btn("Intentar activar ADB") { tryEnableAdb() }
+        btn("Permitir ADB desde el PC (red)") { networkAdb() }
         btn("Reintentar diagnóstico") { out.text = ""; header(); Thread { runDiagnostics() }.start() }
 
         out = TextView(this).apply { textSize = 14f; setPadding(0, 24, 0, 0); gravity = Gravity.START }
@@ -75,29 +76,45 @@ class MainActivity : AppCompatActivity() {
         }.start()
     }
 
+    /** Abre el ADB del coche hacia la red (para conectar desde el PC). */
+    private fun networkAdb() {
+        line("\nAbriendo ADB en la red (0.0.0.0:5555)…")
+        Thread {
+            val sh = CarShell(filesDir)
+            if (sh.connect()) { sh.openNetworkAdb(); sh.close(); line("  Hecho. Conéctate desde el PC a 5555 (acepta el aviso en pantalla).") }
+            else line("  No hay ADB local disponible.")
+        }.start()
+    }
+
     private fun runDiagnostics() {
-        val cam = BmmCameraLoader(applicationContext)
-        val jar = cam.available()
-        line("Cámara BMM (bmmcamera.jar): " + (jar ?: "NO encontrado en las rutas conocidas"))
-        if (jar != null && cam.load()) {
-            val n = cam.cameraNumbers()
-            line("  Cargado desde: ${cam.loadedFrom()}")
-            line("  getCameraNumbers() = $n" + if (n == 0) "  (puede requerir permiso/ADB)" else "")
-        }
-
-        line("\nSDK BYD (android.hardware.bydauto.*): " + if (BydReflect.sdkPresent()) "presente ✓" else "NO en classpath")
-
-        line("\nProbando ADB local (localhost:5555)…")
+        // 1) ADB local → conceder permisos + abrir ADB en red
+        line("Probando ADB local (localhost:5555)…")
         val shell = CarShell(filesDir)
         if (shell.connect()) {
             line("  ADB conectado ✓   id: " + (shell.shell("id")?.trim() ?: "?"))
-            line("  bmmcamera.jar por ADB: " + (shell.findBmmJar() ?: "no visible"))
+            line("  Concediendo permisos (pm grant)…")
+            shell.grantPermissions(packageName)
+            line("  Abriendo ADB en la red para el PC…")
+            shell.openNetworkAdb()
+            line("  Listo ✓  (ADB de red activado)")
             shell.close()
         } else {
             line("  ADB no disponible. Usa los botones de arriba para activarlo.")
         }
 
-        line("\nListo. Hazme una foto de esta pantalla y ajusto la cámara/permisos a tu Surf.")
+        // 2) Cámara BMM (ya con permisos concedidos)
+        val cam = BmmCameraLoader(applicationContext)
+        val jar = cam.available()
+        line("\nCámara BMM (bmmcamera.jar): " + (jar ?: "NO encontrado en las rutas conocidas"))
+        if (jar != null && cam.load()) {
+            line("  Cargado desde: ${cam.loadedFrom()}")
+            line("  getCameraNumbers() = ${cam.cameraNumbers()}")
+        }
+
+        // 3) SDK BYD
+        line("\nSDK BYD (android.hardware.bydauto.*): " + if (BydReflect.sdkPresent()) "presente ✓" else "NO en classpath")
+
+        line("\nListo. Hazme una foto de esta pantalla.")
     }
 
     private fun line(s: String) = runOnUiThread { out.append(s + "\n") }

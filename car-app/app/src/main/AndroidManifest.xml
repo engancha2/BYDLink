@@ -9,7 +9,19 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission android:name="android.permission.CAMERA"/>
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
-    <!-- Permiso de BYD para memoria/control de asientos (firma del sistema BYD). -->
+    <uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS"/>
+    <uses-permission android:name="android.permission.READ_LOGS"/>
+    <!-- Permisos del SDK BYD (COMMON = runtime, se conceden por ADB con pm grant). -->
+    <uses-permission android:name="android.permission.BYDAUTO_AC_COMMON"/>
+    <uses-permission android:name="android.permission.BYDAUTO_BODYWORK_COMMON"/>
+    <uses-permission android:name="android.permission.BYDAUTO_DOOR_LOCK_COMMON"/>
+    <uses-permission android:name="android.permission.BYDAUTO_PANORAMA_COMMON"/>
+    <uses-permission android:name="android.permission.BYDAUTO_TYRE_COMMON"/>
+    <uses-permission android:name="android.permission.BYDAUTO_CHARGING_COMMON"/>
+    <uses-permission android:name="android.permission.BYDAUTO_INSTRUMENT_COMMON"/>
+    <uses-permission android:name="android.permission.BYDAUTO_GEARBOX_COMMON"/>
+    <uses-permission android:name="android.permission.BYDAUTO_SPEED_COMMON"/>
+    <uses-permission android:name="android.permission.BYDAUTO_STATISTIC_COMMON"/>
 
     <application
         android:name=".App"

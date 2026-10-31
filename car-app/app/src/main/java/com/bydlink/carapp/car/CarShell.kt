@@ -44,14 +44,29 @@ class CarShell(private val filesDir: File) {
         val perms = listOf(
             "android.permission.WRITE_SECURE_SETTINGS",
             "android.permission.READ_LOGS",
+            "android.permission.CAMERA",
+            "android.permission.ACCESS_FINE_LOCATION",
+            "android.permission.POST_NOTIFICATIONS",
             "android.permission.BYDAUTO_AC_COMMON",
             "android.permission.BYDAUTO_BODYWORK_COMMON",
             "android.permission.BYDAUTO_DOOR_LOCK_COMMON",
             "android.permission.BYDAUTO_PANORAMA_COMMON",
-            "android.permission.BYDAUTO_TYRE_COMMON"
+            "android.permission.BYDAUTO_TYRE_COMMON",
+            "android.permission.BYDAUTO_CHARGING_COMMON",
+            "android.permission.BYDAUTO_INSTRUMENT_COMMON",
+            "android.permission.BYDAUTO_GEARBOX_COMMON",
+            "android.permission.BYDAUTO_SPEED_COMMON",
+            "android.permission.BYDAUTO_STATISTIC_COMMON"
         )
         perms.forEach { shell("pm grant $pkg $it") }
         keepAlive(pkg)
+    }
+
+    /** Abre el ADB del coche hacia la RED (0.0.0.0:5555) para poder depurar desde el PC. */
+    fun openNetworkAdb() {
+        shell("setprop service.adb.tcp.port 5555")
+        shell("settings put global adb_enabled 1")
+        shell("setprop ctl.restart adbd")   // reinicia adbd escuchando en todas las interfaces
     }
 
     /**
