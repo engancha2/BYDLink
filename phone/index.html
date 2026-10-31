@@ -217,6 +217,16 @@
         <div class="stat"><span class="k">Conexión</span><span id="setMode" class="v">—</span></div>
         <div class="stat"><span class="k">Versión app coche</span><span id="setAppVer" class="v">—</span></div>
       </div>
+
+      <div class="card" id="pairCard" hidden>
+        <div class="card-title">Vincular coche</div>
+        <div class="muted" id="pairStatus">Introduce el código que aparece en la pantalla del coche.</div>
+        <div class="pair-row">
+          <input id="pairCode" type="text" maxlength="6" placeholder="CÓDIGO" autocapitalize="characters" autocomplete="off">
+          <button id="pairBtn" class="btn-wide">Vincular</button>
+        </div>
+        <button id="unpairBtn" class="btn-wide danger" hidden>Desvincular este coche</button>
+      </div>
       <div class="card">
         <div class="card-title">Superposición en vídeo (overlays)</div>
         <label class="opt"><span>Batería</span><label class="switch sm"><input type="checkbox" data-cfg="overlays.soc"><span></span></label></label>

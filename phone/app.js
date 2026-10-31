@@ -137,6 +137,24 @@
   $$('[data-auto]').forEach(inp => inp.addEventListener('change', () =>
     Backend.sendCommand('setAutomation', { key: inp.dataset.auto, value: inp.checked })));
 
+  // Vinculación de coche (solo en modo firebase)
+  if (typeof Backend.pair === 'function') {
+    $('#pairCard').hidden = false;
+    let linked = null; try { linked = localStorage.getItem('bydlink_carId'); } catch (e) {}
+    if (linked) $('#unpairBtn').hidden = false;
+    $('#pairBtn').addEventListener('click', () => {
+      $('#pairStatus').textContent = 'Vinculando…';
+      Backend.pair($('#pairCode').value).then(carId => {
+        $('#pairStatus').textContent = 'Vinculado ✓ (' + carId + '). Recargando…';
+        setTimeout(() => location.reload(), 900);
+      }).catch(err => { $('#pairStatus').textContent = 'Error: ' + (err && err.message || err); });
+    });
+    $('#unpairBtn').addEventListener('click', () => {
+      Backend.unpair(); $('#pairStatus').textContent = 'Desvinculado. Recargando…';
+      setTimeout(() => location.reload(), 600);
+    });
+  }
+
   // Centinela
   $('#sentrySwitch').addEventListener('change', e =>
     Backend.sendCommand('setSentryConfig', { on: e.target.checked }));

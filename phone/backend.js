@@ -195,7 +195,9 @@
     firebase.initializeApp(cfg);
     const auth = firebase.auth();
     const db = firebase.database();
-    const carId = window.CAR_ID || 'mi-byd';
+    let carId = null;
+    try { carId = localStorage.getItem('bydlink_carId'); } catch (e) {}
+    carId = carId || window.CAR_ID || 'mi-byd';
     const root = db.ref('cars/' + carId);
     const authReady = auth.signInAnonymously().catch(e => console.error('auth', e));
 
@@ -240,7 +242,25 @@
 
       // Acceso a la señalización WebRTC para webrtc.js
       signalRef(session) { return root.child('signaling/' + session); },
-      serverTime() { return firebase.database.ServerValue.TIMESTAMP; }
+      serverTime() { return firebase.database.ServerValue.TIMESTAMP; },
+
+      // --- Emparejamiento multiusuario ---
+      pair(code) {
+        code = (code || '').trim().toUpperCase();
+        if (!code) return Promise.reject(new Error('Escribe un código'));
+        return authReady
+          .then(() => db.ref('pairing/' + code).once('value'))
+          .then(snap => {
+            const v = snap.val();
+            if (!v || !v.carId) throw new Error('Código no válido');
+            const uid = auth.currentUser && auth.currentUser.uid;
+            return db.ref('access/' + v.carId + '/' + uid).set(true).then(() => {
+              try { localStorage.setItem('bydlink_carId', v.carId); } catch (e) {}
+              return v.carId;
+            });
+          });
+      },
+      unpair() { try { localStorage.removeItem('bydlink_carId'); } catch (e) {} }
     };
   }
 

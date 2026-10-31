@@ -24,7 +24,7 @@ class MainActivity : AppCompatActivity() {
         out = TextView(this).apply { textSize = 15f; setPadding(40, 60, 40, 40); gravity = Gravity.START }
         setContentView(ScrollView(this).apply { addView(out) })
         log("BYDLink — diagnóstico del coche")
-        log("ID: ${BuildConfigCompat.CAR_ID}\n")
+        log("ID del coche: ${BuildConfigCompat.carId(this)}\n")
         Thread { runDiagnostics() }.start()
     }
 
@@ -56,6 +56,13 @@ class MainActivity : AppCompatActivity() {
         } else {
             line("  ADB no disponible. Activa 'Depuración ADB por red' en la pantalla y reabre.")
         }
+
+        // Código de vinculación con el móvil (lo publica el servicio al conectarse a Firebase).
+        line("\n=== Vincular con el móvil ===")
+        var code: String? = null
+        for (i in 0 until 12) { code = BuildConfigCompat.pairCode(applicationContext); if (code != null) break; Thread.sleep(1000) }
+        line(if (code != null) "Código: $code\n  → En la app del móvil: Ajustes → Vincular coche → escribe este código."
+             else "Generando código… reabre en unos segundos o mira la notificación de BYDLink.")
 
         line("\nListo. Pásame esta pantalla y ajusto la cámara/permisos a tu Surf.")
     }

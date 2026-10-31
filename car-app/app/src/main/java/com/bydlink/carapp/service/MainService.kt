@@ -56,7 +56,7 @@ class MainService : Service() {
 
         gateway = if (BuildConfigCompat.USE_BYD_SDK) BydGateway(applicationContext) else MockCarGateway()
         location = LocationReader(applicationContext).also { it.start() }
-        client = CarClient(BuildConfigCompat.CAR_ID)
+        client = CarClient(BuildConfigCompat.carId(applicationContext))
 
         // La cámara alimenta centinela y streaming.
         camera.onFrame = { frame, w, h ->
@@ -73,6 +73,7 @@ class MainService : Service() {
                 startPublishing()
                 client.onCommand { cmd -> handleCommand(cmd) }
                 updateCameraRunning()   // arranca el centinela si procede
+                publishPairing()        // da acceso al coche y muestra el código de vinculación
             },
             onError = { it.printStackTrace() }
         )
@@ -178,16 +179,27 @@ class MainService : Service() {
     }
     override fun onTaskRemoved(rootIntent: Intent?) { scheduleRestart(); super.onTaskRemoved(rootIntent) }
 
-    private fun startAsForeground() {
+    private fun buildNotification(text: String): Notification {
         val chId = "bydlink"
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             getSystemService(NotificationManager::class.java)
                 .createNotificationChannel(NotificationChannel(chId, "BYDLink", NotificationManager.IMPORTANCE_LOW))
         }
-        val notif: Notification = androidx.core.app.NotificationCompat.Builder(this, chId)
-            .setContentTitle("BYDLink activo").setContentText("Vigilando el coche")
+        return androidx.core.app.NotificationCompat.Builder(this, chId)
+            .setContentTitle("BYDLink activo").setContentText(text)
             .setSmallIcon(android.R.drawable.ic_menu_mylocation).setOngoing(true).build()
-        startForeground(1, notif)
+    }
+    private fun startAsForeground() = startForeground(1, buildNotification("Vigilando el coche"))
+    private fun updateNotification(text: String) {
+        try { getSystemService(NotificationManager::class.java).notify(1, buildNotification(text)) } catch (e: Throwable) {}
+    }
+
+    private fun publishPairing() {
+        val uid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: return
+        com.bydlink.carapp.net.PairingManager(BuildConfigCompat.carId(applicationContext)).publish(uid) { code ->
+            BuildConfigCompat.setPairCode(applicationContext, code)
+            updateNotification("Vincula el móvil con el código: $code")
+        }
     }
 
     override fun onDestroy() {

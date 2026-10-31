@@ -16,6 +16,12 @@
         ".read": "auth != null",
         ".write": "auth != null"
       }
+    },
+    "pairing": {
+      "$code": {
+        ".read": "auth != null",
+        ".write": "auth != null"
+      }
     }
   }
 }
