@@ -33,6 +33,7 @@ class MainActivity : AppCompatActivity() {
         btn("Abrir ajustes del sistema") { open(Settings.ACTION_SETTINGS) }
         btn("Intentar activar ADB") { tryEnableAdb() }
         btn("Permitir ADB desde el PC (red)") { networkAdb() }
+        btn("SONDEO COMPLETO (enviar)") { sendProbe() }
         btn("Reintentar diagnóstico") { out.text = ""; header(); Thread { runDiagnostics() }.start() }
 
         out = TextView(this).apply { textSize = 14f; setPadding(0, 24, 0, 0); gravity = Gravity.START }
@@ -81,6 +82,25 @@ class MainActivity : AppCompatActivity() {
         com.bydlink.carapp.net.AdbRelay.ensure()
         line("\nPuente ADB activo en el puerto 5556.  Desde el PC:  adb connect IP:5556")
         Thread { val sh = CarShell(filesDir); if (sh.connect()) { sh.openNetworkAdb(); sh.close() } }.start()
+    }
+
+    /** Ejecuta el sondeo de solo-lectura y lo envía por Firebase (+ archivo en /sdcard). */
+    private fun sendProbe() {
+        line("\nEjecutando sondeo completo…")
+        Thread {
+            val result = try { com.bydlink.carapp.car.Prober.run(applicationContext) } catch (e: Throwable) { "ERR: ${e.message}" }
+            try { java.io.File(getExternalFilesDir(null), "probe.txt").writeText(result) } catch (e: Throwable) {}
+            try { java.io.File("/sdcard/BYDLink-probe.txt").writeText(result) } catch (e: Throwable) {}
+            val carId = BuildConfigCompat.carId(this)
+            val write = {
+                com.google.firebase.database.FirebaseDatabase.getInstance().getReference("cars/$carId/probe").setValue(result)
+                line("  Sondeo enviado ✓ (${result.length} caracteres). Avísame.")
+            }
+            val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
+            if (auth.currentUser != null) write()
+            else auth.signInAnonymously().addOnSuccessListener { write() }
+                .addOnFailureListener { line("  Sin conexión. Guardado en /sdcard/BYDLink-probe.txt") }
+        }.start()
     }
 
     private fun runDiagnostics() {
