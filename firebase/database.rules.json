@@ -28,7 +28,7 @@
       ".indexOn": ["createdAt"],
       "$uid": {
         ".read": "auth != null && (auth.uid == $uid || root.child('admins').child(auth.uid).exists() || auth.token.email == 'info@mappscreen.com' || auth.token.email == 'xavicruzrubio@gmail.com')",
-        ".write": "auth != null && auth.uid == $uid"
+        ".write": "auth != null && (auth.uid == $uid || root.child('admins').child(auth.uid).exists() || auth.token.email == 'info@mappscreen.com' || auth.token.email == 'xavicruzrubio@gmail.com')"
       }
     },
     "admins": {

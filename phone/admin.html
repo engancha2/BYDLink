@@ -20,6 +20,7 @@
     th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase}
     .badge{font-size:11px;padding:2px 8px;border-radius:999px;background:var(--card2)}
     .badge.g{color:var(--accent2)} .badge.p{color:var(--accent)}
+    .del{background:transparent;border:1px solid var(--danger);color:var(--danger);font-size:12px;padding:5px 10px;font-weight:600}
     input{background:var(--card2);border:1px solid var(--line);border-radius:10px;color:var(--fg);padding:11px;font-size:15px;width:100%}
     button{background:var(--accent);color:#05240f;border:none;border-radius:10px;font-weight:800;padding:11px 16px;cursor:pointer}
     button.ghost{background:var(--card2);color:var(--fg);border:1px solid var(--line);font-weight:600}
@@ -96,7 +97,7 @@
       </div>
       <div style="overflow:auto">
         <table>
-          <thead><tr><th>Correo</th><th>Acceso</th><th>Alta</th><th>Último acceso</th><th>Idioma</th><th>Zona</th></tr></thead>
+          <thead><tr><th>Correo</th><th>Acceso</th><th>Alta</th><th>Último acceso</th><th>Idioma</th><th>Zona</th><th></th></tr></thead>
           <tbody id="rows"></tbody>
         </table>
       </div>
@@ -205,10 +206,17 @@
       .sort((a,b)=>(b.createdAt||0)-(a.createdAt||0))
       .map(u=>{const g=(u.provider||'').indexOf('google')>=0;
         return `<tr><td>${u.email||'—'}</td><td><span class="badge ${g?'g':'p'}">${g?'Google':'Email'}</span></td>
-        <td>${fmt(u.createdAt)}</td><td>${fmt(u.lastLoginAt)}</td><td>${(u.lang||'—')}</td><td>${(u.tz||'—')}</td></tr>`;}).join('');
-    if(!USERS.length) $('#rows').innerHTML='<tr><td colspan="6" class="muted" style="text-align:center;padding:16px">Aún no hay usuarios. Aparecerán cuando alguien se registre o inicie sesión en app.bydhack.com.</td></tr>';
+        <td>${fmt(u.createdAt)}</td><td>${fmt(u.lastLoginAt)}</td><td>${(u.lang||'—')}</td><td>${(u.tz||'—')}</td><td><button class="del" data-uid="${u.uid}" data-email="${u.email||''}">Borrar</button></td></tr>`;}).join('');
+    if(!USERS.length) $('#rows').innerHTML='<tr><td colspan="7" class="muted" style="text-align:center;padding:16px">Aún no hay usuarios. Aparecerán cuando alguien se registre o inicie sesión en app.bydhack.com.</td></tr>';
   }
   document.addEventListener('input',e=>{if(e.target.id==='search')render();});
+  document.addEventListener('click',e=>{
+    const btn=e.target.closest&&e.target.closest('.del'); if(!btn) return;
+    const uid=btn.getAttribute('data-uid'), em=btn.getAttribute('data-email')||'(sin correo)';
+    if(uid===(auth.currentUser&&auth.currentUser.uid)){ if(!confirm('Es TU propia cuenta. ¿Borrar tu perfil de la lista igualmente?')) return; }
+    else if(!confirm('¿Borrar al usuario '+em+' de la lista?')) return;
+    db.ref('users/'+uid).remove().catch(err=>alert(err.message));
+  });
 
   $('#saveCfg').onclick=()=>{
     db.ref('admin/config').update({resendKey:$('#resendKey').value.trim(),resendFrom:$('#resendFrom').value.trim()})
