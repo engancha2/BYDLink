@@ -25,8 +25,9 @@ object Prober {
     )
 
     fun run(ctx: Context): String {
+        val pctx = BydPermissionContext(ctx.applicationContext)  // salta permisos GET/SET
         val sb = StringBuilder()
-        sb.appendLine("== BYDLink PROBE == ${java.util.Date()}")
+        sb.appendLine("== BYDLink PROBE == ${java.util.Date()} (con BydPermissionContext)")
         sb.appendLine("carId=${BuildConfigCompat.carId(ctx)}")
 
         sb.appendLine("\n== Permisos ==")
@@ -43,7 +44,7 @@ object Prober {
             sb.appendLine("\n== $name :: $cls ==")
             try {
                 val c = Class.forName(cls)
-                val inst = try { c.getMethod("getInstance", Context::class.java).invoke(null, ctx) }
+                val inst = try { c.getMethod("getInstance", Context::class.java).invoke(null, pctx) }
                            catch (e: Throwable) { try { c.getMethod("getInstance").invoke(null) } catch (e2: Throwable) { null } }
                 sb.appendLine("  getInstance -> ${if (inst != null) "ok" else "null (${name})"}")
                 sb.appendLine("  -- métodos --")

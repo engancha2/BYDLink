@@ -55,9 +55,10 @@ class BmmCameraLoader(private val ctx: Context) {
 
     /** Nº de cámaras del coche. NormalCamera.getCameraNumbers() (estático). */
     fun cameraNumbers(): Int {
-        val cls = cls("android.hardware.NormalCamera") ?: return 0
+        // En el Surf, getCameraNumbers() vive en AVMCamera (NormalCamera no lo expone).
+        val cls = cls("android.hardware.AVMCamera") ?: cls("android.hardware.NormalCamera") ?: return 0
         return try { (cls.getMethod("getCameraNumbers").invoke(null) as? Int) ?: 0 }
-        catch (e: Throwable) { e.printStackTrace(); 0 }
+        catch (e: Throwable) { 0 }
     }
 
     /**
