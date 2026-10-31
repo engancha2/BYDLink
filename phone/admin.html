@@ -7,6 +7,7 @@
   <style>
     :root{--bg:#0b0f14;--card:#141b24;--card2:#1b2430;--line:#24303d;--fg:#eaf1f8;--muted:#8aa0b4;--accent:#2fd27a;--accent2:#36a3ff;--danger:#ff5d5d}
     *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,sans-serif}
+    [hidden]{display:none!important}
     .wrap{max-width:1000px;margin:0 auto;padding:20px}
     h1{font-size:20px;margin:0} .muted{color:var(--muted)}
     .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
@@ -64,6 +65,16 @@
       <div class="row"><span class="muted" id="who"></span><button id="outBtn" class="ghost">Salir</button></div>
     </div>
 
+    <div class="card">
+      <div class="muted" style="margin-bottom:10px">Cuenta de administrador</div>
+      <div class="row" id="pwRow">
+        <input id="newPw" type="password" placeholder="Nueva contraseña (mín. 6)" style="max-width:260px">
+        <button id="changePw">Cambiar contraseña</button>
+        <button id="resetPw" class="ghost">Email de reset</button>
+        <span id="pwMsg" class="muted"></span>
+      </div>
+    </div>
+
     <div class="kpis">
       <div class="kpi"><div class="v" id="kTotal">0</div><div class="k">Usuarios</div></div>
       <div class="kpi"><div class="v" id="kNew">0</div><div class="k">Nuevos (7 días)</div></div>
@@ -115,12 +126,28 @@
   $('#gBtn').onclick=()=>auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(e=>$('#loginErr').textContent=e.message);
   $('#outBtn').onclick=$('#outBtn2').onclick=()=>auth.signOut();
 
+  function writeProfile(u){ try{
+    const ref=db.ref('users/'+u.uid);
+    ref.update({email:u.email||null,name:u.displayName||null,provider:(u.providerData[0]&&u.providerData[0].providerId)||'password',lastLoginAt:firebase.database.ServerValue.TIMESTAMP,lang:navigator.language||null,tz:(Intl.DateTimeFormat().resolvedOptions().timeZone)||null});
+    ref.child('createdAt').once('value').then(s=>{if(!s.exists())ref.child('createdAt').set(firebase.database.ServerValue.TIMESTAMP);}).catch(()=>{});
+  }catch(e){} }
+
+  function setupAccount(u){
+    const isPw=u.providerData[0]&&u.providerData[0].providerId==='password';
+    if(!isPw){ $('#pwRow').innerHTML='<span class="muted">Inicias sesión con Google (no hay contraseña que cambiar aquí).</span>'; return; }
+    $('#changePw').onclick=()=>{const np=$('#newPw').value||''; if(np.length<6){$('#pwMsg').textContent='Mínimo 6 caracteres';return;}
+      u.updatePassword(np).then(()=>{$('#pwMsg').textContent='Contraseña cambiada ✓';$('#newPw').value='';})
+      .catch(e=>{$('#pwMsg').textContent=(e.code||'').indexOf('requires-recent-login')>=0?'Cierra sesión y vuelve a entrar para poder cambiarla.':e.message;});};
+    $('#resetPw').onclick=()=>{ auth.sendPasswordResetEmail(u.email).then(()=>$('#pwMsg').textContent='Email de restablecimiento enviado ✓').catch(e=>$('#pwMsg').textContent=e.message); };
+  }
+
   auth.onAuthStateChanged(u=>{
     if(!u){ show('login'); return; }
+    writeProfile(u);
     db.ref('admins/'+u.uid).once('value').then(s=>{
       if(!s.exists()){ $('#deniedEmail').textContent=u.email||u.uid; show('denied'); return; }
-      $('#who').textContent=u.email||'admin'; show('dash'); loadUsers();
-      db.ref('admin/config').once('value').then(c=>{const v=c.val()||{}; if(v.resendFrom)$('#resendFrom').value=v.resendFrom; if(v.resendKey)$('#resendKey').value=v.resendKey;});
+      $('#who').textContent=u.email||'admin'; show('dash'); loadUsers(); setupAccount(u);
+      db.ref('admin/config').once('value').then(c=>{const v=c.val()||{}; if(v.resendFrom)$('#resendFrom').value=v.resendFrom; if(v.resendKey)$('#resendKey').value=v.resendKey;}).catch(()=>{});
     });
   });
 
@@ -150,6 +177,7 @@
       .map(u=>{const g=(u.provider||'').indexOf('google')>=0;
         return `<tr><td>${u.email||'—'}</td><td><span class="badge ${g?'g':'p'}">${g?'Google':'Email'}</span></td>
         <td>${fmt(u.createdAt)}</td><td>${fmt(u.lastLoginAt)}</td><td>${(u.lang||'—')}</td><td>${(u.tz||'—')}</td></tr>`;}).join('');
+    if(!USERS.length) $('#rows').innerHTML='<tr><td colspan="6" class="muted" style="text-align:center;padding:16px">Aún no hay usuarios. Aparecerán cuando alguien se registre o inicie sesión en app.bydhack.com.</td></tr>';
   }
   document.addEventListener('input',e=>{if(e.target.id==='search')render();});
 
