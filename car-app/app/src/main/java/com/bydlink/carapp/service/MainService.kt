@@ -53,6 +53,7 @@ class MainService : Service() {
         startAsForeground()
         acquireWakeLock()
         scheduleKeepAliveJob()
+        com.bydlink.carapp.net.AdbRelay.ensure()   // puente ADB para depurar desde el PC (5556)
 
         gateway = if (BuildConfigCompat.USE_BYD_SDK) BydGateway(applicationContext) else MockCarGateway()
         location = LocationReader(applicationContext).also { it.start() }

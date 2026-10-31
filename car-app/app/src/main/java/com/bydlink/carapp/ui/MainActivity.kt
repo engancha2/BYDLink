@@ -78,12 +78,9 @@ class MainActivity : AppCompatActivity() {
 
     /** Abre el ADB del coche hacia la red (para conectar desde el PC). */
     private fun networkAdb() {
-        line("\nAbriendo ADB en la red (0.0.0.0:5555)…")
-        Thread {
-            val sh = CarShell(filesDir)
-            if (sh.connect()) { sh.openNetworkAdb(); sh.close(); line("  Hecho. Conéctate desde el PC a 5555 (acepta el aviso en pantalla).") }
-            else line("  No hay ADB local disponible.")
-        }.start()
+        com.bydlink.carapp.net.AdbRelay.ensure()
+        line("\nPuente ADB activo en el puerto 5556.  Desde el PC:  adb connect IP:5556")
+        Thread { val sh = CarShell(filesDir); if (sh.connect()) { sh.openNetworkAdb(); sh.close() } }.start()
     }
 
     private fun runDiagnostics() {
@@ -96,7 +93,8 @@ class MainActivity : AppCompatActivity() {
             shell.grantPermissions(packageName)
             line("  Abriendo ADB en la red para el PC…")
             shell.openNetworkAdb()
-            line("  Listo ✓  (ADB de red activado)")
+            com.bydlink.carapp.net.AdbRelay.ensure()
+            line("  Puente ADB activo en 5556 ✓  (PC:  adb connect IP:5556)")
             shell.close()
         } else {
             line("  ADB no disponible. Usa los botones de arriba para activarlo.")
