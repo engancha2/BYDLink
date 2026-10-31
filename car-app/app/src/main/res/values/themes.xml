@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.BYDLink" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <item name="colorPrimary">#2fd27a</item>
+        <item name="android:windowBackground">#0b0f14</item>
+    </style>
+</resources>

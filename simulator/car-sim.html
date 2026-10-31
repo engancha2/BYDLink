@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BYDLink · Simulador de coche (feeder Firebase)</title>
+  <style>
+    body{font-family:system-ui,sans-serif;background:#0b0f14;color:#eaf1f8;margin:0;padding:18px;max-width:600px;margin:auto}
+    h1{font-size:18px} .muted{color:#8aa0b4;font-size:13px}
+    .card{background:#141b24;border:1px solid #24303d;border-radius:14px;padding:14px;margin:12px 0}
+    label{display:flex;justify-content:space-between;align-items:center;padding:6px 0;gap:10px}
+    input[type=range]{width:55%}
+    button{background:#1b2430;color:#eaf1f8;border:1px solid #24303d;border-radius:10px;padding:10px 14px;margin:4px 4px 0 0}
+    button.on{border-color:#2fd27a;color:#2fd27a}
+    #log{font-family:monospace;font-size:12px;white-space:pre-wrap;color:#8aa0b4;max-height:180px;overflow:auto}
+    .pill{display:inline-block;background:#24303d;border-radius:999px;padding:2px 10px;font-size:12px}
+  </style>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+  <script src="../phone/firebase-config.js" onerror="window.__noCfg=true"></script>
+</head>
+<body>
+  <h1>🚗 Simulador de coche <span id="mode" class="pill">—</span></h1>
+  <p class="muted">Hace de "app del coche": escribe el estado en Firebase y procesa los comandos del móvil
+  (incluida la automatización de ventanas). Abre esta pestaña y, en otra/móvil, la app del teléfono con la misma config.</p>
+
+  <div class="card">
+    <label>Batería (SOC) <span><input id="soc" type="range" min="0" max="100" value="72"> <b id="socv">72</b>%</span></label>
+    <label>Marcha
+      <span>
+        <button data-gear="P" class="gear on">P</button>
+        <button data-gear="R" class="gear">R</button>
+        <button data-gear="N" class="gear">N</button>
+        <button data-gear="D" class="gear">D</button>
+      </span>
+    </label>
+    <label>Cargando <input id="charging" type="checkbox"></label>
+    <label>Cerrado <input id="locked" type="checkbox" checked></label>
+    <div>
+      <button id="drive">Conducir (mover GPS)</button>
+      <button id="doorFL">Puerta cond.</button>
+      <button id="winOpen">Bajar ventana</button>
+      <button id="sentryEv">Disparar centinela</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="muted">Registro</div>
+    <div id="log"></div>
+  </div>
+
+<script>
+(function(){
+  const cfg = window.FIREBASE_CONFIG;
+  const logEl = document.getElementById('log');
+  const log = (m)=>{ logEl.textContent = '['+new Date().toLocaleTimeString()+'] '+m+'\n'+logEl.textContent; };
+  if (!cfg || window.__noCfg || (cfg.apiKey||'').indexOf('PON_AQUI')!==-1) {
+    document.getElementById('mode').textContent = 'SIN CONFIG';
+    log('Falta phone/firebase-config.js con datos reales. Rellena Firebase (firebase/SETUP.md) y recarga.');
+    return;
+  }
+  document.getElementById('mode').textContent = 'Firebase';
+  firebase.initializeApp(cfg);
+  const carId = window.CAR_ID || 'mi-byd';
+  firebase.auth().signInAnonymously().then(()=>log('Autenticado. Coche: '+carId)).catch(e=>log('Auth error: '+e.message));
+  const root = firebase.database().ref('cars/'+carId);
+
+  const base=[41.3870,2.1700], route=[];
+  for(let i=0;i<80;i++){const a=i/80*Math.PI*2;route.push([base[0]+0.012*Math.sin(a),base[1]+0.016*Math.cos(a)]);}
+  let rp=0, driving=false;
+  const now=Date.now();
+
+  const status = {
+    ts:now, soc:72, charging:false, chargingPower:0, chargeRestMin:0,
+    gear:'P', speed:0, locked:true,
+    doors:{fl:false,fr:false,rl:false,rr:false,trunk:false,hood:false},
+    windows:{fl:false,fr:true,rl:false,rr:false,sunroof:false},
+    tyres:{fl:2.4,fr:2.4,rl:2.5,rr:2.3},
+    seatbelts:{driver:true,passenger:false}, outTemp:19, tempUnit:'C', odometer:18452,
+    rangeKm:331, power:0, consumptionKwh100:14.2, voltage:402,
+    location:{lat:base[0],lng:base[1],heading:0,ts:now}
+  };
+  const config = {
+    sentry:{on:true,workMode:'standard',sensitivity:5,proximityDetection:true,shadowFilter:true},
+    dashcam:{on:true,hasOEM:true,oemLimitEnabled:true,oemStorageLimit:32},
+    notifications:{enabled:true,flash:false,gif:true,sentryMovement:true,doorOpenClose:true},
+    overlays:{soc:true,seatbelt:false,speed:true}, safeLocations:{enabled:true},
+    automations:{autoCloseWindowsOnLock:true}
+  };
+
+  root.child('meta').set({name:'Mi BYD (Dolphin Surf)',model:'BYD Dolphin Surf',online:true,lastSeen:now,appVersion:'sim-1.1'});
+  root.child('meta/online').onDisconnect().set(false);
+  root.child('config').set(config);
+  root.child('seats').set({driverStage:0,passengerStage:0});
+  root.child('cameras').set({count:4,list:[
+    {id:0,tag:'front',name:'Frontal'},{id:1,tag:'back',name:'Trasera'},
+    {id:2,tag:'left',name:'Izquierda'},{id:3,tag:'right',name:'Derecha'}]});
+  ['t1','t2','t3'].forEach((id,k)=>{
+    root.child('trips/'+id).set({start:now-(k+1)*36e5,end:now-(k+0.5)*36e5,distanceKm:10+k*5,durationSec:1500,startAddr:'A',endAddr:'B'});
+    const pts=[]; for(let i=0;i<20;i++){const p=route[(k*20+i)%80];pts.push({lat:p[0],lng:p[1],t:now-(20-i)*6e4,speed:30});}
+    root.child('tripPoints/'+id).set(pts);
+  });
+  const charges=[
+    {id:'c6',start:now-36e5*10,end:now-36e5*9.2,socStart:38,socEnd:80,kwh:18.1,durationMin:48,type:'AC',place:'Casa',costEur:2.9},
+    {id:'c5',start:now-36e5*34,end:now-36e5*33.7,socStart:22,socEnd:62,kwh:17.3,durationMin:18,type:'DC',place:'Iberdrola',costEur:8.6},
+    {id:'c4',start:now-36e5*58,end:now-36e5*57.1,socStart:45,socEnd:90,kwh:19.4,durationMin:54,type:'AC',place:'Casa',costEur:3.1},
+    {id:'c3',start:now-36e5*82,end:now-36e5*81.8,socStart:30,socEnd:55,kwh:10.8,durationMin:12,type:'DC',place:'Repsol',costEur:5.4},
+    {id:'c2',start:now-36e5*110,end:now-36e5*109,socStart:20,socEnd:95,kwh:32.3,durationMin:61,type:'AC',place:'Casa',costEur:5.2}
+  ];
+  charges.forEach(c=>root.child('chargingSessions/'+c.id).set(c));
+
+  function anyWindowOpen(){const w=status.windows;return w.fl||w.fr||w.rl||w.rr||w.sunroof;}
+  function setAllWindows(open){status.windows={fl:open,fr:open,rl:open,rr:open,sunroof:open};}
+  function push(){ status.ts=Date.now(); root.child('status').set(status); }
+  push();
+
+  setInterval(()=>{
+    if(driving){ rp=(rp+1)%route.length; const p=route[rp];
+      status.location={lat:p[0],lng:p[1],heading:(status.location.heading+8)%360,ts:Date.now()};
+      status.speed=30; status.gear='D'; status.soc=Math.max(0,+(status.soc-0.02).toFixed(2)); status.power=8+Math.round(status.speed*0.6);
+    } else { status.speed=0; if(status.charging){status.soc=Math.min(100,+(status.soc+0.2).toFixed(2));status.chargingPower=7;status.power=-7;} else status.power=0; }
+    status.rangeKm=Math.round(status.soc*4.6); status.voltage=380+Math.round(status.soc*0.4);
+    push();
+  },1500);
+
+  setInterval(()=>{ if(!config.sentry.on) return;
+    if(Math.random()<0.25){ const cams=['front','back','left','right'];
+      root.child('sentryEvents').push({ts:Date.now(),camera:cams[(Math.random()*4)|0],thumbUrl:null,videoId:'v'+Date.now()});
+      log('Evento centinela'); }
+  },12000);
+
+  // Atender comandos del móvil (con automatización de ventanas)
+  root.child('commands').on('child_added', s=>{
+    const c=s.val()||{}; const id=s.key; const p=c.payload||{}; log('CMD '+c.action+' '+JSON.stringify(p));
+    try{
+      switch(c.action){
+        case 'setLock': status.locked=!!p.locked; document.getElementById('locked').checked=status.locked;
+          if(status.locked && config.automations.autoCloseWindowsOnLock && anyWindowOpen()){ setAllWindows(false); log('↑ ventanas subidas al cerrar'); }
+          push(); break;
+        case 'openWindows': setAllWindows(true); push(); break;
+        case 'closeWindows': setAllWindows(false); push(); break;
+        case 'setSeatComfort': { const u={}; if(p.driver!==undefined)u.driverStage=p.driver; if(p.passenger!==undefined)u.passengerStage=p.passenger; root.child('seats').update(u); break; }
+        case 'setSentryConfig': Object.assign(config.sentry,p); root.child('config/sentry').update(p); break;
+        case 'setDashcamConfig': Object.assign(config.dashcam,p); root.child('config/dashcam').update(p); break;
+        case 'setConfig': root.child('config').update(p); break;
+        case 'setAutomation': if(p.key){ config.automations[p.key]=!!p.value; root.child('config/automations').update({[p.key]:!!p.value}); } break;
+        case 'setClimate': root.child('config').update({_climateOn:!!p.on}); status._climateTemp=p.temp; push(); break;
+      }
+      root.child('responses/'+id).set({ok:true,data:{},ts:Date.now()});
+    }catch(e){ root.child('responses/'+id).set({ok:false,error:String(e&&e.message||e),ts:Date.now()}); }
+    s.ref.remove();
+  });
+
+  // Controles del panel
+  soc.oninput=e=>{status.soc=+e.target.value;socv.textContent=e.target.value;push();};
+  charging.onchange=e=>{status.charging=e.target.checked;push();};
+  locked.onchange=e=>{ status.locked=e.target.checked;
+    if(status.locked && config.automations.autoCloseWindowsOnLock && anyWindowOpen()) setAllWindows(false);
+    push(); };
+  document.querySelectorAll('.gear').forEach(b=>b.onclick=()=>{
+    document.querySelectorAll('.gear').forEach(x=>x.classList.remove('on'));b.classList.add('on');
+    status.gear=b.dataset.gear; driving=(status.gear==='D'); push(); });
+  drive.onclick=()=>{ driving=!driving; drive.classList.toggle('on',driving); if(driving)status.gear='D'; log('Conducir: '+driving); };
+  doorFL.onclick=()=>{ status.doors.fl=!status.doors.fl; push(); log('Puerta cond: '+(status.doors.fl?'abierta':'cerrada')); };
+  winOpen.onclick=()=>{ status.windows.fr=!status.windows.fr; push(); log('Ventana der: '+(status.windows.fr?'bajada':'subida')); };
+  sentryEv.onclick=()=>{ const cams=['front','back','left','right']; root.child('sentryEvents').push({ts:Date.now(),camera:cams[(Math.random()*4)|0],thumbUrl:null,videoId:'v'+Date.now()}); log('Evento centinela manual'); };
+})();
+</script>
+</body>
+</html>

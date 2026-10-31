@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+    <uses-permission android:name="android.permission.WAKE_LOCK"/>
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <!-- Permiso de BYD para memoria/control de asientos (firma del sistema BYD). -->
+
+    <application
+        android:name=".App"
+        android:label="@string/app_name"
+        android:icon="@drawable/ic_launcher"
+        android:allowBackup="false"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.BYDLink">
+
+        <activity android:name=".ui.MainActivity" android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity>
+
+        <!-- Servicio en primer plano: mantiene la conexión con Firebase y el coche. -->
+        <service
+            android:name=".service.MainService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="location|camera"/>
+
+        <receiver android:name=".service.BootReceiver" android:enabled="true" android:exported="true">
+            <intent-filter android:priority="9900">
+                <action android:name="android.intent.action.BOOT_COMPLETED"/>
+                <action android:name="android.intent.action.QUICKBOOT_POWERON"/>
+            </intent-filter>
+        </receiver>
+
+        <!-- Mantenerse vivo (anti-hibernación): watchdog + job periódico. -->
+        <receiver android:name=".service.RestartReceiver" android:exported="false"/>
+        <service
+            android:name=".service.KeepAliveJobService"
+            android:permission="android.permission.BIND_JOB_SERVICE"
+            android:exported="false"/>
+    </application>
+</manifest>

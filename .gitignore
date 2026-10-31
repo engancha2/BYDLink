@@ -1,0 +1,33 @@
+# --- Secretos / específico de cada despliegue (NO subir) ---
+# Config de Firebase de cada quien (cada deployer pone la suya desde firebase/config.template.js)
+phone/firebase-config.js
+.firebaserc
+# Claves de cuenta de servicio de Firebase (¡nunca!)
+*serviceaccount*.json
+*adminsdk*.json
+car-app/app/google-services.json
+
+# --- Node ---
+node_modules/
+npm-debug.log*
+
+# --- Firebase CLI ---
+.firebase/
+firebase-debug.log*
+database-debug.log*
+
+# --- Android / Gradle (car-app) ---
+car-app/.gradle/
+car-app/build/
+car-app/app/build/
+car-app/byd-stubs/build/
+car-app/local.properties
+car-app/.idea/
+*.iml
+*.apk
+*.keystore
+
+# --- SO / editores ---
+.DS_Store
+Thumbs.db
+.vscode/

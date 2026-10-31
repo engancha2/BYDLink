@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b0f14">
+  <title>BYDLink</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <!-- Mapa (OpenStreetMap vía Leaflet). Si no hay internet, el resto de la app sigue funcionando. -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css"
+        integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A==" crossorigin="">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body data-mode="demo">
+  <!-- Barra superior -->
+  <header class="topbar">
+    <div class="car">
+      <span id="carDot" class="dot"></span>
+      <div>
+        <div id="carName" class="car-name">Mi BYD</div>
+        <div id="carState" class="car-sub">conectando…</div>
+      </div>
+    </div>
+    <div class="top-battery">
+      <span id="topSoc">--%</span>
+      <div class="minibatt"><i id="topBattFill"></i></div>
+    </div>
+  </header>
+
+  <span id="demoBadge" class="demo-badge">MODO DEMO</span>
+
+  <main>
+    <!-- ───────── INICIO ───────── -->
+    <section class="view" data-view="home">
+      <div class="hero card">
+        <div class="ring" id="socRing">
+          <svg viewBox="0 0 120 120">
+            <circle class="ring-bg" cx="60" cy="60" r="52"></circle>
+            <circle class="ring-fg" id="socArc" cx="60" cy="60" r="52"></circle>
+          </svg>
+          <div class="ring-label">
+            <div id="socBig" class="soc-big">--</div>
+            <div class="soc-unit">%</div>
+          </div>
+        </div>
+        <div class="hero-side">
+          <div class="stat"><span class="k">Autonomía</span><span id="rangeVal" class="v">-- km</span></div>
+          <div class="stat"><span class="k">Estado</span><span id="chargeVal" class="v">—</span></div>
+          <div class="stat"><span class="k">Marcha</span><span id="gearVal" class="v">P</span></div>
+          <div class="stat"><span class="k">Temp. ext.</span><span id="tempVal" class="v">-- °</span></div>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <button class="card tile" id="lockTile">
+          <span class="tile-ico" id="lockIco">🔒</span>
+          <span class="tile-k">Cierre</span>
+          <span class="tile-v" id="lockVal">Cerrado</span>
+        </button>
+        <button class="card tile" id="climateTile">
+          <span class="tile-ico">❄️</span>
+          <span class="tile-k">Clima</span>
+          <span class="tile-v" id="climateVal">Apagado</span>
+        </button>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Telemetría</div>
+        <div class="telem">
+          <div class="tm"><span class="tm-v" id="tmPower">-- kW</span><span class="tm-k">Potencia</span></div>
+          <div class="tm"><span class="tm-v" id="tmCons">-- </span><span class="tm-k">Consumo kWh/100</span></div>
+          <div class="tm"><span class="tm-v" id="tmOdo">-- km</span><span class="tm-k">Odómetro</span></div>
+          <div class="tm"><span class="tm-v" id="tmVolt">-- V</span><span class="tm-k">Batería</span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Puertas y maletero</div>
+        <div class="doors" id="doorsGrid">
+          <div class="door" data-door="fl">Del. izq.</div>
+          <div class="door" data-door="fr">Del. der.</div>
+          <div class="door" data-door="rl">Tras. izq.</div>
+          <div class="door" data-door="rr">Tras. der.</div>
+          <div class="door" data-door="trunk">Maletero</div>
+          <div class="door" data-door="hood">Capó</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Ventanas</div>
+        <div class="doors" id="windowsGrid">
+          <div class="door" data-win="fl">Del. izq.</div>
+          <div class="door" data-win="fr">Del. der.</div>
+          <div class="door" data-win="rl">Tras. izq.</div>
+          <div class="door" data-win="rr">Tras. der.</div>
+          <div class="door" data-win="sunroof">Techo</div>
+        </div>
+        <div class="win-actions">
+          <button class="btn-wide" id="winClose">⬆ Subir todas</button>
+          <button class="btn-wide" id="winOpen">⬇ Bajar todas</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Confort de asientos</div>
+        <div class="seat-row">
+          <span>Conductor</span>
+          <div class="stepper" data-seat="driver">
+            <button data-d="-1">−</button>
+            <span class="seat-stage" id="seatDriver">0</span>
+            <button data-d="1">+</button>
+          </div>
+        </div>
+        <div class="seat-row">
+          <span>Pasajero</span>
+          <div class="stepper" data-seat="passenger">
+            <button data-d="-1">−</button>
+            <span class="seat-stage" id="seatPassenger">0</span>
+            <button data-d="1">+</button>
+          </div>
+        </div>
+        <div class="seat-legend">− ventilación · + calefacción (−2 a +2)</div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Neumáticos (bar)</div>
+        <div class="tyres" id="tyresGrid">
+          <div class="tyre" data-tyre="fl"><span class="tp">--</span><span class="tl">Del. izq.</span></div>
+          <div class="tyre" data-tyre="fr"><span class="tp">--</span><span class="tl">Del. der.</span></div>
+          <div class="tyre" data-tyre="rl"><span class="tp">--</span><span class="tl">Tras. izq.</span></div>
+          <div class="tyre" data-tyre="rr"><span class="tp">--</span><span class="tl">Tras. der.</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ───────── MAPA ───────── -->
+    <section class="view" data-view="map" hidden>
+      <div id="map"></div>
+      <div class="card">
+        <div class="card-title">Viajes</div>
+        <div id="tripList" class="trip-list"><div class="empty">Sin viajes</div></div>
+      </div>
+    </section>
+
+    <!-- ───────── CÁMARA ───────── -->
+    <section class="view" data-view="cam" hidden>
+      <div class="cam-wrap card">
+        <video id="liveVideo" playsinline autoplay muted></video>
+        <div id="camPlaceholder" class="cam-ph">
+          <div>📷</div>
+          <p>Pulsa una cámara para ver en vivo</p>
+        </div>
+        <div id="camStatus" class="cam-status" hidden></div>
+      </div>
+      <div class="cam-buttons">
+        <button class="cambtn" data-cam="front">Frontal</button>
+        <button class="cambtn" data-cam="back">Trasera</button>
+        <button class="cambtn" data-cam="left">Izquierda</button>
+        <button class="cambtn" data-cam="right">Derecha</button>
+      </div>
+      <button id="camStop" class="btn-wide danger" hidden>Detener</button>
+    </section>
+
+    <!-- ───────── CENTINELA ───────── -->
+    <section class="view" data-view="sentry" hidden>
+      <div class="card">
+        <div class="row-between">
+          <div>
+            <div class="card-title" style="margin:0">Centinela</div>
+            <div class="muted" id="sentryStateTxt">—</div>
+          </div>
+          <label class="switch"><input type="checkbox" id="sentrySwitch"><span></span></label>
+        </div>
+        <div class="slider-row">
+          <span class="muted">Sensibilidad</span>
+          <input type="range" id="sentrySens" min="1" max="10" value="5">
+          <span id="sentrySensVal">5</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Eventos recientes</div>
+        <div id="sentryList" class="event-list"><div class="empty">Sin eventos</div></div>
+      </div>
+    </section>
+
+    <!-- ───────── CARGA ───────── -->
+    <section class="view" data-view="charge" hidden>
+      <div class="card charge-now">
+        <div>
+          <div class="card-title" style="margin:0">Carga actual</div>
+          <div id="chargeNowTxt" class="muted">—</div>
+        </div>
+        <div id="chargeNowSoc" class="charge-soc">--%</div>
+      </div>
+      <div class="grid3">
+        <div class="card kpi"><div class="kpi-v" id="chgCount">0</div><div class="kpi-k">sesiones</div></div>
+        <div class="card kpi"><div class="kpi-v" id="chgKwh">0</div><div class="kpi-k">kWh total</div></div>
+        <div class="card kpi"><div class="kpi-v" id="chgCost">0€</div><div class="kpi-k">coste</div></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Energía por sesión (kWh)</div>
+        <div id="chgChart" class="chart"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Historial de cargas</div>
+        <div id="chgList" class="charge-list"><div class="empty">Sin cargas</div></div>
+      </div>
+    </section>
+
+    <!-- ───────── AJUSTES ───────── -->
+    <section class="view" data-view="settings" hidden>
+      <div class="card">
+        <div class="card-title">Coche</div>
+        <div class="stat"><span class="k">ID del coche</span><span id="setCarId" class="v">—</span></div>
+        <div class="stat"><span class="k">Conexión</span><span id="setMode" class="v">—</span></div>
+        <div class="stat"><span class="k">Versión app coche</span><span id="setAppVer" class="v">—</span></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Superposición en vídeo (overlays)</div>
+        <label class="opt"><span>Batería</span><label class="switch sm"><input type="checkbox" data-cfg="overlays.soc"><span></span></label></label>
+        <label class="opt"><span>Velocidad</span><label class="switch sm"><input type="checkbox" data-cfg="overlays.speed"><span></span></label></label>
+        <label class="opt"><span>Cinturón</span><label class="switch sm"><input type="checkbox" data-cfg="overlays.seatbelt"><span></span></label></label>
+      </div>
+      <div class="card">
+        <div class="card-title">Notificaciones</div>
+        <label class="opt"><span>Movimiento (centinela)</span><label class="switch sm"><input type="checkbox" data-cfg="notifications.sentryMovement"><span></span></label></label>
+        <label class="opt"><span>Apertura de puertas</span><label class="switch sm"><input type="checkbox" data-cfg="notifications.doorOpenClose"><span></span></label></label>
+      </div>
+      <div class="card">
+        <div class="card-title">Dashcam</div>
+        <label class="opt"><span>Grabación activa</span><label class="switch sm"><input type="checkbox" data-cfg="dashcam.on"><span></span></label></label>
+      </div>
+      <div class="card">
+        <div class="card-title">Automatizaciones</div>
+        <label class="opt"><span>Subir ventanas al cerrar el coche</span><label class="switch sm"><input type="checkbox" data-auto="autoCloseWindowsOnLock"><span></span></label></label>
+        <div class="muted" style="margin-top:2px">Si al cerrar hay ventanas abiertas, se suben solas (lo que el Surf trae capado).</div>
+      </div>
+      <p class="footnote">BYDLink · proyecto propio. En modo demo los datos son simulados.</p>
+    </section>
+  </main>
+
+  <!-- Navegación inferior -->
+  <nav class="tabbar">
+    <button class="tab active" data-go="home"><span>🏠</span>Inicio</button>
+    <button class="tab" data-go="map"><span>🗺️</span>Mapa</button>
+    <button class="tab" data-go="cam"><span>📷</span>Cámara</button>
+    <button class="tab" data-go="sentry"><span>🛡️</span>Centinela</button>
+    <button class="tab" data-go="charge"><span>🔌</span>Carga</button>
+    <button class="tab" data-go="settings"><span>⚙️</span>Ajustes</button>
+  </nav>
+
+  <!-- Firebase (compat) — sólo se usa si existe phone/firebase-config.js con datos reales -->
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+  <script src="firebase-config.js" onerror="window.__noFirebaseConfig=true"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"
+          integrity="sha512-BwHfrr4c9kmRkLw6iXFdzcdWV/PGkVgiIyIWLLlTSXzWQzxuSg4DiQUCpauz/EWjgk5TYQqX/kvn9pG1NpYfQ==" crossorigin=""></script>
+  <script src="backend.js"></script>
+  <script src="webrtc.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

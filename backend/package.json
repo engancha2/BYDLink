@@ -1,0 +1,10 @@
+{
+  "name": "bydlink-backend",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Backend INVENTADO (provisional) de BYDLink. Sirve datos simulados del coche y acepta comandos, hasta migrar a Firebase / cliente de nube BYD.",
+  "type": "commonjs",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "dependencies": { "express": "4.21.2" }
+}

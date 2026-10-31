@@ -1,0 +1,11 @@
+*.iml
+.gradle/
+/local.properties
+/.idea/
+.DS_Store
+/build
+/captures
+app/build/
+byd-stubs/build/
+# secreto de Firebase del coche (no subir)
+app/google-services.json

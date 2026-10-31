@@ -1,0 +1,21 @@
+{
+  "rules": {
+    "cars": {
+      "$carId": {
+        ".read": "auth != null && (root.child('access/'+$carId+'/'+auth.uid).exists() || !root.child('access/'+$carId).exists())",
+        ".write": "auth != null && (root.child('access/'+$carId+'/'+auth.uid).exists() || !root.child('access/'+$carId).exists())",
+        "status":      { ".indexOn": ["ts"] },
+        "trips":       { ".indexOn": ["start"] },
+        "sentryEvents":{ ".indexOn": ["ts"] },
+        "commands":    { ".indexOn": ["ts"] },
+        "responses":   { ".indexOn": ["ts"] }
+      }
+    },
+    "access": {
+      "$carId": {
+        ".read": "auth != null",
+        ".write": "auth != null"
+      }
+    }
+  }
+}

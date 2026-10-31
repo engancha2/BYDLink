@@ -1,0 +1,14 @@
+{
+  "database": {
+    "rules": "firebase/database.rules.json"
+  },
+  "hosting": {
+    "public": "phone",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "cleanUrls": true
+  }
+}
