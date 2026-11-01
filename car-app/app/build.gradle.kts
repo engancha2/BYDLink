@@ -63,4 +63,7 @@ dependencies {
 
     // Código QR de vinculación en pantalla (solo el codificador, sin cámara).
     implementation("com.google.zxing:core:3.5.3")
+
+    // Pruebas en el PC de la lógica pura (automatizaciones, cifrado de los avisos): gradle testDebugUnitTest
+    testImplementation("junit:junit:4.13.2")
 }

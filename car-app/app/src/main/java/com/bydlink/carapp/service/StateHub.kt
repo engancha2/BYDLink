@@ -13,6 +13,9 @@ object StateHub {
     /** false mientras el SDK del coche no responde (coche apagado y dormido). */
     @Volatile var sdkOk: Boolean = true
 
+    /** Contacto puesto según el sistema (aviso ACC de BYD o accmodemanager); null si aún no se sabe. */
+    @Volatile var accOn: Boolean? = null
+
     /** true en cuanto hay sesión de Firebase (para la pantalla de estado del lanzador). */
     @Volatile var cloudOk: Boolean = false
 
