@@ -2,7 +2,7 @@
  * publicada) y caché solo como respaldo sin conexión. Firebase, mapas y CDNs van
  * directos a la red. */
 const CACHE = 'bydlink-2.8';   // cambiarla junto con WEB_VERSION de app.js
-const SHELL = ['./', './style.css', './backend.js', './webrtc.js', './app.js', './extras.js', './videos.js', './firebase-config.js',
+const SHELL = ['./', './style.css', './backend.js', './webrtc.js', './app.js', './extras.js', './videos.js', './keys.js', './firebase-config.js',
                './manifest.webmanifest', './icon.svg'];
 
 self.addEventListener('install', e => {

@@ -562,3 +562,15 @@ input[type=range]:disabled{opacity:.5}
 .vid-chips .chip{border:1px solid var(--line);font:inherit;font-size:13.5px;font-weight:600;cursor:pointer}
 #sheetBody .sub + .chips{margin-top:6px}
 #sheetBody .hint + .sub,#sheetBody .chips + .sub{margin-top:16px}
+/* botones del volante (keys.js) */
+.key-row{padding:12px 0;border-bottom:1px solid var(--line)}
+.key-row:last-child{border-bottom:0}
+.key-name{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:8px}
+.key-name small{color:var(--fg-3);font-size:12px}
+.key-press{flex-direction:row;align-items:center;margin-top:6px}
+.key-press span{flex:0 0 52px}
+.key-press select{flex:1;min-width:0}
+.key-log{font-size:13px;padding:5px 0;color:var(--fg-2)}
+.key-log small{color:var(--fg-3)}
+.key-log.act b{color:var(--accent)}
+#keysList{margin-top:10px}
