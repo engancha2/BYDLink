@@ -43,7 +43,9 @@ class PowerKeeper(
     /** Se llama periódicamente (cada ~30 s) con el último estado leído. */
     fun tick(s: CarState?) {
         try {
-            val accOn = power.readAccOn() ?: true      // si no se sabe, no tocar nada
+            val accRead = power.readAccOn()
+            if (accRead != null) StateHub.accOn = accRead
+            val accOn = accRead ?: true                // si no se sabe, no tocar nada
             val v12 = if (sdkOk()) power.readAux12V() else null
             val soc = s?.soc?.takeIf { it in 0..100 }?.toDouble()
             val now = System.currentTimeMillis()

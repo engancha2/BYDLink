@@ -53,6 +53,7 @@ class MainService : Service() {
     private var sentryOn = true
     @Volatile private var lastState: com.bydlink.carapp.model.CarState? = null
     @Volatile private var powerKeeper: PowerKeeper? = null
+    @Volatile private var autos: com.bydlink.carapp.auto.Automations? = null
 
     // Config que mantiene y publica el coche (la lee el móvil).
     private val config: MutableMap<String, Any?> = defaultConfig()
@@ -80,7 +81,7 @@ class MainService : Service() {
         // Mandos desde el propio lanzador: mismas reglas de seguridad que desde el móvil (CarCommands).
         StateHub.commander = { action, payload -> carCommands.handle(action, payload) }
         StateHub.camera = camera
-        StateHub.run = { action, payload, cb -> handleCommand(Command("local", action, payload), cb) }
+        StateHub.run = { action, payload, cb -> runAction(action, payload, cb) }
         com.bydlink.carapp.keys.WheelKeys.start(applicationContext)   // botones del volante (si el usuario los usa)
 
         client.connect(
@@ -90,6 +91,13 @@ class MainService : Service() {
                     try { f(); android.util.Log.i(TAG, "listo: $name") } catch (e: Throwable) { android.util.Log.e(TAG, "falló: $name", e) }
                 step("config") { client.publishConfig(config) }
                 step("telemetría") { cloudReady = true; StateHub.cloudOk = true }
+                // Automatizaciones y avisos al móvil: sus órdenes van por la misma ruta que las del móvil (hilo principal).
+                step("automatizaciones") {
+                    val main = android.os.Handler(android.os.Looper.getMainLooper())
+                    autos = com.bydlink.carapp.auto.Automations(applicationContext, BuildConfigCompat.carId(applicationContext)) { a, p, r ->
+                        main.post { runAction(a, p, r) }
+                    }.also { it.start() }
+                }
                 step("comandos") { client.onCommand { cmd -> handleCommand(cmd) } }
                 step("cámara") { updateCameraRunning() }   // arranca el centinela si procede
                 step("vinculación") { publishPairing() }
@@ -194,13 +202,16 @@ class MainService : Service() {
     }
 
     // ---------------- Comandos ----------------
-    private fun handleCommand(cmd: Command, respond: (Boolean, Map<String, Any?>) -> Unit = { ok, data -> client.respond(cmd.id, ok, data) }) {
+    private fun handleCommand(cmd: Command) = runAction(cmd.action, cmd.payload) { ok, data -> client.respond(cmd.id, ok, data) }
+
+    /** Una orden del móvil, de una automatización o de un botón del volante: misma ruta y mismas comprobaciones. */
+    private fun runAction(action: String, p: Map<String, Any?>, respond: (Boolean, Map<String, Any?>) -> Unit) {
         // Comandos de cámara: en su propio hilo (foto/directo pueden tardar unos segundos), con respuesta real.
-        if (camera.dispatch(cmd.action, cmd.payload, respond)) return
-        if (com.bydlink.carapp.keys.WheelKeys.dispatch(cmd.action, cmd.payload, respond)) return
+        if (camera.dispatch(action, p, respond)) return
+        if (com.bydlink.carapp.keys.WheelKeys.dispatch(action, p, respond)) return
+        if (autos?.dispatch(action, p, respond) == true) return
         try {
-            val p = cmd.payload
-            when (cmd.action) {
+            when (action) {
                 "setSentryConfig" -> { mergeInto(config.sentryMap(), p); applySentry(); publishConfig() }
                 "toggleSentry" -> { config.sentryMap()["on"] = config.sentryMap()["on"] != true; applySentry(); publishConfig()
                     respond(true, mapOf("on" to (config.sentryMap()["on"] == true))); return }
@@ -214,7 +225,7 @@ class MainService : Service() {
                     if (sdkStuckSince > 0) throw IllegalStateException("El coche está dormido y ahora no responde a mandos.")
                     cmdExec.execute {
                         try {
-                            val res = carCommands.handle(cmd.action, p) ?: throw IllegalArgumentException("Acción desconocida: ${cmd.action}")
+                            val res = carCommands.handle(action, p) ?: throw IllegalArgumentException("Acción desconocida: $action")
                             respond(true, res)
                         } catch (e: Throwable) {
                             respond(false, mapOf("error" to (e.message ?: "error")))
@@ -320,6 +331,7 @@ class MainService : Service() {
                 else -> null   // ACC_MODE_CHANGED: el modo exacto se ve en status.powerState
             }
             android.util.Log.i(TAG, "contacto: ${i.action}")
+            if (on != null) StateHub.accOn = on
             try {
                 com.bydlink.carapp.App.db.getReference("cars/${BuildConfigCompat.carId(applicationContext)}/meta/acc")
                     .setValue(mapOf("on" to on, "event" to i.action, "ts" to com.google.firebase.database.ServerValue.TIMESTAMP))

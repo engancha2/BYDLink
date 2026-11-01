@@ -574,3 +574,40 @@ input[type=range]:disabled{opacity:.5}
 .key-log small{color:var(--fg-3)}
 .key-log.act b{color:var(--accent)}
 #keysList{margin-top:10px}
+
+/* Automatizaciones y avisos al móvil (autos.js) */
+.ar-intro{margin:-4px 0 10px}
+#arList{margin-top:6px;border-top:1px solid var(--line)}
+#pushCard .row-switch{margin-top:12px}
+#pushBody .hint+.btn{margin-top:12px}
+.ar-item{gap:10px}
+.ar-item .ar-edit{background:none;border:0;padding:0;text-align:left;color:inherit;font:inherit;cursor:pointer}
+.ar-item .ar-edit small{white-space:normal}
+.ar-item.ar-off .ar-edit{opacity:.55}
+.ar-last.ok{color:var(--accent)}
+.ar-last.bad{color:var(--danger)}
+.ar-log-btn{display:block;margin:12px auto 0}
+.ar-old{margin-bottom:8px}
+.ar-h{font-weight:700;color:var(--fg)}
+.ar-h small{font-weight:500;color:var(--fg-3)}
+.ar-part{border:1px solid var(--line);border-radius:var(--radius-s);padding:10px;margin-bottom:8px;background:var(--surface)}
+.ar-part-top{display:flex;gap:8px;align-items:center}
+.ar-part-top select{flex:1;min-width:0}
+.ar-fields{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.ar-fields:not(:empty){margin-top:10px}
+.ar-f{display:flex;flex-direction:column;gap:5px;font-size:12.5px;color:var(--fg-2);min-width:0}
+.ar-f>span small{color:var(--fg-3)}
+.ar-wide{grid-column:1/-1}
+#sheetBody .ar-f{margin-top:8px}
+#sheetBody .ar-fields .ar-f{margin-top:0}
+#sheetBody .ar-part select,#sheetBody .ar-f select,#sheetBody .ar-add,#sheetBody .ar-f input[type=time]{min-height:44px;width:100%;border-radius:var(--radius-s);
+  background:var(--surface-2);color:var(--fg);border:1px solid var(--line-2);padding:0 10px;font:inherit;font-size:15px}
+#sheetBody .ar-add{margin:2px 0 4px;color:var(--accent);font-weight:650}
+.ar-place{display:flex;flex-direction:column;gap:8px}
+.ar-place .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.ar-place .btn{min-height:42px;font-size:13px}
+.ar-days{margin-top:0;gap:6px}
+.ar-days .chip{min-width:38px;justify-content:center;padding:0 8px}
+.ok-txt{display:flex;align-items:center;gap:6px;color:var(--accent)}
+.ok-txt svg{width:16px;height:16px;flex:0 0 auto}
+.push-acts{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}

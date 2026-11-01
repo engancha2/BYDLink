@@ -139,6 +139,19 @@
       },
       emit() { if (this.cb) this.cb(JSON.parse(JSON.stringify(this.v))); }
     };
+    // Automatizaciones y avisos de ejemplo (ver autos.js).
+    const demoAuto = {
+      rules: {
+        a1: { name: 'Al apagar el coche, activa el centinela', on: true, when: { type: 'acc', on: false }, do: [{ action: 'setSentryConfig', payload: { on: true } }], cooldownMin: 5, created: now0 - 50 * H },
+        a2: { name: 'Si la batería baja del 20 %, avísame', on: true, when: { type: 'soc', op: 'below', value: 20 }, do: [{ action: 'notify', payload: { text: 'Al coche le queda poca batería.' } }], cooldownMin: 60, created: now0 - 40 * H },
+        a3: { name: 'Aire a 21° entre semana', on: false, when: { type: 'time', at: '08:00', days: [1, 2, 3, 4, 5] }, do: [{ action: 'setClimate', payload: { on: true, temp: 21 } }], cooldownMin: 5, created: now0 - 30 * H }
+      },
+      states: { a1: { last: now0 - 3 * H, ok: true, why: 'Has apagado el coche' } },
+      log: [{ id: 'l1', ts: now0 - 3 * H, rule: 'a1', name: 'Al apagar el coche, activa el centinela', why: 'Has apagado el coche', ok: true,
+              results: [{ action: 'setSentryConfig', label: 'Activar el centinela', ok: true }] }],
+      subs: {}, on: [],
+      emit() { const r = JSON.parse(JSON.stringify(this.rules)); this.on.forEach(f => f(r)); }
+    };
     const sentryEvents = [
       { id: 's2', ts: now - 1800e3, camera: 'front' },
       { id: 's1', ts: now - 7200e3, camera: 'left' },
@@ -290,6 +303,12 @@
             demoKeys.v.status.learning = payload.on !== false;
             demoKeys.v.status.learnUntil = demoKeys.v.status.learning ? Date.now() + (payload.minutes || 5) * 60e3 : null;
             demoKeys.emit(); break;
+          case 'runAutomation': {
+            const r = demoAuto.rules[payload.id] || { do: [] };
+            data = { ok: true, results: (r.do || []).map(a => ({ action: a.action, label: a.action === 'notify' ? 'Avisar al móvil' : a.action, ok: true })) };
+            break;
+          }
+          case 'pushTest': data = { sent: 1, failed: 0 }; break;
           case 'setLock':
             status.locked = !!payload.locked;
             if (status.locked && config.automations.autoCloseWindowsOnLock && anyWindowOpen()) setAllWindows(false);
@@ -327,6 +346,17 @@
       videoDlPart() { return Promise.resolve(null); },
       videoDlClear() { return Promise.resolve(); },
       keysWatch(cb) { demoKeys.cb = cb; setTimeout(() => demoKeys.emit(), 150); return () => { demoKeys.cb = null; }; },
+      autoWatch(cb) { demoAuto.on.push(cb); setTimeout(() => cb(JSON.parse(JSON.stringify(demoAuto.rules))), 100); return () => {}; },
+      autoStateWatch(cb) { setTimeout(() => cb(demoAuto.states), 100); return () => {}; },
+      autoLog() { return Promise.resolve(demoAuto.log.slice()); },
+      autoSave(id, rule) { id = id || 'a' + Date.now().toString(36); demoAuto.rules[id] = rule; demoAuto.emit(); return Promise.resolve(id); },
+      autoDelete(id) { delete demoAuto.rules[id]; demoAuto.emit(); return Promise.resolve(); },
+      autoToggle(id, on) { if (demoAuto.rules[id]) demoAuto.rules[id].on = !!on; demoAuto.emit(); return Promise.resolve(); },
+      pushKey() { return Promise.resolve(null); },
+      pushSave(id, sub) { demoAuto.subs[id] = Object.assign({ ts: Date.now() }, sub); return Promise.resolve(); },
+      pushUpdate(id, v) { Object.assign(demoAuto.subs[id] || {}, v); return Promise.resolve(); },
+      pushGet(id) { return Promise.resolve(demoAuto.subs[id] || null); },
+      pushRemove(id) { delete demoAuto.subs[id]; return Promise.resolve(); },
       getDemoCameraStream(camera) { return makeSyntheticStream(camera, status); },
       camLive(cb) { demoCam.onLive = cb; return () => { demoCam.onLive = null; }; },
       camPhoto(cb) { demoCam.onPhoto = cb; return () => { demoCam.onPhoto = null; }; },
@@ -521,6 +551,23 @@
       // Botones del volante: config, estado, lo aprendido, lo último que llegó y las apps (ver keys/WheelKeys.kt)
       keysWatch(cb) { const r = root.child('keys'), f = s => cb(s.val()); r.on('value', f); return () => r.off('value', f); },
       videoDlClear() { return root.child('videoDl').remove().catch(() => {}); },
+      // Automatizaciones (las cumple el coche) y avisos al móvil: se escriben directamente, sin pasar por órdenes, así
+      // se guardan aunque el coche esté sin cobertura (ver protocol/automatizaciones.md).
+      autoWatch(cb) { const r = root.child('automations'), f = s => cb(s.val() || {}); r.on('value', f); return () => r.off('value', f); },
+      autoStateWatch(cb) { const r = root.child('autoState'), f = s => cb(s.val() || {}); r.on('value', f); return () => r.off('value', f); },
+      autoLog(n) {
+        return root.child('autoLog').orderByChild('ts').limitToLast(n || 40).once('value').then(s => {
+          const a = []; s.forEach(c => { const o = c.val() || {}; o.id = c.key; a.push(o); }); return a.reverse();
+        });
+      },
+      autoSave(id, rule) { const ref = id ? root.child('automations/' + id) : root.child('automations').push(); return ref.set(rule).then(() => ref.key); },
+      autoDelete(id) { return root.child('automations/' + id).remove().then(() => root.child('autoState/' + id).remove().catch(() => {})); },
+      autoToggle(id, on) { return root.child('automations/' + id + '/on').set(!!on); },
+      pushKey() { return root.child('push/key').once('value').then(s => s.val()); },
+      pushSave(id, sub) { return root.child('push/subs/' + id).set(Object.assign({ uid: uid(), ts: TS }, sub)); },
+      pushUpdate(id, v) { return root.child('push/subs/' + id).update(v); },
+      pushGet(id) { return root.child('push/subs/' + id).once('value').then(s => s.val()); },
+      pushRemove(id) { return root.child('push/subs/' + id).remove(); },
       // Resultado de la última prueba de cámara (solo el veredicto: las miniaturas pesan)
       camViews() { return root.child('cameras/list').once('value').then(s => s.val() || null, () => null); },
       camDiag() {

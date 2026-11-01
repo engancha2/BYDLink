@@ -10,7 +10,10 @@
         "sentryEvents":     { ".indexOn": ["ts"] },
         "chargingSessions": { ".indexOn": ["start"] },
         "commands":         { ".indexOn": ["ts"] },
-        "responses":        { ".indexOn": ["ts"] }
+        "responses":        { ".indexOn": ["ts"] },
+        "automations":      { "$rule": { ".validate": "newData.hasChildren(['when', 'do']) && newData.child('when/type').isString()" } },
+        "autoLog":          { ".indexOn": ["ts"] },
+        "push":             { "subs": { "$sub": { ".validate": "newData.hasChildren(['endpoint', 'p256dh', 'auth']) && newData.child('endpoint').isString() && newData.child('endpoint').val().beginsWith('https://') && newData.child('endpoint').val().length < 1000" } } }
       }
     },
     "access": {

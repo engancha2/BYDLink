@@ -184,6 +184,7 @@ class SentryMonitor(
             p.clip?.let { ev["clip"] = it }
             ref.setValue(ev)
             events++
+            com.bydlink.carapp.auto.Events.emit(com.bydlink.carapp.auto.Events.SENTRY, mapOf("key" to key, "camera" to p.cam, "hasThumb" to hasThumb))
         } catch (e: Throwable) { CamLog.w("centinela: no se pudo publicar el evento", e) }
     }
 

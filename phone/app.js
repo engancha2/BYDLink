@@ -5,7 +5,7 @@
   const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
   const B = window.Backend;
   const ONLINE_MS = 90e3;           // sin datos en este tiempo → coche desconectado
-  const WEB_VERSION = '2.9';        // cambiarla junto con CACHE de sw.js
+  const WEB_VERSION = '2.10';        // cambiarla junto con CACHE de sw.js
   const CAR_APP_MIN = '2.0';        // la app del coche más antigua que no hace falta actualizar
 
   const st = {
