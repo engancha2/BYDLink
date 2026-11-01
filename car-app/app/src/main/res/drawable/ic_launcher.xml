@@ -1,10 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- BYDLink: una "B" hecha de dos eslabones (el coche y el móvil); el de arriba pasa por detrás del de abajo. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp" android:height="108dp"
     android:viewportWidth="108" android:viewportHeight="108">
-    <path android:fillColor="#0b0f14" android:pathData="M0,0h108v108h-108z"/>
-    <path android:fillColor="#36a3ff"
-        android:pathData="M34,62h40l-4,-12a6,6 0 0 0 -5,-4H43a6,6 0 0 0 -5,4z"/>
-    <path android:fillColor="#eaf1f8" android:pathData="M33,62h42v10h-42z"/>
-    <path android:fillColor="#2fd27a" android:pathData="M54,30m-14,0a14,14 0 1 0 28,0a14,14 0 1 0 -28,0"
-        android:fillAlpha="0"/>
+    <path android:pathData="M24,0h60a24,24 0 0 1 24,24v60a24,24 0 0 1 -24,24h-60a24,24 0 0 1 -24,-24v-60a24,24 0 0 1 24,-24z">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="linear" android:startX="0" android:startY="0" android:endX="108" android:endY="108">
+                <item android:offset="0" android:color="#FF0D1A22"/>
+                <item android:offset="1" android:color="#FF070B10"/>
+            </gradient>
+        </aapt:attr>
+    </path>
+    <group android:translateX="16.6" android:translateY="17.2" android:scaleX="1.15" android:scaleY="1.15">
+        <path android:pathData="M17,9H31A13,13 0 0 1 31,35H17Z"
+            android:fillColor="#00000000" android:strokeWidth="6" android:strokeLineJoin="round">
+            <aapt:attr name="android:strokeColor">
+                <gradient android:type="linear" android:startX="12" android:startY="8" android:endX="52" android:endY="56">
+                    <item android:offset="0" android:color="#FF74E1CE"/>
+                    <item android:offset="1" android:color="#FF4C8DFF"/>
+                </gradient>
+            </aapt:attr>
+        </path>
+    </group>
+    <!-- borra lo que el eslabón de arriba tiene dentro del de abajo (mismo degradado que el fondo) -->
+    <path android:pathData="M36.15,45.95H54.55A17.25,17.25 0 0 1 54.55,80.45H36.15Z"
+        android:strokeWidth="11.5" android:strokeLineJoin="round">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="linear" android:startX="0" android:startY="0" android:endX="108" android:endY="108">
+                <item android:offset="0" android:color="#FF0D1A22"/>
+                <item android:offset="1" android:color="#FF070B10"/>
+            </gradient>
+        </aapt:attr>
+        <aapt:attr name="android:strokeColor">
+            <gradient android:type="linear" android:startX="0" android:startY="0" android:endX="108" android:endY="108">
+                <item android:offset="0" android:color="#FF0D1A22"/>
+                <item android:offset="1" android:color="#FF070B10"/>
+            </gradient>
+        </aapt:attr>
+    </path>
+    <group android:translateX="16.6" android:translateY="17.2" android:scaleX="1.15" android:scaleY="1.15">
+        <path android:pathData="M17,25H33A15,15 0 0 1 33,55H17Z"
+            android:fillColor="#00000000" android:strokeWidth="6" android:strokeLineJoin="round">
+            <aapt:attr name="android:strokeColor">
+                <gradient android:type="linear" android:startX="12" android:startY="8" android:endX="52" android:endY="56">
+                    <item android:offset="0" android:color="#FF74E1CE"/>
+                    <item android:offset="1" android:color="#FF4C8DFF"/>
+                </gradient>
+            </aapt:attr>
+        </path>
+    </group>
 </vector>

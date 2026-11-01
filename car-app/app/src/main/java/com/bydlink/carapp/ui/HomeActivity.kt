@@ -127,6 +127,8 @@ class HomeActivity : Activity() {
     // ── barra de arriba ──
     private fun topBar(): View {
         val bar = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL; setPadding(dp(26), 0, dp(26), 0) }
+        bar.addView(ImageView(this).apply { setImageResource(com.bydlink.carapp.R.drawable.ic_bydlink_mark); setOnClickListener { showTab("inicio") } },
+            LinearLayout.LayoutParams(dp(30), dp(30)).apply { rightMargin = dp(12) })
         bar.addView(label("BYDLINK", 17f, Color.WHITE, bold = true).apply { letterSpacing = 0.22f; setOnClickListener { showTab("inicio") } })
         stateChip = badge("…")
         bar.addView(stateChip, LinearLayout.LayoutParams(-2, -2).apply { leftMargin = dp(20) })

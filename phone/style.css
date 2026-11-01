@@ -81,7 +81,7 @@ svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-l
 
 .brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:19px;letter-spacing:-.01em}
 .brand-mark{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:12px;
-  background:linear-gradient(145deg,var(--accent),#22b07f);color:var(--accent-ink)}
+  background:linear-gradient(145deg,#0d1a22,#070b10);box-shadow:inset 0 0 0 1px rgba(116,225,206,.22),0 6px 18px -8px rgba(76,141,255,.45)}
 .brand-mark svg{width:24px;height:24px}
 .brand-mark.big{width:72px;height:72px;border-radius:22px}
 .brand-mark.big svg{width:44px;height:44px}
@@ -611,3 +611,37 @@ input[type=range]:disabled{opacity:.5}
 .ok-txt{display:flex;align-items:center;gap:6px;color:var(--accent)}
 .ok-txt svg{width:16px;height:16px;flex:0 0 auto}
 .push-acts{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+
+/* ── Densidad (web 2.12): menos scroll en el móvil y dos columnas en pantallas anchas ── */
+.view{gap:12px}
+.card{padding:16px}
+.car-stage{height:258px}
+.controls{gap:10px}
+.ctl{min-height:88px;padding:13px 14px}
+.ctl-ico{width:36px;height:36px;border-radius:12px;margin-bottom:4px}
+.facts{gap:8px}
+.facts>div{padding:10px 12px}
+.facts dd{font-size:16px}
+@media (min-width:380px){
+  .controls{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .ctl-v{font-size:15px;line-height:1.2}
+}
+@media (min-width:430px){
+  .facts{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media (max-width:360px){
+  .car-stage{height:236px}
+}
+@media (min-width:900px){
+  .app{max-width:1120px}
+  main{padding:8px 24px 0}
+  .view{width:100%;max-width:560px;margin:0 auto}
+  .view[data-view="map"],.view[data-view="cam"]{max-width:900px}
+  .view[data-view="home"]{display:block;max-width:none;column-count:2;column-gap:16px}
+  .view[data-view="home"]>*{break-inside:avoid;margin-bottom:14px}
+  .view[data-view="home"] .car-stage{height:300px}
+  .view[data-view="home"] .facts{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media (min-width:1280px){
+  .view[data-view="settings"],.view[data-view="charge"],.view[data-view="sentry"]{max-width:640px}
+}

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Marca de BYDLink para la barra de arriba (el borrado usa el color de fondo BG #0B1016). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="64dp" android:height="64dp"
+    android:viewportWidth="64" android:viewportHeight="64">
+    <path android:pathData="M17,9H31A13,13 0 0 1 31,35H17Z"
+        android:fillColor="#00000000" android:strokeWidth="6" android:strokeLineJoin="round">
+        <aapt:attr name="android:strokeColor">
+            <gradient android:type="linear" android:startX="12" android:startY="8" android:endX="52" android:endY="56">
+                <item android:offset="0" android:color="#FF74E1CE"/>
+                <item android:offset="1" android:color="#FF4C8DFF"/>
+            </gradient>
+        </aapt:attr>
+    </path>
+    <path android:pathData="M17,25H33A15,15 0 0 1 33,55H17Z"
+        android:fillColor="#FF0B1016" android:strokeColor="#FF0B1016" android:strokeWidth="10" android:strokeLineJoin="round"/>
+    <path android:pathData="M17,25H33A15,15 0 0 1 33,55H17Z"
+        android:fillColor="#00000000" android:strokeWidth="6" android:strokeLineJoin="round">
+        <aapt:attr name="android:strokeColor">
+            <gradient android:type="linear" android:startX="12" android:startY="8" android:endX="52" android:endY="56">
+                <item android:offset="0" android:color="#FF74E1CE"/>
+                <item android:offset="1" android:color="#FF4C8DFF"/>
+            </gradient>
+        </aapt:attr>
+    </path>
+</vector>

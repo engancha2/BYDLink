@@ -1,11 +1,20 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
-  <rect width="192" height="192" rx="40" fill="#0b0f14"/>
-  <circle cx="96" cy="96" r="60" fill="none" stroke="#1b2430" stroke-width="12"/>
-  <circle cx="96" cy="96" r="60" fill="none" stroke="#2fd27a" stroke-width="12"
-          stroke-linecap="round" stroke-dasharray="377" stroke-dashoffset="100"
-          transform="rotate(-90 96 96)"/>
-  <path d="M60 104h72l-8-22a10 10 0 0 0-9-7H77a10 10 0 0 0-9 7z" fill="#36a3ff"/>
-  <rect x="58" y="104" width="76" height="18" rx="6" fill="#eaf1f8"/>
-  <circle cx="74" cy="122" r="7" fill="#0b0f14" stroke="#eaf1f8" stroke-width="3"/>
-  <circle cx="118" cy="122" r="7" fill="#0b0f14" stroke="#eaf1f8" stroke-width="3"/>
+  <!-- BYDLink: una "B" hecha de dos eslabones entrelazados (el coche y el móvil, enlazados) -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0d1a22"/><stop offset="1" stop-color="#070b10"/>
+    </linearGradient>
+    <linearGradient id="g" x1="12" y1="8" x2="52" y2="56" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#74e1ce"/><stop offset="1" stop-color="#4c8dff"/>
+    </linearGradient>
+    <mask id="w" maskUnits="userSpaceOnUse" x="0" y="0" width="64" height="64">
+      <rect width="64" height="64" fill="#fff"/>
+      <path d="M17 25 H33 A15 15 0 0 1 33 55 H17 Z" fill="#000" stroke="#000" stroke-width="10" stroke-linejoin="round"/>
+    </mask>
+  </defs>
+  <rect width="192" height="192" rx="44" fill="url(#bg)"/>
+  <g transform="translate(96 96) scale(2.05) translate(-32.5 -32)">
+    <path d="M17 9 H31 A13 13 0 0 1 31 35 H17 Z" fill="none" stroke="url(#g)" stroke-width="6" stroke-linejoin="round" mask="url(#w)"/>
+    <path d="M17 25 H33 A15 15 0 0 1 33 55 H17 Z" fill="none" stroke="url(#g)" stroke-width="6" stroke-linejoin="round"/>
+  </g>
 </svg>
