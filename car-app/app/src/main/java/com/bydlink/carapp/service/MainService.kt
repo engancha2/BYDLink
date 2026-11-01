@@ -45,7 +45,7 @@ class MainService : Service() {
         com.bydlink.carapp.car.CarCommands(applicationContext, gateway, { lastState },
             { config.automationsMap()["autoCloseWindowsOnLock"] == true })
     }
-    private val recorder by lazy { com.bydlink.carapp.data.Recorder(BuildConfigCompat.carId(applicationContext)) }
+    private val recorder by lazy { com.bydlink.carapp.data.Recorder(applicationContext, BuildConfigCompat.carId(applicationContext)) }
 
     private var wakeLock: PowerManager.WakeLock? = null
     private var wifiLock: android.net.wifi.WifiManager.WifiLock? = null
@@ -159,6 +159,7 @@ class MainService : Service() {
                         if (sdkStuckSince == 0L) { sdkStuckSince = System.currentTimeMillis(); if (cloudReady) reportSdkStuck() }
                         val now = System.currentTimeMillis()
                         if (cloudReady && now - lastBeat > 10_000) { client.publishHeartbeat(location.last); lastBeat = now }
+                        if (cloudReady) try { recorder.onSilence(now) } catch (e: Throwable) { e.printStackTrace() }
                     }
                     if (n++ % 15 == 0) tickPower()   // cada ~30 s: gobernador de energía
                 } catch (e: Throwable) { e.printStackTrace() }

@@ -112,7 +112,7 @@
     if (!$('.view[data-view="' + view + '"]')) view = 'home';
     st.view = view;
     $$('.view').forEach(v => { v.hidden = v.dataset.view !== view; });
-    $$('.tab').forEach(t => t.classList.toggle('active', t.dataset.goto === view || (view === 'charge' && t.dataset.goto === 'home')));
+    $$('.tab').forEach(t => t.classList.toggle('active', t.dataset.goto === view || (view === 'charge' && t.dataset.goto === 'home') || (view === 'history' && t.dataset.goto === 'map')));
     if (view === 'map') MapV.ensure();
     if (view !== 'cam') Cam.stop();
     window.scrollTo(0, 0);
@@ -474,7 +474,7 @@
       const el = document.createElement('button');
       el.type = 'button'; el.className = 'item';
       el.innerHTML = '<span class="item-ico blue">' + icon('route') + '</span>' +
-        '<span class="item-main"><b>' + esc(t.startAddr || 'Inicio') + ' → ' + esc(t.endAddr || 'Fin') + '</b>' +
+        '<span class="item-main"><b>' + esc(window.BYDHistory ? window.BYDHistory.tripTitle(t) : (t.startAddr || 'Inicio') + ' → ' + (t.endAddr || 'Fin')) + '</b>' +
         '<small>' + (t.start ? shortDate(t.start) : '') + (t.durationSec ? ' · ' + dur(t.durationSec / 60) : '') + '</small></span>' +
         '<span class="item-end">' + (t.distanceKm != null ? fmt(t.distanceKm, 1) + ' km' : '') + '</span>';
       el.addEventListener('click', () => {
@@ -559,7 +559,10 @@
         (s.chargedKwh ? ' · ' + fmt(s.chargedKwh, 2) + ' kWh cargados' : '') + (s.chargeRestMin ? ' · lleno en ' + dur(s.chargeRestMin) : '')
       : 'No está cargando' + (s.rangeKm != null ? ' · ' + fmt(s.rangeKm) + ' km de autonomía' : '');
   }
+  // El coste lo calcula history.js con los precios y lugares del usuario; sin él, el que traiga la carga.
+  const costOf = s => window.BYDHistory ? window.BYDHistory.cost(s) : s.costEur;
   function renderSessions(list) {
+    st.sessions = list;
     const has = list && list.length;
     $('#chgKpis').hidden = !has; $('#chgChartCard').hidden = !has;
     if (!has) {
@@ -567,7 +570,7 @@
       return;
     }
     const kwh = list.reduce((a, s) => a + (s.kwh || 0), 0);
-    const cost = list.reduce((a, s) => a + (s.costEur || 0), 0);
+    const cost = list.reduce((a, s) => a + (costOf(s) || 0), 0);
     $('#chgCount').textContent = list.length;
     $('#chgKwh').textContent = fmt(kwh, kwh < 100 ? 1 : 0);
     $('#chgCost').textContent = fmt(cost, 2) + ' €';
@@ -579,9 +582,10 @@
       '<div class="item"><span class="item-ico ' + (s.type === 'DC' ? 'dcb' : 'ac') + '">' + esc(s.type || 'AC') + '</span>' +
       '<span class="item-main"><b>' + esc(s.place || 'Carga') + ' · ' + (s.socStart || 0) + ' → ' + (s.socEnd || 0) + '%</b>' +
       '<small>' + (s.start ? shortDate(s.start) : '') + (s.durationMin ? ' · ' + dur(s.durationMin) : '') + '</small></span>' +
-      '<span class="item-end">' + fmt(s.kwh || 0, 1) + ' kWh' + (s.costEur != null ? '<small>' + fmt(s.costEur, 2) + ' €</small>' : '') + '</span></div>'
+      '<span class="item-end">' + fmt(s.kwh || 0, 1) + ' kWh' + (costOf(s) != null ? '<small>' + fmt(costOf(s), 2) + ' €</small>' : '') + '</span></div>'
     ).join('');
   }
+  window.BYDApp.renderSessions = () => renderSessions(st.sessions);
 
   // ───────── mandos (inicio) ─────────
   $('#ctlLock').addEventListener('click', async () => {

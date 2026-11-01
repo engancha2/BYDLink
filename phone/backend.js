@@ -12,6 +12,7 @@
  *   watch({meta,status,config,seats,cameras,trips,sentry,charging,net,error})
  *   sendCommand(action, payload) -> Promise<{ok, error?, data?}>
  *   getTripPoints(id)   signalRef(session)   getDemoCameraStream(cam)?   carId
+ *   historyRange(kind, from, to)  tripRoute(id)  historyCfg(cb)  saveHistoryCfg(v)  historyEdits(cb)  saveHistoryEdit(kind, id, v)
  */
 (function () {
   'use strict';
@@ -132,6 +133,68 @@
       { id: 'c1', start: now - 36e5 * 140, socStart: 50, socEnd: 85, kwh: 15.1, durationMin: 42, type: 'AC', place: 'Trabajo',   costEur: 0.0 }
     ];
 
+    // Historial de la demo (history.js): ~14 meses de viajes y cargas inventados, siempre los mismos.
+    const demoHist = {
+      data: null, cfg: null, edits: {}, onCfg: null, onEdits: null,
+      build() {
+        if (this.data) return this.data;
+        let seed = 7, soc = 78, n = 0;
+        const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+        const home = [41.3870, 2.1700], work = [41.4036, 2.1744];
+        const spots = [[41.3818, 2.1228], [41.4145, 2.1527], [41.3606, 2.1361], [41.5463, 2.1086]];
+        const trips = [], charges = [];
+        const day0 = new Date(); day0.setHours(0, 0, 0, 0);
+        const p2 = v => String(v).padStart(2, '0');
+        const hourKey = t => { const d = new Date(t); return d.getFullYear() + p2(d.getMonth() + 1) + p2(d.getDate()) + p2(d.getHours()); };
+        const charge = (start, kw, kind, at) => {
+          const s0 = Math.round(soc), target = kind === 'dc' ? 80 : 90 + Math.round(rnd() * 10);
+          const kwh = (target - soc) / 100 * 43.2 * 1.08, hrs = kwh / kw, kwhH = {};
+          let t = start, left = kwh;
+          while (left > 0.01) {
+            const frac = t === start ? (60 - new Date(t).getMinutes()) / 60 : 1;
+            const e = Math.min(left, kw * frac);
+            kwhH[hourKey(t)] = +e.toFixed(2); left -= e; t += frac * 36e5;
+          }
+          soc = target;
+          charges.push({ id: 'hc' + (n++), start, end: start + hrs * 36e5, socStart: s0, socEnd: target, kwh: +kwh.toFixed(1),
+            durationMin: Math.round(hrs * 60), chargeMin: Math.round(hrs * 60), type: kind === 'dc' ? 'DC' : 'AC', v: 2,
+            maxKw: +(kw * 1.1).toFixed(1), avgKw: kw, lat: at[0] + 0.0002, lng: at[1], kwhH, place: null, costEur: null });
+        };
+        for (let d = 420; d >= 0; d--) {
+          const base = day0.getTime() - d * 864e5, dt = new Date(base), we = dt.getDay() === 0 || dt.getDay() === 6;
+          const cold = dt.getMonth() < 2 || dt.getMonth() === 11;
+          const legs = [];
+          if (!we) { legs.push([home, work], [work, home]); if (rnd() < 0.35) { const x = spots[(rnd() * 4) | 0]; legs.push([home, x], [x, home]); } }
+          else if (rnd() < 0.6) { const x = spots[(rnd() * 4) | 0]; legs.push([home, x], [x, home]); }
+          let t = base + (we ? 10.5 : 7.6) * 36e5 + rnd() * 18e5;
+          legs.forEach((leg, i) => {
+            if (d === 0 && t > Date.now()) return;
+            const far = leg[0] === spots[3] || leg[1] === spots[3], toWork = leg[0] === work || leg[1] === work;
+            const km = (far ? 24 : toWork ? 9.5 : 6) * (0.9 + rnd() * 0.3);
+            const k100 = 12.8 + rnd() * 2.6 + (cold ? 2.4 : 0), kwh = km * k100 / 100;
+            const durSec = Math.round(km / (24 + rnd() * 20) * 3600);
+            if (soc - kwh / 43.2 * 100 < 12) charge(t - 36e5, 48, 'dc', spots[1]);
+            const s0 = Math.round(soc); soc -= kwh / 43.2 * 100;
+            trips.push({ id: 'ht' + (n++), start: t, end: t + durSec * 1000, distanceKm: +km.toFixed(1), durationSec: durSec, v: 2,
+              driveSec: Math.round(durSec * 0.84), avgKmh: +(km / (durSec * 0.84 / 3600)).toFixed(1), maxKmh: Math.round(48 + rnd() * 70),
+              socStart: s0, socEnd: Math.round(soc), kwh: +kwh.toFixed(2), kwhSrc: 'bateria', kwh100: +k100.toFixed(1),
+              outTemp: Math.round((cold ? 7 : 21) + rnd() * 7),
+              startLat: leg[0][0], startLng: leg[0][1], endLat: leg[1][0], endLng: leg[1][1] });
+            t += durSec * 1000 + (i === 0 ? 8.6 : 1.5 + rnd() * 3) * 36e5;
+          });
+          if (soc < 50 && d > 0) charge(base + (22.5 + rnd()) * 36e5, 2.3, 'home', home);
+          else if (!we && rnd() < 0.07 && d > 0) charge(base + 9 * 36e5, 7, 'work', work);
+        }
+        this.cfg = {
+          home: { mode: 'periods', p1: 0.25, p2: 0.17, p3: 0.11, flat: 0.16 }, awayAc: 0.35, dc: 0.49, unknownAc: 'home',
+          places: [{ name: 'Casa', lat: home[0], lng: home[1], r: 150, price: 'home' }, { name: 'Trabajo', lat: work[0], lng: work[1], r: 200, price: 0 }],
+          gas: { on: true, eurL: 1.55, l100: 6 }
+        };
+        this.data = { trips, charges };
+        return this.data;
+      }
+    };
+
     const anyWindowOpen = () => Object.keys(status.windows).some(k => status.windows[k]);
     const setAllWindows = open => { status.windows = { fl: open, fr: open, rl: open, rr: open, sunroof: false }; };
 
@@ -234,7 +297,21 @@
       camViewer() { return Promise.resolve(); },
       sentryThumb(key) { return Promise.resolve({ ts: Date.now(), camera: 'front', jpeg: demoJpeg('front', status, 320, 200) }); },
       camViews() { return Promise.resolve(null); },
-      camDiag() { return Promise.resolve({ verdict: 'OK_FRAMES', verdictMsg: 'Cámara simulada de la demo: funciona.', ts: Date.now() }); }
+      camDiag() { return Promise.resolve({ verdict: 'OK_FRAMES', verdictMsg: 'Cámara simulada de la demo: funciona.', ts: Date.now() }); },
+      historyRange(kind, from, to) {
+        const d = demoHist.build(), list = kind === 'trips' ? d.trips : d.charges;
+        return new Promise(r => setTimeout(() => r(list.filter(x => x.start >= from && x.start <= to).map(x => Object.assign({}, x))), 250));
+      },
+      tripRoute() { return Promise.resolve(null); },
+      historyCfg(cb) { demoHist.build(); demoHist.onCfg = cb; setTimeout(() => cb(demoHist.cfg), 60); return () => {}; },
+      saveHistoryCfg(v) { demoHist.cfg = v; if (demoHist.onCfg) demoHist.onCfg(v); return Promise.resolve(); },
+      historyEdits(cb) { demoHist.onEdits = cb; setTimeout(() => cb(demoHist.edits), 60); return () => {}; },
+      saveHistoryEdit(kind, id, v) {
+        const e = demoHist.edits[kind] = demoHist.edits[kind] || {};
+        if (v) e[id] = v; else delete e[id];
+        if (demoHist.onEdits) demoHist.onEdits(JSON.parse(JSON.stringify(demoHist.edits)));
+        return Promise.resolve();
+      }
     };
   }
 
@@ -411,7 +488,18 @@
       camDiag() {
         const f = k => root.child('diag/cam/' + k).once('value').then(s => s.val(), () => null);
         return Promise.all([f('verdict'), f('verdictMsg'), f('ts')]).then(([verdict, verdictMsg, ts]) => verdict ? { verdict, verdictMsg, ts } : null);
-      }
+      },
+      // Historial (ver protocol/historial.md): viajes o cargas de un periodo, ruta de un viaje, precios y correcciones
+      historyRange(kind, from, to) {
+        return root.child(kind === 'trips' ? 'trips' : 'chargingSessions').orderByChild('start').startAt(from).endAt(to).once('value').then(s => {
+          const a = []; s.forEach(c => { const o = c.val() || {}; o.id = c.key; a.push(o); }); return a;
+        });
+      },
+      tripRoute(id) { return root.child('tripRoutes/' + id).once('value').then(s => s.val(), () => null); },
+      historyCfg(cb) { const r = root.child('historyCfg'), f = s => cb(s.val()); r.on('value', f); return () => r.off('value', f); },
+      saveHistoryCfg(v) { return root.child('historyCfg').set(v); },
+      historyEdits(cb) { const r = root.child('historyEdits'), f = s => cb(s.val()); r.on('value', f); return () => r.off('value', f); },
+      saveHistoryEdit(kind, id, v) { return root.child('historyEdits/' + kind + '/' + id).set(v || null); }
     };
   }
 
