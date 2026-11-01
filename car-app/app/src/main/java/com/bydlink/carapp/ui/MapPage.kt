@@ -25,11 +25,14 @@ import com.bydlink.carapp.ui.HomeActivity.Companion.MUTED
  */
 @SuppressLint("SetJavaScriptEnabled")
 internal fun HomeActivity.mapPage(): View {
-    val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; setPadding(dp(4), 0, dp(4), dp(4)) }
+    val col = page()
+    pageHead(col, "Mapa")
+    val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+    col.addView(row, LinearLayout.LayoutParams(-1, 0, 1f))
 
     // ── mapa ──
     val mapCard = card().apply { setPadding(dp(4), dp(4), dp(4), dp(4)) }
-    row.addView(mapCard, LinearLayout.LayoutParams(0, -1, 1.6f).apply { rightMargin = dp(12) })
+    row.addView(mapCard, LinearLayout.LayoutParams(0, -1, 1.6f).apply { rightMargin = dp(16) })
     var ready = false
     val web = WebView(this).apply {
         settings.javaScriptEnabled = true; settings.domStorageEnabled = true
@@ -49,7 +52,7 @@ internal fun HomeActivity.mapPage(): View {
         .also { side.addView(it, LinearLayout.LayoutParams(-1, dp(58)).apply { bottomMargin = dp(10) }) }
     val homeRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
     side.addView(homeRow, LinearLayout.LayoutParams(-1, dp(58)).apply { bottomMargin = dp(10) })
-    homeRow.addView(pill("Casa") { goFavorite("home") }.apply { textSize = 18f }, LinearLayout.LayoutParams(0, -1, 1f).apply { rightMargin = dp(10) })
+    homeRow.addView(pill("Casa") { goHome() }.apply { textSize = 18f }, LinearLayout.LayoutParams(0, -1, 1f).apply { rightMargin = dp(10) })
     homeRow.addView(pill("Trabajo") { goFavorite("work") }.apply { textSize = 18f }, LinearLayout.LayoutParams(0, -1, 1f))
 
     val search = EditText(this).apply {
@@ -87,11 +90,11 @@ internal fun HomeActivity.mapPage(): View {
             if (loc == null || (loc.lat == 0.0 && loc.lng == 0.0)) "Esperando la posición del coche…" else ""
         splitBtn.visibility = if (nav != null) View.VISIBLE else View.GONE
     }
-    return row
+    return col
 }
 
 /** La app de navegación: la elegida para el hueco "Navegación" del dock, o Waze / Google Maps. */
-private fun HomeActivity.navApp(): ComponentName? =
+internal fun HomeActivity.navApp(): ComponentName? =
     prefs.getString("slot0", null)?.let { ComponentName.unflattenFromString(it) }?.takeIf { resolve(it.flattenToString()) != null }
         ?: listOf("com.waze", "com.google.android.apps.maps").firstNotNullOfOrNull { resolve(it) }
 
@@ -101,7 +104,7 @@ internal fun HomeActivity.musicApp(): ComponentName? =
         ?: listOf("com.spoti.plus", "com.spotify.music", "com.byd.mediacenter", "app.revanced.android.apps.youtube.music").firstNotNullOfOrNull { resolve(it) }
 
 /** Abre la ruta en Waze; si no está, en la app que entienda la segunda dirección (Google Maps) o geo:. */
-private fun HomeActivity.navigate(waze: Uri, fallback: Uri) {
+internal fun HomeActivity.navigate(waze: Uri, fallback: Uri) {
     val tries = listOf(Intent(Intent.ACTION_VIEW, waze), Intent(Intent.ACTION_VIEW, fallback))
     for (i in tries) {
         if (i.resolveActivity(packageManager) != null) { startActivity(i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)); return }
@@ -110,15 +113,24 @@ private fun HomeActivity.navigate(waze: Uri, fallback: Uri) {
 }
 
 /** Casa / Trabajo guardados en Waze (o el que tenga Google Maps). */
-private fun HomeActivity.goFavorite(which: String) =
+internal fun HomeActivity.goFavorite(which: String) =
     navigate(Uri.parse("waze://?favorite=$which&navigate=yes"), Uri.parse("google.navigation:q=${if (which == "home") "casa" else "trabajo"}"))
+
+/** Navegar a unas coordenadas (Waze; si no, Google Maps o cualquier app que entienda geo:). */
+internal fun HomeActivity.navTo(lat: Double, lng: Double) {
+    val ll = String.format(java.util.Locale.US, "%.6f,%.6f", lat, lng)
+    val tries = listOf(Intent(Intent.ACTION_VIEW, Uri.parse("waze://?ll=$ll&navigate=yes")), Intent(Intent.ACTION_VIEW, Uri.parse("google.navigation:q=$ll")),
+        Intent(Intent.ACTION_VIEW, Uri.parse("geo:$ll?q=$ll")))
+    for (i in tries) if (i.resolveActivity(packageManager) != null) { startActivity(i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)); return }
+    toast("No hay ninguna app de navegación instalada")
+}
 
 /** Mapa oscuro de OpenStreetMap (teselas de CARTO) con el coche; setCar(lat, lng, rumbo, velocidad) lo mueve. */
 private const val MAP_HTML = """<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="stylesheet" href="leaflet/leaflet.css">
 <script src="leaflet/leaflet.js"></script>
-<style>html,body,#m{margin:0;height:100%;background:#0e1622}.leaflet-control-attribution{font-size:10px;background:rgba(0,0,0,.4)!important;color:#8b96a1}
-.leaflet-control-attribution a{color:#8b96a1}.car{width:26px;height:26px;border-radius:50%;background:#2fd27a;border:3px solid #fff;box-shadow:0 0 0 6px rgba(47,210,122,.25)}
+<style>html,body,#m{margin:0;height:100%;background:#0d141c}.leaflet-control-attribution{font-size:10px;background:rgba(0,0,0,.4)!important;color:#8b96a1}
+.leaflet-control-attribution a{color:#8b96a1}.car{width:26px;height:26px;border-radius:50%;background:#74e1ce;border:3px solid #fff;box-shadow:0 0 0 6px rgba(116,225,206,.25)}
 #off{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#8b96a1;font:16px sans-serif}</style></head>
 <body><div id="m"></div><div id="off">Cargando mapa…</div><script>
 var map=null,car=null,follow=true;

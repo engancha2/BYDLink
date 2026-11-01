@@ -25,12 +25,13 @@ import com.bydlink.carapp.ui.HomeActivity.Companion.TEXT
  * Las apps de vídeo solo se abren con el coche parado.
  */
 internal fun HomeActivity.mediaPage(): View {
-    val col = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(4), 0, dp(4), dp(8)) }
+    val col = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(0, 0, 0, dp(8)) }
+    pageHead(col, "Música")
 
     // ── lo que suena ──
     val now = card(); col.addView(now)
     val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
-    val art = ImageView(this).apply { scaleType = ImageView.ScaleType.CENTER_CROP; background = round(CARD2, 18); clipToOutline = true }
+    val art = ImageView(this).apply { scaleType = ImageView.ScaleType.CENTER_CROP; background = round(0xFF3A5468.toInt(), 18); clipToOutline = true }
     row.addView(art, LinearLayout.LayoutParams(dp(170), dp(170)))
     val info = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(22), 0, 0, 0) }
     val src = label("", 14f, MUTED, bold = true); val title = label("Nada sonando", 26f, Color.WHITE, bold = true).apply { maxLines = 2 }
@@ -109,7 +110,8 @@ internal fun HomeActivity.mediaPage(): View {
         title.text = md?.getString(MediaMetadata.METADATA_KEY_TITLE) ?: if (c == null) "Nada sonando" else "Música"
         artist.text = md?.getString(MediaMetadata.METADATA_KEY_ARTIST) ?: md?.getString(MediaMetadata.METADATA_KEY_ALBUM) ?: ""
         val bmp = md?.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART) ?: md?.getBitmap(MediaMetadata.METADATA_KEY_ART)
-        if (bmp != null) art.setImageBitmap(bmp) else art.setImageDrawable(c?.packageName?.let { try { packageManager.getApplicationIcon(it) } catch (e: Throwable) { null } })
+        if (bmp != null) { art.setImageBitmap(bmp); art.setPadding(0, 0, 0, 0) }
+        else { art.setImageDrawable(LineIcon("music", Color.WHITE)); art.setPadding(dp(50), dp(50), dp(50), dp(50)) }
         val st = c?.playbackState
         play.setImageDrawable(HomeActivity.MediaIcon(if (st?.state == PlaybackState.STATE_PLAYING) HomeActivity.MediaIcon.PAUSE else HomeActivity.MediaIcon.PLAY))
         val dur = md?.getLong(MediaMetadata.METADATA_KEY_DURATION) ?: 0L

@@ -22,8 +22,8 @@ import java.util.Locale
  * Página Energía del lanzador: resumen del mes (km, kWh, €) y los últimos viajes y cargas. Lee lo que guarda el
  * Recorder en la nube y los precios que pone el móvil (cars/{id}/historyCfg); el detalle está en el móvil.
  */
-internal fun HomeActivity.historyCard(col: LinearLayout) {
-    val sum = card(); col.addView(sum, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(12) })
+internal fun HomeActivity.historyCard(col: LinearLayout, first: Boolean = false) {
+    val sum = card(); col.addView(sum, LinearLayout.LayoutParams(-1, -2).apply { if (!first) topMargin = dp(12) })
     val head = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
     val month = Calendar.getInstance().getDisplayName(Calendar.MONTH, Calendar.LONG, Locale("es", "ES")) ?: ""
     head.addView(label("Este mes · $month", 16f, MUTED, bold = true), LinearLayout.LayoutParams(0, -2, 1f))
@@ -40,8 +40,8 @@ internal fun HomeActivity.historyCard(col: LinearLayout) {
     sum.addView(sRow)
 
     val lists = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-    col.addView(lists, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(12) })
-    val tc = card(); lists.addView(tc, LinearLayout.LayoutParams(0, -2, 1f).apply { rightMargin = dp(12) })
+    col.addView(lists, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(16) })
+    val tc = card(); lists.addView(tc, LinearLayout.LayoutParams(0, -2, 1f).apply { rightMargin = dp(16) })
     tc.addView(label("Últimos viajes", 16f, MUTED, bold = true))
     val tList = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(0, dp(6), 0, 0) }; tc.addView(tList)
     val cc = card(); lists.addView(cc, LinearLayout.LayoutParams(0, -2, 1f))
@@ -123,4 +123,63 @@ private fun HomeActivity.line(list: LinearLayout, whenTxt: String, main: String,
     row.addView(top)
     row.addView(label(sub, 13f, MUTED))
     list.addView(row)
+}
+
+/**
+ * Ahorro del mes frente a un coche de gasolina: km del mes × l/100 km × €/l (lo que se pone en el móvil, en
+ * historyCfg.gas; si no, 6 l/100 km a 1,55 €/l) menos lo que costaron las cargas del mes.
+ */
+internal fun HomeActivity.savingsCard(col: LinearLayout) {
+    val month = Calendar.getInstance().getDisplayName(Calendar.MONTH, Calendar.LONG, Locale("es", "ES")) ?: ""
+    val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+    col.addView(row, LinearLayout.LayoutParams(-1, -2))
+    val big = card(); row.addView(big, LinearLayout.LayoutParams(0, -2, 1f).apply { rightMargin = dp(16) })
+    big.addView(label("Ahorrado en $month", 17f, Color.WHITE, bold = true))
+    val saved = label("--", 52f, ACCENT).apply { includeFontPadding = false; setPadding(0, dp(10), 0, dp(4)) }; big.addView(saved)
+    val savedSub = label("frente a un coche de gasolina", 15f, MUTED); big.addView(savedSub)
+    val co2 = label("", 16f, TEXT).apply { setPadding(0, dp(16), 0, 0) }; big.addView(co2)
+    val det = card(); row.addView(det, LinearLayout.LayoutParams(0, -2, 1f))
+    det.addView(h3("Cuentas del mes"))
+    val km = kv(det, "Kilómetros"); val elec = kv(det, "Gastado en cargas"); val gas = kv(det, "Habría costado en gasolina")
+    val e100 = kv(det, "Eléctrico cada 100 km"); val g100 = kv(det, "Gasolina cada 100 km")
+    col.addView(label("Precio de la gasolina y consumo de comparación: se cambian en el móvil (Historial → Precios).", 14f, MUTED)
+        .apply { setPadding(dp(4), dp(12), 0, 0) })
+
+    val root = App.db.getReference("cars/${BuildConfigCompat.carId(this)}")
+    val from = Calendar.getInstance().apply { set(Calendar.DAY_OF_MONTH, 1); set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0) }.timeInMillis
+    val got = HashMap<String, Any?>()
+    fun done() {
+        if (!listOf("cfg", "edits", "trips", "chg").all { got.containsKey(it) }) return
+        val cfgRaw = got["cfg"] as? Map<*, *>
+        val cfg = Tariff.parse(cfgRaw)
+        val gasCfg = cfgRaw?.get("gas") as? Map<*, *>
+        val eurL = (gasCfg?.get("eurL") as? Number)?.toDouble() ?: 1.55
+        val l100 = (gasCfg?.get("l100") as? Number)?.toDouble() ?: 6.0
+        val edits = got["edits"] as? Map<*, *>
+        fun edit(kind: String, id: String?) = (edits?.get(kind) as? Map<*, *>)?.get(id) as? Map<*, *>
+        @Suppress("UNCHECKED_CAST") fun rows(k: String) = (got[k] as? List<Pair<String, Map<*, *>>>).orEmpty()
+        val kmSum = rows("trips").filter { edit("trips", it.first)?.get("skip") != true }.sumOf { (it.second["distanceKm"] as? Number)?.toDouble() ?: 0.0 }
+        val chg = rows("chg").filter { edit("charges", it.first)?.get("skip") != true }
+        val cost = chg.sumOf { Tariff.chargeCost(cfg, it.second, edit("charges", it.first)) }
+        val gasCost = kmSum * l100 / 100 * eurL
+        km.text = String.format(Locale.getDefault(), "%,d km", Math.round(kmSum))
+        elec.text = String.format(Locale.getDefault(), "%.2f €", cost)
+        gas.text = String.format(Locale.getDefault(), "%.2f €", gasCost)
+        e100.text = if (kmSum >= 10) String.format(Locale.getDefault(), "%.2f €", cost / kmSum * 100) else "--"
+        g100.text = String.format(Locale.getDefault(), "%.2f €", l100 * eurL)
+        saved.text = String.format(Locale.getDefault(), "%.2f €", gasCost - cost)
+        saved.setTextColor(if (gasCost - cost >= 0) ACCENT else Color.WHITE)
+        co2.text = if (kmSum >= 1) String.format(Locale.getDefault(), "≈ %.0f kg de CO₂ que no ha salido por un tubo de escape", kmSum * l100 / 100 * 2.31) else ""
+    }
+    fun once(k: String, q: Query, asList: Boolean) = q.addListenerForSingleValueEvent(object : ValueEventListener {
+        override fun onDataChange(snap: DataSnapshot) {
+            got[k] = if (asList) snap.children.mapNotNull { c -> (c.value as? Map<*, *>)?.let { c.key.orEmpty() to it } } else snap.value
+            done()
+        }
+        override fun onCancelled(error: DatabaseError) { got[k] = null; done() }
+    })
+    once("cfg", root.child("historyCfg"), false)
+    once("edits", root.child("historyEdits"), false)
+    once("trips", root.child("trips").orderByChild("start").startAt(from.toDouble()), true)
+    once("chg", root.child("chargingSessions").orderByChild("start").startAt(from.toDouble()), true)
 }
