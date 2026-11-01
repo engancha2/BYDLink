@@ -13,7 +13,6 @@ por Web Push estándar, sin servidor de BYDLink.
 | `autoLog/{pushId}` | coche | `{ts, rule, name, why, ok, manual, results: [{action, label, ok, msg}]}` — las 100 últimas (el coche borra las viejas). `.indexOn: ts`. |
 | `push/key` | coche | clave pública VAPID del coche (P-256 en crudo, Base64 url). La privada nunca sale del coche (preferencias `push`). |
 | `push/subs/{subId}` | móvil | una suscripción Web Push: `{endpoint, p256dh, auth, key, name, uid, ts, sentry: bool, autos: bool}`. `subId` = 24 primeros hex del SHA-256 del `endpoint`. `key` = la clave del coche con la que se suscribió. El coche borra la suscripción si el servicio responde 404/410 y pone `error: "clave"` si responde 401/403 (el móvil pide volver a activarlos). |
-| `bydCloud/linked` | parte "nube BYD" | `true` si la cuenta BYD está vinculada: solo entonces la web ofrece las acciones `byd*`. |
 
 Reglas (`firebase/database.rules.json`): mismas que el resto del coche + `.validate` de la forma de las reglas y de
 las suscripciones (`endpoint` https, < 1000 caracteres).
@@ -65,17 +64,16 @@ con todas sus comprobaciones) y antes por una lista cerrada (`auto/Engine.kt` �
 | action | payload | notas |
 |---|---|---|
 | `notify` | `{text}` | aviso al móvil (§3) con el nombre de la regla como título; sin texto, el motivo |
-| `setClimate` | `{on, temp}` | con el coche apagado no funciona en el Surf: usar `bydClimate` |
+| `setClimate` | `{on, temp}` | con el coche apagado no funciona en el Surf |
 | `setDefrost`, `setSeatComfort`, `setSeatHeat`, `setSeatVent`, `batteryPreheat`, `setMirrorHeat` | como desde el móvil | |
 | `setChargeLimit` | `{percent}` | |
 | `setSentryConfig` | `{on}` | el centinela de BYDLink |
 | `recordVideo` | `{seconds}` ≤ 300 | |
 | `stopVideo`, `takePhoto`, `setVideoConfig` `{mode}` | | foto solo aparcado |
 | `lock` / `setLock {locked:true}`, `closeWindows`, `flashLights`, `locateCar`, `setInteriorLight` | | abrir en local, nunca |
-| `bydLock`, `bydUnlock`, `bydClimate {on, temp, minutes}`, `bydFind`, `bydCharge {op: "start"\|"stop"}` | | de la parte "nube BYD"; la web solo las ofrece con `bydCloud/linked` |
 
 Prohibido siempre: `powerOff`, modo de conducción, limitador, `sdkCall`, maletero/frunk/tapa, abrir en local.
-Solo con el coche aparcado: `bydUnlock`, `bydFind`, `flashLights`, `locateCar`, `takePhoto`, `setInteriorLight`,
+Solo con el coche aparcado: `flashLights`, `locateCar`, `takePhoto`, `setInteriorLight`,
 `closeWindows`. Cada regla espera `cooldownMin` (1–1440, por defecto 5) antes de volver a saltar y, entre todas,
 como mucho 20 por hora.
 
