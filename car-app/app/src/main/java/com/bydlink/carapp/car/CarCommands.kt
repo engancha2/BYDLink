@@ -43,7 +43,7 @@ class CarCommands(
             // Vistos en Beetle Launcher: cierre (setting/doorlock), ventanas, volante, limpias, límite de carga.
             "setDoorLock", "setAllDoorsLock", "setDoorLockStatus", "setWindowControlState",
             "setSteeringWheelHeatingState", "setSteeringWheelWarmState", "setAutoRainWiperState",
-            "setChargeLimit", "setSOCTarget", "setChargeStopCapacityState", "setAcChargingLimit")
+            "setChargeLimit", "setSOCTarget", "setChargeStopCapacityState", "setChargeStopSwitchState", "setAcChargingLimit")
 
         // Feature IDs (símbolo del catálogo del coche + fallback numérico validado por la
         // comunidad en Leopard3/Seagull; en el Surf hay que confirmarlos con el sondeo).
