@@ -617,6 +617,11 @@ class HomeActivity : Activity() {
         }
         homeRefresh()
         homeBtn.setOnClickListener { homeBtn.isEnabled = false; Thread { val m = LauncherMode.set(applicationContext, !LauncherMode.isOn(this)); ui.post { homeBtn.isEnabled = true; homeRefresh(); toast(m) } }.start() }
+        val openBtn = pill("") {}
+        fun openRefresh() { openBtn.text = if (OpenOnStart.enabled(this)) "✓ Abrir BYDLink al arrancar el coche" else "Abrir BYDLink al arrancar el coche: no" }
+        openRefresh()
+        openBtn.setOnClickListener { OpenOnStart.set(this, !OpenOnStart.enabled(this)); openRefresh() }
+        home.addView(openBtn, LinearLayout.LayoutParams(-2, dp(52)).apply { topMargin = dp(10) })
 
         val keys = card(); col.addView(keys, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(12) })
         keys.addView(label("Botones del volante", 18f, Color.WHITE, bold = true))

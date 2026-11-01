@@ -145,4 +145,18 @@ class RecorderTest {
         assertEquals(4.3, c["kwh"] as Double, 0.15)   // 10 % de 43,3 kWh
         assertNotNull(c["kwhH"])
     }
+    @Test fun counterThatFallsShortIsCheckedAgainstSoc() {
+        // Como el Surf la noche del 31/10: el contador del coche se queda en 2/3 de lo que de verdad entra.
+        val r = rec()
+        r.onState(CarState(ts = ts, soc = 60, energyLeftKwh = 24.6))   // capacidad: 41 kWh
+        for (i in 0 until 360) {   // 2 h a 6 kW = 12 kWh = 29 % de 41 kWh
+            ts += 20_000L
+            r.onState(CarState(ts = ts, charging = true, chargingGun = "AC", chargedKwh = 8.0 * i / 359, chargeKw = 6.0, soc = 60 + 29 * i / 359))
+        }
+        ts += 20_000L
+        r.onState(CarState(ts = ts, charging = false, chargingGun = "none", soc = 89))
+        val c = cloud.node("chargingSessions/k0")!!
+        assertEquals(12.0, c["kwh"] as Double, 0.3)
+        assertEquals(12.0, (c["kwhH"] as Map<*, *>).values.sumOf { (it as Number).toDouble() }, 0.1)
+    }
 }

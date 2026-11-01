@@ -5,7 +5,7 @@
   const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
   const B = window.Backend;
   const ONLINE_MS = 90e3;           // sin datos en este tiempo → coche desconectado
-  const WEB_VERSION = '2.10';        // cambiarla junto con CACHE de sw.js
+  const WEB_VERSION = '2.11';        // cambiarla junto con CACHE de sw.js
   const CAR_APP_MIN = '2.0';        // la app del coche más antigua que no hace falta actualizar
 
   const st = {
@@ -735,12 +735,11 @@
       clearTimeout(this.timer);
       this.timer = setTimeout(() => {
         if ($('#camBox').dataset.state === 'connecting') {
+          if (this.q === 'hd') return this.toLight(cam);
           this.halt();
-          this.state('error', this.q === 'hd'
-            ? 'No llega vídeo HD. Tu red puede bloquear la conexión directa: prueba el modo Ligero.'
-            : 'No llega imagen del coche. Puede estar dormido o sin cobertura.');
+          this.state('error', 'No llega imagen del coche. Puede estar dormido o sin cobertura.');
         }
-      }, this.q === 'hd' ? 25000 : 20000);
+      }, this.q === 'hd' ? 15000 : 20000);
       if (this.q === 'hd') return this.startHd(cam, switching);
       if (switching && this.unsub) {
         this.startedAt = Date.now();
@@ -773,8 +772,14 @@
         if (this.cur === cam && !r.ok) { this.halt(); this.state('error', r.error || 'El coche no ha podido abrir la cámara.'); }
       });
     },
+    /** El HD no conecta: con datos móviles en el coche y en el móvil la conexión directa casi nunca pasa. */
+    toLight(cam) {
+      if (this.q !== 'hd' || this.cur !== cam) return;
+      toast('El vídeo HD no conecta en esta red (pasa con datos móviles). Te pongo el modo Ligero.');
+      this.setQuality('jpeg');
+    },
     startHd(cam, switching) {
-      const onState = (s, msg) => { if (this.cur) this.state(s, msg); };
+      const onState = (s, msg) => { if (!this.cur) return; if (s === 'error') return this.toLight(cam); this.state(s, msg); };
       if (switching && LiveCam.camera) LiveCam.switchCam(cam, $('#camVideo'), onState);
       else LiveCam.start(cam, $('#camVideo'), onState);
     },

@@ -15,6 +15,9 @@ object StateHub {
 
     /** Contacto puesto según el sistema (aviso ACC de BYD o accmodemanager); null si aún no se sabe. */
     @Volatile var accOn: Boolean? = null
+        set(v) { val prev = field; field = v; if (v != null && v != prev) onAccChange?.invoke(prev, v) }
+    /** Cambio del contacto (antes, ahora); lo pone MainService. */
+    @Volatile var onAccChange: ((Boolean?, Boolean) -> Unit)? = null
 
     /** true en cuanto hay sesión de Firebase (para la pantalla de estado del lanzador). */
     @Volatile var cloudOk: Boolean = false

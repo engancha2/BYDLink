@@ -26,6 +26,45 @@
 
   function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
   function lsSet(k, v) { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) {} }
+
+  // Une los tramos de una misma carga. Las versiones viejas de la app del coche empezaban una carga nueva cada vez que
+  // la app se reiniciaba (y dejaban la anterior «en curso» para siempre). Es la misma carga si sigue en el mismo sitio,
+  // sin un hueco de más de 35 min y la batería no ha bajado entre un tramo y el siguiente.
+  const CHG_GAP = 35 * 60e3;
+  function joinCharges(list) {
+    const endOf = c => c.end || (c.start + (c.durationMin || 0) * 60e3);
+    const near = (a, b) => a.lat == null || b.lat == null || (Math.abs(a.lat - b.lat) < 0.003 && Math.abs(a.lng - b.lng) < 0.004);
+    const out = [];
+    list.slice().sort((x, y) => x.start - y.start).forEach(c => {
+      const p = out[out.length - 1];
+      if (!p || c.start - endOf(p) > CHG_GAP || !near(p, c) || (c.socStart != null && p.socEnd != null && c.socStart < p.socEnd - 1)) {
+        out.push(Object.assign({}, c)); return;
+      }
+      const m = Object.assign({}, p, c);
+      m.id = p.id; m.start = p.start; m.parts = (p.parts || [p.id]).concat(c.id);
+      m.socStart = p.socStart != null ? p.socStart : c.socStart;
+      m.end = c.end || null; m.live = c.live || null;
+      // Antes de la v2 el coche guardaba su contador de la carga entera (va creciendo); desde la v2, cada tramo lo suyo.
+      const pk = p.kwh || 0, ck = c.kwh || 0;
+      m.kwh = Math.round(((p.v >= 2 && c.v >= 2) || ck < pk ? pk + ck : ck) * 10) / 10;
+      m.durationMin = Math.round((endOf(c) - p.start) / 60e3);
+      m.chargeMin = (p.chargeMin || 0) + (c.chargeMin || 0) || null;
+      m.maxKw = Math.max(p.maxKw || 0, c.maxKw || 0) || null;
+      m.avgKw = m.chargeMin ? Math.round(m.kwh / (m.chargeMin / 60) * 10) / 10 : null;
+      if (p.kwhH || c.kwhH) {
+        const h = Object.assign({}, p.kwhH);
+        Object.entries(c.kwhH || {}).forEach(([k, v]) => { h[k] = (h[k] || 0) + v; });
+        const sum = Object.values(h).reduce((a, b) => a + b, 0);
+        if (sum > 0) Object.keys(h).forEach(k => { h[k] = Math.round(h[k] * m.kwh / sum * 100) / 100; });
+        m.kwhH = h;
+      }
+      out[out.length - 1] = m;
+    });
+    // «En curso» sin noticias desde hace rato: la app se reinició y no llegó a cerrarla.
+    const now = Date.now();
+    out.forEach(c => { if (c.live && now - endOf(c) > CHG_GAP) { c.live = null; c.end = endOf(c); } });
+    return out;
+  }
   const savedCar = () => lsGet('bydlink_car') || lsGet('bydlink_carId');
   const saveCar = id => { lsSet('bydlink_car', id); lsSet('bydlink_carId', null); };
   const call = (h, k, v) => { if (h && typeof h[k] === 'function') { try { h[k](v); } catch (e) { console.error(e); } } };
@@ -490,8 +529,9 @@
       watch(h) {
         const err = e => call(h, 'error', e);
         const val = (path, k) => root.child(path).on('value', s => call(h, k, s.val()), err);
-        const list = (q, k) => q.on('value', s => {
-          const a = []; s.forEach(c => { const o = c.val() || {}; o.id = c.key; a.push(o); });
+        const list = (q, k, fix) => q.on('value', s => {
+          let a = []; s.forEach(c => { const o = c.val() || {}; o.id = c.key; a.push(o); });
+          if (fix) a = fix(a);
           call(h, k, a.reverse());
         }, err);
         db.ref('.info/connected').on('value', s => call(h, 'net', !!s.val()));
@@ -504,7 +544,7 @@
         val('capsOverride', 'capsOverride');
         list(root.child('trips').orderByChild('start').limitToLast(50), 'trips');
         list(root.child('sentryEvents').orderByChild('ts').limitToLast(60), 'sentry');
-        list(root.child('chargingSessions').orderByChild('start').limitToLast(100), 'charging');
+        list(root.child('chargingSessions').orderByChild('start').limitToLast(100), 'charging', joinCharges);
       },
       getTripPoints(id) { return root.child('tripPoints/' + id).once('value').then(s => s.val() || []); },
 
@@ -577,7 +617,7 @@
       // Historial (ver protocol/historial.md): viajes o cargas de un periodo, ruta de un viaje, precios y correcciones
       historyRange(kind, from, to) {
         return root.child(kind === 'trips' ? 'trips' : 'chargingSessions').orderByChild('start').startAt(from).endAt(to).once('value').then(s => {
-          const a = []; s.forEach(c => { const o = c.val() || {}; o.id = c.key; a.push(o); }); return a;
+          const a = []; s.forEach(c => { const o = c.val() || {}; o.id = c.key; a.push(o); }); return kind === 'trips' ? a : joinCharges(a);
         });
       },
       tripRoute(id) { return root.child('tripRoutes/' + id).once('value').then(s => s.val(), () => null); },

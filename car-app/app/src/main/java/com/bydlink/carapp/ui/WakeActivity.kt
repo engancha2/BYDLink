@@ -22,6 +22,10 @@ class WakeActivity : Activity() {
         } catch (e: Throwable) {
             Log.e("BYDLink", "no se pudo arrancar el servicio desde el vigilante", e)
         }
+        // "Abrir BYDLink al arrancar el coche" (OpenOnStart): ya estamos delante, así que podemos abrir el lanzador.
+        if (intent?.getStringExtra("open") == "home") try {
+            startActivity(Intent(this, HomeActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT))
+        } catch (e: Throwable) { Log.w("BYDLink", "no se pudo abrir el lanzador", e) }
         finish()   // Theme.NoDisplay: hay que cerrar antes de onResume
     }
 }

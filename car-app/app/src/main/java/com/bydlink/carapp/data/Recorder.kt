@@ -316,10 +316,10 @@ class Recorder internal constructor(private val out: Out, private val mem: Mem, 
                 val d = if (prev == null || counter < prev - 0.5) counter else counter - prev
                 if (d > 0 && d < 60) c.kwhH[hour] = (c.kwhH[hour] ?: 0.0) + d
                 c.counter = if (prev == null || counter < prev - 0.5) counter else maxOf(prev, counter)
-            } else {
-                val kw = s.chargeKw ?: 0.0
-                if (kw > 0) { val e = kw * dt / 3_600_000.0; c.kwhPow += e; c.kwhH[hour] = (c.kwhH[hour] ?: 0.0) + e }
             }
+            // kW × tiempo siempre: sirve para comprobar el contador del coche (en el Surf se queda corto).
+            val kw = s.chargeKw ?: 0.0
+            if (kw > 0) { val e = kw * dt / 3_600_000.0; c.kwhPow += e; if (counter == null) c.kwhH[hour] = (c.kwhH[hour] ?: 0.0) + e }
             (s.chargeKw ?: s.chargingPower?.toDouble())?.takeIf { it in 0.1..400.0 }?.let { c.maxKw = maxOf(c.maxKw, it) }
             if (c.type == null) c.type = s.chargingGun?.takeIf { it == "AC" || it == "DC" }
                 ?: (s.chargeKw ?: 0.0).takeIf { it > 15 }?.let { "DC" }
@@ -332,13 +332,27 @@ class Recorder internal constructor(private val out: Out, private val mem: Mem, 
         persist(now)
     }
 
-    /** kWh de la sesión; si el coche no dio contador ni potencia, el % ganado × capacidad. */
+    /**
+     * kWh de la sesión. Hay tres medidas: el contador del coche, kW × tiempo y el % ganado × capacidad. El contador del
+     * Surf se queda corto (noche del 31/10: 8,3 kWh para 69→99 % de 41 kWh ≈ 12,3), así que el % ganado manda cuando es
+     * fiable (≥ 3 %) y las otras dos solo se usan si se parecen a él.
+     */
     private fun sessionKwh(c: Chg): Double {
-        val k = c.kwhBase + (c.counter ?: 0.0) + c.kwhPow
-        if (k > 0.05) return k
-        val gained = (c.socLast ?: return 0.0) - (c.soc0 ?: return 0.0)
-        val cap = capacity()
-        return if (gained > 0 && cap != null) gained / 100.0 * cap else 0.0
+        val counterK = c.kwhBase + (c.counter ?: 0.0)
+        val powK = c.kwhPow
+        val gained = (c.socLast ?: 0) - (c.soc0 ?: c.socLast ?: 0)
+        val socK = capacity()?.takeIf { gained >= 3 }?.let { gained / 100.0 * it }
+        fun near(v: Double, ref: Double, tol: Double) = v > 0.05 && Math.abs(v - ref) <= ref * tol
+        if (socK != null) return when {
+            near(counterK, socK, 0.15) -> counterK
+            near(powK, socK, 0.2) -> powK
+            else -> socK
+        }
+        return when {
+            counterK > 0.05 -> counterK
+            powK > 0.05 -> powK
+            else -> capacity()?.takeIf { gained > 0 }?.let { gained / 100.0 * it } ?: 0.0
+        }
     }
 
     /** kWh por hora local (aaaammddhh). Si el contador no llegó a repartir casi nada, se reparte por el tiempo cargando. */

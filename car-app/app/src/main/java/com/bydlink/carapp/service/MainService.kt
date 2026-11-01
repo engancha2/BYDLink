@@ -82,6 +82,7 @@ class MainService : Service() {
         StateHub.commander = { action, payload -> carCommands.handle(action, payload) }
         StateHub.camera = camera
         StateHub.run = { action, payload, cb -> runAction(action, payload, cb) }
+        StateHub.onAccChange = { prev, on -> if (on && prev == false) com.bydlink.carapp.ui.OpenOnStart.request(this, "contacto") }
         com.bydlink.carapp.keys.WheelKeys.start(applicationContext)   // botones del volante (si el usuario los usa)
 
         client.connect(
@@ -371,7 +372,12 @@ class MainService : Service() {
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int = START_STICKY
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        // BYD cierra todas las apps al quitar el contacto: si nos arranca su aviso de contacto, el coche se acaba de encender.
+        intent?.getStringExtra("reason")?.takeIf { it in com.bydlink.carapp.ui.OpenOnStart.START_REASONS }
+            ?.let { com.bydlink.carapp.ui.OpenOnStart.request(this, it) }
+        return START_STICKY
+    }
 
     // ---------------- Config helpers ----------------
     @Suppress("UNCHECKED_CAST")

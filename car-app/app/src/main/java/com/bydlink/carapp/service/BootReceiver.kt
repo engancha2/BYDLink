@@ -14,7 +14,7 @@ class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent?) {
         Log.i("BYDLink", "arranque por: ${intent?.action}")
         try {
-            ContextCompat.startForegroundService(context, Intent(context, MainService::class.java))
+            ContextCompat.startForegroundService(context, Intent(context, MainService::class.java).putExtra("reason", intent?.action))
         } catch (e: Throwable) {
             // Android 12+ no deja arrancar servicios en primer plano desde algunos avisos si la app no
             // está exenta de ahorro de batería. El vigilante y el job periódico la levantan igualmente.
