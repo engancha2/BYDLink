@@ -121,7 +121,7 @@ class SentryMonitor(
     }
 
     override fun onFrame(f: CameraHub.Frame) {
-        if (!on) return
+        if (!on || hub.drivingOpen) return          // con la dashcam en marcha no se vigila (todo se "mueve")
         val now = SystemClock.elapsedRealtime()
         pending?.let { p ->
             val r = views.render(f, p.cam, 320)
@@ -178,7 +178,7 @@ class SentryMonitor(
             }
             val ev = linkedMapOf<String, Any?>(
                 "ts" to ServerValue.TIMESTAMP, "camera" to p.cam,
-                "videoId" to (p.clip?.let { ClipRecorder.idOf(it) } ?: "v${System.currentTimeMillis()}"),
+                "videoId" to (p.clip?.let { VideoStore.idOf(ctx, java.io.File(it)) } ?: "v${System.currentTimeMillis()}"),
                 "hasThumb" to hasThumb, "score" to Math.round(p.score * 1000) / 1000.0
             )
             p.clip?.let { ev["clip"] = it }

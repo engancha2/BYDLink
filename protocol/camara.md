@@ -232,3 +232,31 @@ Límites: como mucho un evento cada 30 s y 20 por hora.
 | `bad_args` | Falta un dato (p. ej. `session`) | — |
 | `webrtc` | WebRTC no se pudo iniciar en el coche | Pasar a JPEG |
 | `error` | Otro | Enseñar `error` |
+
+## 9. Vídeos guardados (app del coche 2.25)
+
+Dónde: el coche elige entre sus soportes (`internal` = memoria del coche, o el id de una tarjeta SD / memoria USB).
+Carpeta `BYDLink/{Centinela,Dashcam,Grabaciones}/AAAA-MM/DD/HHmmss_cámara.mp4`. En la memoria del coche es
+`/sdcard/BYDLink` (si hay permiso de almacenamiento, lo da el ADB); en SD/USB Android 10 solo deja la carpeta de la app
+(`Android/data/com.bydlink.carapp/files/BYDLink`, se borra al desinstalar). Id de un vídeo: `Carpeta/AAAA-MM/DD/HHmmss_cámara`.
+
+Publica el coche:
+- `cars/{id}/video`: `{store, current, missing, quotaGb, quotaBytes, mode, quality, stamp, segMin, volumes:[{id, kind
+  (internal|sd|usb), label, free, total, used, lasting, path}], recording:[{kind, camera, since, until, file}],
+  dashcam:{holding, recording, driving}, usable, sending, ts}`.
+- `cars/{id}/videos`: `{ts, items:[{id, kind (centinela|dashcam|manual), camera, ts, bytes, volume}]}` (los 150 más nuevos).
+
+Comandos:
+| acción | payload | respuesta `data` |
+|---|---|---|
+| `recordVideo` | `{camera?, seconds? (60; 0 = hasta parar, máx. 1800)}` | `{recording, camera, seconds, id, store}` o `{already:true}` |
+| `stopVideo` | — | `{stopped}` |
+| `listVideos` | `{limit?}` | `{videos:[…]}` |
+| `deleteVideo` / `keepVideo` | `{id}` | `{deleted}` / `{id}` (nuevo id en Grabaciones) |
+| `getVideo` | `{id, req}` | `{path:"videoDl", req, bytes, parts}`; luego el coche escribe `videoDl/{req,id,bytes,n,done,state,error}` y `videoDl/parts/{i}` (base64 de 512 KB). El móvil baja los trozos, junta el MP4 y borra `videoDl`. Máx. 60 MB. |
+| `setVideoConfig` | `{store?, quotaGb? (0 = auto), mode? (off|parked|drive|always), quality? (normal|alta), stamp?, segMin? (1..10)}` | estado como `video` |
+| `getVideoStatus` | — | estado como `video` |
+
+Grabación continua: `parked` graba aparcado en tramos de `segMin` minutos; `drive` (en pruebas) solo abre la cámara por
+encima de 15 km/h y la suelta por debajo de 8 (nunca con la R); con la cámara abierta en marcha el centinela no analiza.
+Al pasar del límite (o con menos de 500 MB libres) se borra lo más viejo: dashcam, luego centinela y lo último las grabaciones.

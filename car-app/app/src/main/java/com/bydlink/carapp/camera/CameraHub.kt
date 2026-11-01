@@ -33,7 +33,15 @@ class CameraHub(private val ctx: Context, private val isParked: () -> Boolean) {
 
     companion object {
         const val SENTRY = "sentry"; const val LIVE = "live"; const val JPEG = "jpeg"
-        const val PHOTO = "photo"; const val CLIP = "clip"
+        const val PHOTO = "photo"; const val CLIP = "clip"; const val REC = "rec"; const val SCREEN = "screen"
+        /** La dashcam: el único consumidor que puede tener la cámara abierta en marcha (si [driveAllowed]). */
+        const val DASHCAM = "dashcam"
+        /**
+         * En marcha: se abre a partir de 15 km/h y se suelta por debajo de 8, así está cerrada antes de poder meter la R
+         * (el número de marcha del SDK aún no está calibrado en el Surf: no se usa para decidir; solo se mira que no sea R).
+         */
+        private const val DRIVE_OPEN_KMH = 15f
+        private const val DRIVE_KEEP_KMH = 8f
         private const val TICK_MS = 300L
         private const val SENTRY_SETTLE_MS = 20_000L
     }
@@ -62,6 +70,11 @@ class CameraHub(private val ctx: Context, private val isParked: () -> Boolean) {
     @Volatile var frames = 0L; private set
     @Volatile var firstFrame: String? = null; private set
     @Volatile var activeView = 0; private set
+    /** Dashcam en marcha permitida por el usuario (experimental). */
+    @Volatile var driveAllowed = false
+        set(v) { field = v; poke() }
+    /** La cámara está abierta en marcha (solo para la dashcam): el centinela no analiza. */
+    @Volatile var drivingOpen = false; private set
     /** Vista que piden los consumidores (solo cuenta en modo canales; en modo tira es siempre la del perfil). */
     @Volatile var wantedView = 0
         set(v) { field = v; poke() }
@@ -148,8 +161,17 @@ class CameraHub(private val ctx: Context, private val isParked: () -> Boolean) {
         val c = cam
         val now = SystemClock.elapsedRealtime()
         if (want || c != null) {
-            val parked = parkedNow()
-            if (!parked) parkedSince = 0 else if (parkedSince == 0L) parkedSince = now
+            val svcParked = try { isParked() } catch (e: Throwable) { false }
+            // Marcha y velocidad del SDK: si el servicio dice parado (confirmar) o si la dashcam en marcha las necesita.
+            val needSdk = svcParked || (driveAllowed && consumers.containsKey(DASHCAM))
+            val parkedNow = needSdk && guard.ok() && svcParked
+            if (!parkedNow) parkedSince = 0 else if (parkedSince == 0L) parkedSince = now
+            // En marcha solo con la dashcam pedida y permitida, en D y con velocidad (nunca en R ni casi parado).
+            val drive = !parkedNow && driveAllowed && consumers.containsKey(DASHCAM) &&
+                com.bydlink.carapp.service.StateHub.state?.gear != "R" &&
+                (guard.lastSpeed ?: 0f) >= (if (drivingOpen) DRIVE_KEEP_KMH else DRIVE_OPEN_KMH)
+            val parked = parkedNow || drive
+            drivingOpen = drive
             val blk = block
             if (c != null) {
                 when {
@@ -162,8 +184,8 @@ class CameraHub(private val ctx: Context, private val isParked: () -> Boolean) {
                 when {
                     !parked -> setState("not_parked")
                     blk != null -> setState(blk)
-                    // Solo el centinela: esperar 20 s aparcado (la 360 del coche suele seguir encendida al aparcar).
-                    consumers.keys.all { it == SENTRY } && now - parkedSince < SENTRY_SETTLE_MS -> setState("settling")
+                    // Solo centinela/dashcam: esperar 20 s aparcado (la cámara del coche suele seguir encendida al aparcar).
+                    parkedNow && consumers.keys.all { it == SENTRY || it == DASHCAM } && now - parkedSince < SENTRY_SETTLE_MS -> setState("settling")
                     now >= nextOpenAt -> open()
                     else -> if (state != "error" && state != "unavailable") setState("retry")
                 }

@@ -96,6 +96,28 @@
       stop() { clearInterval(this.timer); this.timer = null; },
       photo(cam) { if (this.onPhoto) this.onPhoto({ ts: Date.now(), camera: cam, w: 960, h: 600, jpeg: demoJpeg(cam, status, 960, 600) }); }
     };
+    const H = 3600e3, now0 = Date.now();
+    const demoVid = {
+      cfg: { store: 'internal', current: 'internal', mode: 'off', quality: 'normal', quotaGb: 0, stamp: true, segMin: 3 },
+      rec: null, req: null, onStatus: null, onList: null,
+      items: [
+        { id: 'Centinela/demo/1', kind: 'centinela', camera: 'back', ts: now0 - 0.6 * H, bytes: 2.3e6, volume: 'internal' },
+        { id: 'Dashcam/demo/2', kind: 'dashcam', camera: 'back', ts: now0 - 2.2 * H, bytes: 29e6, volume: 'internal' },
+        { id: 'Dashcam/demo/3', kind: 'dashcam', camera: 'back', ts: now0 - 2.25 * H, bytes: 29e6, volume: 'internal' },
+        { id: 'Grabaciones/demo/4', kind: 'manual', camera: 'back', ts: now0 - 26 * H, bytes: 9.4e6, volume: 'A1B2-C3D4' },
+        { id: 'Centinela/demo/5', kind: 'centinela', camera: 'back', ts: now0 - 27 * H, bytes: 2.1e6, volume: 'internal' }
+      ],
+      status() {
+        return Object.assign({}, this.cfg, {
+          volumes: [
+            { id: 'internal', kind: 'internal', label: 'Memoria del coche', free: 23.4e9, total: 64e9, used: 1.2e9, lasting: true },
+            { id: 'A1B2-C3D4', kind: 'usb', label: 'Memoria USB', free: 58.1e9, total: 64e9, used: 9.4e6, lasting: false }
+          ],
+          quotaBytes: 8 * 1073741824, recording: this.rec ? [this.rec] : [], dashcam: { recording: this.cfg.mode === 'parked' }
+        });
+      },
+      emit() { if (this.onStatus) this.onStatus(this.status()); if (this.onList) this.onList({ items: this.items.slice() }); }
+    };
     const sentryEvents = [
       { id: 's2', ts: now - 1800e3, camera: 'front' },
       { id: 's1', ts: now - 7200e3, camera: 'left' },
@@ -159,7 +181,17 @@
 
       sendCommand(action, payload) {
         payload = payload || {};
+        let data = {};
         switch (action) {
+          case 'recordVideo': demoVid.rec = { kind: 'manual', camera: 'back', since: Date.now() }; demoVid.emit(); break;
+          case 'stopVideo':
+            if (demoVid.rec) { demoVid.items.unshift({ id: 'Grabaciones/demo/' + Date.now(), kind: 'manual', camera: 'back', ts: Date.now(), bytes: 9e6, volume: demoVid.cfg.current }); demoVid.rec = null; demoVid.emit(); }
+            break;
+          case 'setVideoConfig':
+            Object.assign(demoVid.cfg, payload); if (payload.store) demoVid.cfg.current = payload.store; demoVid.emit(); break;
+          case 'deleteVideo': demoVid.items = demoVid.items.filter(v => v.id !== payload.id); demoVid.emit(); break;
+          case 'keepVideo': demoVid.items.forEach(v => { if (v.id === payload.id) v.kind = 'manual'; }); demoVid.emit(); break;
+          case 'getVideo': demoVid.req = payload.req; data = { parts: 1, bytes: 2.1e6 }; break;
           case 'setLock':
             status.locked = !!payload.locked;
             if (status.locked && config.automations.autoCloseWindowsOnLock && anyWindowOpen()) setAllWindows(false);
@@ -188,8 +220,14 @@
           default: break;
         }
         emit('status', status);
-        return new Promise(r => setTimeout(() => r({ ok: true, data: {} }), 450));
+        return new Promise(r => setTimeout(() => r({ ok: true, data }), 450));
       },
+      // Vídeos de ejemplo (en la demo no se pueden ver: no hay vídeo de verdad).
+      videoStatus(cb) { demoVid.onStatus = cb; setTimeout(() => cb(demoVid.status()), 150); return () => {}; },
+      videoList(cb) { demoVid.onList = cb; setTimeout(() => cb({ items: demoVid.items }), 150); return () => {}; },
+      videoDlWatch(cb) { setTimeout(() => cb({ req: demoVid.req, state: 'error', error: 'En la demo no hay vídeos de verdad: con tu coche se ven aquí.' }), 700); return () => {}; },
+      videoDlPart() { return Promise.resolve(null); },
+      videoDlClear() { return Promise.resolve(); },
       getDemoCameraStream(camera) { return makeSyntheticStream(camera, status); },
       camLive(cb) { demoCam.onLive = cb; return () => { demoCam.onLive = null; }; },
       camPhoto(cb) { demoCam.onPhoto = cb; return () => { demoCam.onPhoto = null; }; },
@@ -357,6 +395,17 @@
       camPhoto(cb) { const r = root.child('camera/photo'), f = s => cb(s.val()); r.on('value', f); return () => r.off('value', f); },
       camViewer() { return root.child('camera/viewer').set(TS).catch(() => {}); },
       sentryThumb(key) { return root.child('sentryThumbs/' + key).once('value').then(s => s.val()); },
+      // Vídeos guardados en el coche (memoria, SD o USB) y envío de uno al móvil por trozos (ver CameraCommands.sendVideo)
+      videoStatus(cb) { const r = root.child('video'), f = s => cb(s.val()); r.on('value', f); return () => r.off('value', f); },
+      videoList(cb) { const r = root.child('videos'), f = s => cb(s.val()); r.on('value', f); return () => r.off('value', f); },
+      videoDlWatch(cb) {
+        const refs = ['req', 'state', 'done', 'n', 'bytes', 'error'].map(k => root.child('videoDl/' + k));
+        const cur = {};
+        const fs = refs.map(r => { const f = s => { cur[r.key] = s.val(); cb(Object.assign({}, cur)); }; r.on('value', f); return f; });
+        return () => refs.forEach((r, i) => r.off('value', fs[i]));
+      },
+      videoDlPart(i) { return root.child('videoDl/parts/' + i).once('value').then(s => s.val()); },
+      videoDlClear() { return root.child('videoDl').remove().catch(() => {}); },
       // Resultado de la última prueba de cámara (solo el veredicto: las miniaturas pesan)
       camViews() { return root.child('cameras/list').once('value').then(s => s.val() || null, () => null); },
       camDiag() {

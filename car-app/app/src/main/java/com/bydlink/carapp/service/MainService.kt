@@ -79,6 +79,7 @@ class MainService : Service() {
         startPublishing()
         // Mandos desde el propio lanzador: mismas reglas de seguridad que desde el móvil (CarCommands).
         StateHub.commander = { action, payload -> carCommands.handle(action, payload) }
+        StateHub.camera = camera
 
         client.connect(
             onReady = {

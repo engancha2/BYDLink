@@ -544,3 +544,21 @@ input[type=range]:disabled{opacity:.5}
 .cam-seg button[hidden]{display:none}
 /* multimodelo: lo que este coche no tiene */
 .cap-off{display:none!important}
+
+/* ───── vídeos del coche (videos.js) ───── */
+.rec-actions{margin-top:10px}
+.rec-dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--danger);margin-right:8px;flex:0 0 auto}
+.rec-dot.on{animation:recblink 1s steps(2,start) infinite}
+@keyframes recblink{to{visibility:hidden}}
+.rec-txt{display:flex;align-items:center;justify-content:center;margin-top:8px;color:var(--fg-2);font-weight:600}
+.vid-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:4px}
+.vid-head .card-h{margin-bottom:0}
+#vidWhere{margin:6px 0 10px;line-height:1.5}
+.warn-txt{color:var(--danger)}
+.vid-prog{height:6px;border-radius:99px;background:var(--surface-2);overflow:hidden;margin:4px 0 12px}
+.vid-prog i{display:block;height:100%;width:0;background:var(--accent);transition:width .3s}
+.vid-player{width:100%;max-height:62vh;border-radius:var(--radius-s);background:#000;display:block;margin:0 0 12px}
+.vid-chips{margin-top:8px}
+.vid-chips .chip{border:1px solid var(--line);font:inherit;font-size:13.5px;font-weight:600;cursor:pointer}
+#sheetBody .sub + .chips{margin-top:6px}
+#sheetBody .hint + .sub,#sheetBody .chips + .sub{margin-top:16px}

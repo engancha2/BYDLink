@@ -5,7 +5,7 @@
   const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
   const B = window.Backend;
   const ONLINE_MS = 90e3;           // sin datos en este tiempo → coche desconectado
-  const WEB_VERSION = '2.7';        // cambiarla junto con CACHE de sw.js
+  const WEB_VERSION = '2.8';        // cambiarla junto con CACHE de sw.js
   const CAR_APP_MIN = '2.0';        // la app del coche más antigua que no hace falta actualizar
 
   const st = {
@@ -512,7 +512,8 @@
       const lead = ev.hasThumb && ev.id
         ? '<img class="ev-thumb" data-thumb="' + esc(ev.id) + '" alt="">'
         : '<span class="item-ico red">' + icon('eye') + '</span>';
-      html += '<div class="item' + (ev.hasThumb ? ' tappable' : '') + '"' + (ev.hasThumb ? ' data-ev="' + esc(ev.id) + '"' : '') + '>' + lead +
+      const vid = ev.clip && ev.videoId ? ' data-vid="' + esc(ev.videoId) + '"' : '';
+      html += '<div class="item' + (ev.hasThumb ? ' tappable' : '') + '"' + (ev.hasThumb ? ' data-ev="' + esc(ev.id) + '"' : '') + vid + '>' + lead +
         '<span class="item-main"><b>Movimiento detectado</b><small>Cámara ' + esc((CAM[ev.camera] || ev.camera || '').toLowerCase()) + '</small></span>' +
         '<span class="item-end">' + (ev.ts ? hhmm(ev.ts) : '') + '</span></div>';
     });
@@ -532,7 +533,8 @@
       if (!src) return toast('Esta detección no tiene imagen.', 'err');
       Sheet.open('<h3>Movimiento detectado</h3><p class="sub">' + esc(it.querySelector('small').textContent) + ' · ' + esc(it.querySelector('.item-end').textContent) + '</p>' +
         '<img class="photo-img" src="' + src + '" alt="Imagen del centinela">' +
-        '<div class="actions"><a class="btn btn-soft btn-block" download="centinela-' + esc(it.dataset.ev) + '.jpg" href="' + src + '">' + icon('download') + 'Guardar imagen</a></div>');
+        '<div class="actions">' + (it.dataset.vid ? '<button type="button" class="btn btn-primary btn-block" data-video="' + esc(it.dataset.vid) + '">' + icon('video') + 'Ver el vídeo</button>' : '') +
+        '<a class="btn btn-soft btn-block" download="centinela-' + esc(it.dataset.ev) + '.jpg" href="' + src + '">' + icon('download') + 'Guardar imagen</a></div>');
     });
   });
   $('#sentrySwitch').addEventListener('change', e => {

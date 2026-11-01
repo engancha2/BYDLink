@@ -56,6 +56,16 @@ object ShellMain {
                     out("OK getint ${args[1]} ${args[2]} = $r")
                 }
                 // feat <dispositivo> <featureId> <valor>: escribir una función del coche por su número y leer el cierre.
+                // Prueba del sello de vídeo: un frame gris con el sello, en JPEG (/data/local/tmp/sello.jpg).
+                "stamptest" -> {
+                    val w = 640; val h = 400
+                    val nv = ByteArray(w * h * 3 / 2) { i -> if (i < w * h) (60 + (i % w) / 4).toByte() else 128.toByte() }
+                    val r = com.bydlink.carapp.camera.Rendered(nv, w, h)
+                    com.bydlink.carapp.camera.Stamp().apply(r, "01/11/2026 08:15:02  52 km/h  74 %")
+                    val out = java.io.File(args.getOrNull(1) ?: "/data/local/tmp/sello.jpg")
+                    out.writeBytes(com.bydlink.carapp.camera.Yuv.jpeg(nv, w, h, 90))
+                    println("ok ${out.path} ${out.length()}")
+                }
                 "feat" -> {
                     val d = dev(args[1]) ?: return out("ERROR dispositivo ${args[1]}")
                     val fid = java.lang.Long.decode(args[2]).toInt()

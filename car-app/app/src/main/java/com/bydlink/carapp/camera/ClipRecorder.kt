@@ -6,61 +6,97 @@ import android.media.MediaCodecInfo
 import android.media.MediaFormat
 import android.media.MediaMuxer
 import android.os.SystemClock
+import com.bydlink.carapp.service.StateHub
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.concurrent.ArrayBlockingQueue
+import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.TimeUnit
 
 /**
- * Clip MP4 corto de un evento del centinela: la cámara que disparó, 640×480, 10 fps, H.264 (MediaCodec)
- * en MP4 (MediaMuxer). Va en `/sdcard/BYDLink/Sentry/AAAA-MM/DD/HHmmss_camara.mp4` si se puede escribir
- * ahí; si no (almacenamiento acotado de Android 10+), en `Android/data/com.bydlink.carapp/files/Sentry/AAAA-MM/DD/`.
- * Sin pre-buffer (empieza al detectar). Se borran los de más de 14 días y se limita a 1,5 GB.
+ * Graba vídeo MP4 (H.264 con MediaCodec + MediaMuxer, sin audio) de una cámara. Puede haber una grabación de cada tipo
+ * a la vez: clip del centinela, grabación a mano y tramo de la dashcam, cada una con su codificador.
+ * Dónde se guarda lo decide [VideoStore] (memoria del coche, SD o USB). Con sello de fecha, hora, velocidad y batería.
  */
 class ClipRecorder(private val ctx: Context, private val hub: CameraHub, private val views: CamViews) : CameraHub.Tap {
 
-    companion object {
-        private const val FPS = 10
-        private const val MAX_BYTES = 1_500L * 1024 * 1024
-        private const val KEEP_DAYS = 14
-
-        /** Id corto del clip a partir de su ruta: "AAAA-MM/DD/HHmmss_cam". */
-        fun idOf(path: String): String {
-            val f = File(path)
-            return "${f.parentFile?.parentFile?.name}/${f.parentFile?.name}/${f.nameWithoutExtension}"
+    /** Calidad: ancho máximo, fotogramas por segundo y bitrate (normal ≈ 10 MB/min, alta ≈ 19 MB/min). */
+    class Quality(val maxW: Int, val fps: Int, val bitrate: Int) {
+        companion object {
+            val SENTRY = Quality(640, 10, 1_200_000)
+            val NORMAL = Quality(640, 12, 1_400_000)
+            val HIGH = Quality(768, 20, 2_500_000)
+            fun of(name: String?) = if (name == "alta") HIGH else NORMAL
         }
     }
 
-    private class Job(val camera: String, val file: File, val until: Long) {
-        val q = ArrayBlockingQueue<Pair<Rendered, Long>>(4)
-        @Volatile var lastFrame = 0L
+    class Job(
+        val kind: String, val camera: String, val file: File, @Volatile var until: Long,
+        val q: Quality, val consumer: String?, val stamp: Boolean, val onDone: ((File?) -> Unit)?
+    ) {
+        val queue = ArrayBlockingQueue<Pair<Rendered, Long>>(4)
+        @Volatile var nextAt = 0L
+        val startedAt = System.currentTimeMillis()
+        fun toMap() = mapOf("kind" to kind, "camera" to camera, "since" to startedAt,
+            "until" to System.currentTimeMillis() + (until - SystemClock.elapsedRealtime()).coerceAtLeast(0), "file" to file.name)
     }
 
-    @Volatile private var job: Job? = null
+    private val jobs = CopyOnWriteArrayList<Job>()
+    @Volatile var onChange: (() -> Unit)? = null
 
-    fun busy() = job != null
+    fun busy() = busy(VideoStore.SENTRY)
+    fun busy(kind: String) = jobs.any { it.kind == kind }
+    fun active(): List<Job> = jobs.toList()
 
-    /** Empieza a grabar [seconds] s de [camera]. Devuelve la ruta del fichero o null si no se puede. */
-    @Synchronized fun record(camera: String, seconds: Int): String? {
-        if (job != null) return null
-        val file = newFile(camera) ?: return null
-        val j = Job(camera, file, SystemClock.elapsedRealtime() + seconds * 1000L)
-        job = j
-        hub.addTap(this); hub.acquire(CameraHub.CLIP)
-        Thread({ encode(j) }, "cam-clip").apply { isDaemon = true }.start()
-        CamLog.i("clip: grabando $camera ${seconds}s -> ${file.path}")
+    /**
+     * Empieza a grabar [seconds] s de [camera]. [consumer] = nombre con el que se pide la cámara al hub (null si ya la tiene
+     * pedida quien llama, como la dashcam). Devuelve la ruta del fichero, o null si ya hay una de ese tipo o no hay sitio.
+     */
+    @Synchronized fun record(
+        camera: String, seconds: Int, kind: String = VideoStore.SENTRY, q: Quality = Quality.SENTRY,
+        consumer: String? = CameraHub.CLIP, stamp: Boolean = VideoStore.prefs(ctx).getBoolean("stamp", true),
+        onDone: ((File?) -> Unit)? = null
+    ): String? {
+        if (busy(kind)) return null
+        val file = VideoStore.newFile(ctx, kind, camera) ?: return null
+        val j = Job(kind, camera, file, SystemClock.elapsedRealtime() + seconds * 1000L, q, consumer, stamp, onDone)
+        jobs += j
+        hub.addTap(this); consumer?.let { hub.acquire(it) }
+        Thread({ encode(j) }, "cam-rec-$kind").apply { isDaemon = true }.start()
+        CamLog.i("vídeo: grabando $kind $camera ${seconds}s -> ${file.path}")
+        onChange?.invoke()
         return file.path
     }
 
+    /** Termina ya las grabaciones de [kind] (todas si es null); el fichero queda bien cerrado. */
+    fun stop(kind: String? = null) { jobs.filter { kind == null || it.kind == kind }.forEach { it.until = 0 } }
+
     override fun onFrame(f: CameraHub.Frame) {
-        val j = job ?: return
         val now = SystemClock.elapsedRealtime()
-        if (now - j.lastFrame < 1000L / FPS) return
-        val r = views.render(f, j.camera, 640) ?: return
-        j.lastFrame = now
-        j.q.offer(r to now)      // si el codificador va atrasado, se descarta el frame
+        for (j in jobs) {
+            if (now < j.nextAt) continue
+            val r = views.render(f, j.camera, j.q.maxW) ?: continue
+            val step = 1000L / j.q.fps          // reparto regular: de 25 fps de la cámara saca los que pide la calidad
+            j.nextAt = if (now - j.nextAt > step) now + step else j.nextAt + step
+            j.queue.offer(r to now)      // si el codificador va atrasado, se descarta el frame
+        }
+    }
+
+    private val clock = SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.US)
+    private var stampSec = -1L
+    private var stampText = ""
+
+    /** "01/11/2026 08:15:02  52 km/h  74 %" (se recalcula una vez por segundo). */
+    @Synchronized private fun stampLine(): String {
+        val now = System.currentTimeMillis()
+        if (now / 1000 != stampSec) {
+            stampSec = now / 1000
+            val s = StateHub.state
+            stampText = listOfNotNull(clock.format(Date(now)), s?.let { "${it.speed} km/h" }, s?.soc?.let { "$it %" }).joinToString("  ")
+        }
+        return stampText
     }
 
     private fun encode(j: Job) {
@@ -69,8 +105,10 @@ class ClipRecorder(private val ctx: Context, private val hub: CameraHub, private
         var muxStarted = false
         var track = -1
         var written = 0
+        val stamp = if (j.stamp) Stamp() else null
+        var stampBroken = false
         try {
-            val first = j.q.poll(6, TimeUnit.SECONDS) ?: throw IllegalStateException("no llegan frames")
+            val first = j.queue.poll(10, TimeUnit.SECONDS) ?: throw IllegalStateException("no llegan frames")
             val w = first.first.w; val h = first.first.h
             val c = MediaCodec.createEncoderByType("video/avc"); codec = c
             val caps = c.codecInfo.getCapabilitiesForType("video/avc")
@@ -83,8 +121,8 @@ class ClipRecorder(private val ctx: Context, private val hub: CameraHub, private
             }
             val fmt = MediaFormat.createVideoFormat("video/avc", w, h).apply {
                 setInteger(MediaFormat.KEY_COLOR_FORMAT, cf)
-                setInteger(MediaFormat.KEY_BIT_RATE, 1_200_000)
-                setInteger(MediaFormat.KEY_FRAME_RATE, FPS)
+                setInteger(MediaFormat.KEY_BIT_RATE, j.q.bitrate)
+                setInteger(MediaFormat.KEY_FRAME_RATE, j.q.fps)
                 setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, 1)
             }
             c.configure(fmt, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE)
@@ -116,12 +154,16 @@ class ClipRecorder(private val ctx: Context, private val hub: CameraHub, private
             }
 
             while (true) {
-                val item = next ?: j.q.poll(200, TimeUnit.MILLISECONDS)
+                val item = next ?: j.queue.poll(200, TimeUnit.MILLISECONDS)
                 next = null
                 val end = SystemClock.elapsedRealtime() >= j.until || !hub.isOpen()
                 if (item != null && item.first.w == w && item.first.h == h) {
                     val ii = c.dequeueInputBuffer(20_000)
                     if (ii >= 0) {
+                        if (stamp != null && !stampBroken) {
+                            try { stamp.apply(item.first, stampLine()) }
+                            catch (e: Throwable) { stampBroken = true; CamLog.w("vídeo: sin sello (falló)", e) }
+                        }
                         fill(c, ii, item.first, cf)
                         c.queueInputBuffer(ii, 0, w * h * 3 / 2, (item.second - t0) * 1000, 0)
                     }
@@ -134,17 +176,20 @@ class ClipRecorder(private val ctx: Context, private val hub: CameraHub, private
                     break
                 }
             }
-            CamLog.i("clip: terminado ${j.file.name} ($written muestras, ${j.file.length() / 1024} KB)")
+            CamLog.i("vídeo: terminado ${j.file.name} ($written muestras, ${j.file.length() / 1024} KB)")
         } catch (e: Throwable) {
-            CamLog.w("clip: fallo al grabar ${j.file.name}", e)
+            CamLog.w("vídeo: fallo al grabar ${j.file.name}", e)
         } finally {
             try { codec?.stop() } catch (e: Throwable) {}
             try { codec?.release() } catch (e: Throwable) {}
             try { if (muxStarted) muxer?.stop() } catch (e: Throwable) {}
             try { muxer?.release() } catch (e: Throwable) {}
             if (written == 0) j.file.delete()
-            hub.removeTap(this); hub.release(CameraHub.CLIP)
-            job = null
+            jobs.remove(j)
+            if (jobs.isEmpty()) hub.removeTap(this)
+            j.consumer?.let { hub.release(it) }
+            try { j.onDone?.invoke(j.file.takeIf { written > 0 && it.isFile }) } catch (e: Throwable) {}
+            onChange?.invoke()
         }
     }
 
@@ -177,39 +222,5 @@ class ClipRecorder(private val ctx: Context, private val hub: CameraHub, private
             for (i in 0 until ySize / 4) buf.put(src[ySize + 2 * i + 1])   // I420: plano U
             for (i in 0 until ySize / 4) buf.put(src[ySize + 2 * i])       // plano V
         }
-    }
-
-    private fun newFile(camera: String): File? {
-        val now = Date()
-        val sub = SimpleDateFormat("yyyy-MM", Locale.US).format(now) + "/" + SimpleDateFormat("dd", Locale.US).format(now)
-        val name = SimpleDateFormat("HHmmss", Locale.US).format(now) + "_$camera.mp4"
-        for (base in bases()) {
-            try {
-                val d = File(base, sub)
-                if (!d.exists() && !d.mkdirs()) continue
-                val probe = File(d, ".w"); probe.writeText(""); probe.delete()
-                cleanup(base)
-                return File(d, name)
-            } catch (e: Throwable) { /* siguiente */ }
-        }
-        CamLog.w("clip: no hay dónde guardar")
-        return null
-    }
-
-    private fun bases(): List<File> = listOfNotNull(
-        File("/sdcard/BYDLink/Sentry"),
-        ctx.getExternalFilesDir("Sentry"),
-        File(ctx.filesDir, "Sentry")
-    )
-
-    /** Borra clips viejos y, si pasan de 1,5 GB, los más antiguos. */
-    private fun cleanup(base: File) {
-        try {
-            val files = base.walkTopDown().filter { it.isFile && it.name.endsWith(".mp4") }.sortedBy { it.lastModified() }.toMutableList()
-            val limit = System.currentTimeMillis() - KEEP_DAYS * 86_400_000L
-            files.filter { it.lastModified() < limit }.forEach { it.delete(); files.remove(it) }
-            var total = files.sumOf { it.length() }
-            while (total > MAX_BYTES && files.isNotEmpty()) { val f = files.removeAt(0); total -= f.length(); f.delete() }
-        } catch (e: Throwable) {}
     }
 }

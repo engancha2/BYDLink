@@ -107,6 +107,8 @@ class CarShell(private val filesDir: File) {
         /** Permisos runtime que la app necesita (también los muestra la página de permisos). */
         val PERMS = listOf(
             "android.permission.CAMERA",
+            "android.permission.READ_EXTERNAL_STORAGE",
+            "android.permission.WRITE_EXTERNAL_STORAGE",
             "android.permission.ACCESS_FINE_LOCATION",
             "android.permission.POST_NOTIFICATIONS",
             "android.permission.BYDAUTO_AC_COMMON",

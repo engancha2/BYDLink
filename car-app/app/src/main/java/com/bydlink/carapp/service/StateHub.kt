@@ -21,6 +21,8 @@ object StateHub {
      * Lo pone MainService; devuelve la respuesta de CarCommands o lanza la excepción del mando. Llamar fuera del hilo
      * principal.
      */
+    /** Cámara y vídeos (para la página Cámara del lanzador). */
+    @Volatile var camera: com.bydlink.carapp.camera.CameraCommands? = null
     @Volatile var commander: ((String, Map<String, Any?>) -> Map<String, Any?>?)? = null
 
     fun update(s: CarState) { state = s; readAt = System.currentTimeMillis(); sdkOk = true }

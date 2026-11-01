@@ -54,8 +54,8 @@ import com.bydlink.carapp.service.StateHub
  */
 class HomeActivity : Activity() {
 
-    private val ui = Handler(Looper.getMainLooper())
-    private val prefs by lazy { getSharedPreferences("launcher", Context.MODE_PRIVATE) }
+    internal val ui = Handler(Looper.getMainLooper())
+    internal val prefs by lazy { getSharedPreferences("launcher", Context.MODE_PRIVATE) }
     private var portrait = false
 
     // Estado
@@ -82,8 +82,11 @@ class HomeActivity : Activity() {
     private var tab = "inicio"
     private var tabView: View? = null
     private var overlay: FrameLayout? = null
-    private var refreshTab: (() -> Unit)? = null
-    private var caps: Map<String, Boolean> = emptyMap()
+    internal var refreshTab: (() -> Unit)? = null
+    /** Lo que hay que soltar al salir de la página (p. ej. la cámara en directo). */
+    internal var leaveTab: (() -> Unit)? = null
+    internal var onOverlayClosed: (() -> Unit)? = null
+    internal var caps: Map<String, Boolean> = emptyMap()
 
     private val tick = object : Runnable {
         override fun run() { renderStatus(); renderMusicProgress(); refreshTab?.invoke(); ui.postDelayed(this, 1000) }
@@ -99,8 +102,13 @@ class HomeActivity : Activity() {
         if (BuildConfigCompat.USE_BYD_SDK) Thread { try { caps = Capabilities.local(applicationContext) } catch (e: Throwable) {} }.start()
     }
 
-    override fun onResume() { super.onResume(); renderDock(); startMusic(); ui.post(tick) }
-    override fun onPause() { super.onPause(); ui.removeCallbacks(tick); stopMusic() }
+    override fun onResume() {
+        super.onResume(); renderDock(); startMusic(); ui.post(tick)
+        resumeTab?.let { if (it == "camara" && tab == "camara") showTab(it) }; resumeTab = null
+    }
+    override fun onPause() { super.onPause(); ui.removeCallbacks(tick); stopMusic(); leaveTab?.invoke(); leaveTab = null; resumeTab = tab }
+    /** Página a rehacer al volver (si soltó algo al salir, como la cámara). */
+    private var resumeTab: String? = null
     override fun onNewIntent(intent: Intent?) { super.onNewIntent(intent); closeOverlay(); showTab("inicio") }   // casita: al inicio
     override fun onBackPressed() { if (overlay != null) closeOverlay() else if (tab != "inicio") showTab("inicio") }
 
@@ -166,7 +174,7 @@ class HomeActivity : Activity() {
         return c
     }
 
-    private fun kv(parent: LinearLayout, k: String): TextView {
+    internal fun kv(parent: LinearLayout, k: String): TextView {
         val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; setPadding(0, dp(7), 0, 0) }
         row.addView(label(k, 15f, MUTED), LinearLayout.LayoutParams(0, -2, 1f))
         val v = label("--", 15f, Color.WHITE, bold = true); row.addView(v)
@@ -206,7 +214,7 @@ class HomeActivity : Activity() {
 
     // ═════════════════════════ Música ═════════════════════════
     private var msm: MediaSessionManager? = null
-    private var controller: MediaController? = null
+    internal var controller: MediaController? = null
     private val sessionsListener = MediaSessionManager.OnActiveSessionsChangedListener { list -> ui.post { pickController(list) } }
     private val controllerCb = object : MediaController.Callback() {
         override fun onMetadataChanged(metadata: MediaMetadata?) { renderMusic() }
@@ -248,7 +256,7 @@ class HomeActivity : Activity() {
         return c
     }
 
-    private fun currentSessions(): List<MediaController>? = try {
+    internal fun currentSessions(): List<MediaController>? = try {
         msm?.getActiveSessions(ComponentName(this, MediaListener::class.java))
     } catch (e: SecurityException) { null }
 
@@ -262,6 +270,9 @@ class HomeActivity : Activity() {
         try { msm?.removeOnActiveSessionsChangedListener(sessionsListener) } catch (e: Throwable) {}
         controller?.unregisterCallback(controllerCb); controller = null
     }
+
+    /** Elegir a mano qué app que suena se controla (página Música). */
+    internal fun selectSession(mc: MediaController) = pickController(listOf(mc))
 
     private fun pickController(list: List<MediaController>?) {
         val pick = list?.firstOrNull { it.playbackState?.state == PlaybackState.STATE_PLAYING } ?: list?.firstOrNull()
@@ -313,7 +324,7 @@ class HomeActivity : Activity() {
         Slot("Cámaras", listOf("com.byd.avc", "com.byd.auto_camera", "com.byd.cdr")),
     )
 
-    private fun resolve(c: String): ComponentName? {
+    internal fun resolve(c: String): ComponentName? {
         if ('/' in c) return ComponentName.unflattenFromString(c)?.takeIf {
             try { packageManager.getActivityInfo(it, 0); true } catch (e: PackageManager.NameNotFoundException) { false }
         }
@@ -346,7 +357,7 @@ class HomeActivity : Activity() {
         return v
     }
 
-    private fun launch(cn: ComponentName) {
+    internal fun launch(cn: ComponentName) {
         try {
             startActivity(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER).setComponent(cn)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED))
@@ -356,10 +367,10 @@ class HomeActivity : Activity() {
         }
     }
 
-    private fun icon(cn: ComponentName): Drawable? = try { packageManager.getActivityIcon(cn) } catch (e: Throwable) { null }
+    internal fun icon(cn: ComponentName): Drawable? = try { packageManager.getActivityIcon(cn) } catch (e: Throwable) { null }
     private fun appLabel(cn: ComponentName): String =
         try { packageManager.getActivityInfo(cn, 0).loadLabel(packageManager).toString() } catch (e: Throwable) { cn.packageName }
-    private fun appName(pkg: String): String =
+    internal fun appName(pkg: String): String =
         try { packageManager.getApplicationLabel(packageManager.getApplicationInfo(pkg, 0)).toString() } catch (e: Throwable) { pkg }
 
     private fun allApps() = packageManager.queryIntentActivities(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER), 0)
@@ -394,21 +405,30 @@ class HomeActivity : Activity() {
         panel.addView(appsGrid(if (portrait) 4 else 8, w) { cn ->
             prefs.edit().putString("slot$slot", cn.flattenToString()).apply(); closeOverlay(); renderDock()
         }, LinearLayout.LayoutParams(-1, 0, 1f).apply { topMargin = dp(12) })
+        openOverlay(panel)
+    }
+
+    /** Pone [panel] encima de todo (lo quita [closeOverlay] o el botón atrás). */
+    internal fun openOverlay(panel: View) {
+        closeOverlay()
         val frame = window.decorView.findViewById<ViewGroup>(android.R.id.content).getChildAt(0) as FrameLayout
         overlay = FrameLayout(this).apply { addView(panel, FrameLayout.LayoutParams(-1, -1)); isClickable = true }
         frame.addView(overlay, FrameLayout.LayoutParams(-1, -1))
     }
 
-    private fun closeOverlay() { overlay?.let { (it.parent as? ViewGroup)?.removeView(it) }; overlay = null }
+    internal fun closeOverlay() {
+        overlay?.let { (it.parent as? ViewGroup)?.removeView(it) }; overlay = null
+        onOverlayClosed?.invoke(); onOverlayClosed = null
+    }
 
     // ═════════════════════════ pestañas ═════════════════════════
     private fun tabBar(): View {
         val bar = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER; setPadding(dp(6), dp(6), dp(6), dp(6)); background = round(CARD, 28)
         }
-        listOf("inicio" to "Inicio", "coche" to "Coche", "apps" to "Apps", "ajustes" to "Ajustes").forEach { (k, name) ->
-            val t = label(name, 16f, MUTED, bold = true).apply {
-                gravity = Gravity.CENTER; setPadding(dp(26), 0, dp(26), 0); isClickable = true; setOnClickListener { showTab(k) }
+        listOf("inicio" to "Inicio", "clima" to "Clima", "energia" to "Energía", "coche" to "Coche", "camara" to "Cámara", "mapa" to "Mapa", "musica" to "Música", "apps" to "Apps", "ajustes" to "Ajustes").forEach { (k, name) ->
+            val t = label(name, 15f, MUTED, bold = true).apply {
+                gravity = Gravity.CENTER; setPadding(dp(13), 0, dp(13), 0); isClickable = true; setOnClickListener { showTab(k) }
             }
             tabs[k] = t; bar.addView(t, LinearLayout.LayoutParams(-2, -1))
         }
@@ -419,8 +439,10 @@ class HomeActivity : Activity() {
         tab = k
         tabs.forEach { (key, v) -> val on = key == k; v.setTextColor(if (on) Color.WHITE else MUTED); v.background = if (on) round(ACCENT_DIM, 22) else null }
         refreshTab = null
+        leaveTab?.invoke(); leaveTab = null
         tabView?.let { content.removeView(it) }
-        val v = when (k) { "coche" -> carTab(); "apps" -> appsTab(); "ajustes" -> settingsTab(); else -> homeTab() }
+        val v = when (k) { "clima" -> carTab(); "energia" -> energyPage(); "coche" -> infoPage(); "camara" -> cameraPage(); "mapa" -> mapPage(); "musica" -> mediaPage()
+            "apps" -> appsTab(); "ajustes" -> settingsTab(); else -> homeTab() }
         tabView = v
         content.addView(v, FrameLayout.LayoutParams(-1, -1))
         refreshTab?.invoke()
@@ -544,16 +566,7 @@ class HomeActivity : Activity() {
         minus.setOnClickListener { StateHub.state?.climate?.temp?.let { climate(mapOf("temp" to (it - 1).coerceIn(17, 33))) } }
         plus.setOnClickListener { StateHub.state?.climate?.temp?.let { climate(mapOf("temp" to (it + 1).coerceIn(17, 33))) } }
 
-        // Carga (límite), si el coche lo tiene
-        val carga = card(); col.addView(carga, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(12) })
-        val lHead = label("Límite de carga", 18f, Color.WHITE, bold = true); carga.addView(lHead)
-        val lRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; setPadding(0, dp(10), 0, 0) }
-        val limBtns = listOf(60, 70, 80, 90, 100).map { p -> pill(if (p == 100) "100 %" else "$p %") { send("setChargeLimit", mapOf("percent" to p), "Límite al $p %") }
-            .also { lRow.addView(it, LinearLayout.LayoutParams(0, dp(52), 1f).apply { rightMargin = dp(6) }) } to p }
-        carga.addView(lRow)
-        val lHint = label("", 13f, MUTED).apply { setPadding(0, dp(8), 0, 0) }; carga.addView(lHint)
-
-        val moving = label("En marcha solo se puede tocar el clima.", 14f, AMBER).apply { setPadding(dp(4), dp(10), 0, 0) }
+        val moving = label("En marcha: solo lo imprescindible.", 14f, AMBER).apply { setPadding(dp(4), dp(10), 0, 0) }
         col.addView(moving)
 
         refreshTab = {
@@ -566,19 +579,16 @@ class HomeActivity : Activity() {
             val bits = bitsOf[c?.mode] ?: 0
             vents.forEach { (b, bit) -> active(b, bits and bit != 0) }
             active(dfF, c?.defrostFront == true); active(dfR, c?.defrostRear == true)
-            carga.visibility = if (caps["chargeLimit"] == false) View.GONE else View.VISIBLE
-            limBtns.forEach { (b, p) -> active(b, s?.chargeLimit == p); b.isEnabled = !run; b.alpha = if (run) .4f else 1f }
-            lHint.text = if (s?.chargeLimitConfirmed == false) "El coche no confirma el límite: se verá en la próxima carga." else ""
             moving.visibility = if (run) View.VISIBLE else View.GONE
             clima.visibility = if (caps["climate"] == false) View.GONE else View.VISIBLE
         }
         return ScrollView(this).apply { addView(col) }
     }
 
-    private fun climate(p: Map<String, Any?>) = send("setClimate", p, null)
+    internal fun climate(p: Map<String, Any?>) = send("setClimate", p, null)
 
     /** Manda una orden al coche por el mismo camino que el móvil (CarCommands, con sus comprobaciones de seguridad). */
-    private fun send(action: String, payload: Map<String, Any?>, okMsg: String?) {
+    internal fun send(action: String, payload: Map<String, Any?>, okMsg: String?) {
         val cmd = StateHub.commander ?: return toast("BYDLink aún está arrancando")
         Thread {
             val msg = try {
@@ -627,38 +637,38 @@ class HomeActivity : Activity() {
     }
 
     // ═════════════════════════ piezas ═════════════════════════
-    private fun card() = LinearLayout(this).apply {
+    internal fun card() = LinearLayout(this).apply {
         orientation = LinearLayout.VERTICAL; setPadding(dp(18), dp(14), dp(18), dp(14))
         background = GradientDrawable().apply { setColor(CARD); cornerRadius = dp(20).toFloat(); setStroke(1, LINE) }
         isClickable = true
     }
 
-    private fun label(t: String, size: Float, color: Int, bold: Boolean = false) = TextView(this).apply {
+    internal fun label(t: String, size: Float, color: Int, bold: Boolean = false) = TextView(this).apply {
         text = t; textSize = size; setTextColor(color); if (bold) typeface = Typeface.DEFAULT_BOLD
     }
 
-    private fun pill(t: String, onClick: () -> Unit) = TextView(this).apply {
+    internal fun pill(t: String, onClick: () -> Unit) = TextView(this).apply {
         text = t; textSize = 16f; setTextColor(Color.WHITE); gravity = Gravity.CENTER; setPadding(dp(16), dp(10), dp(16), dp(10))
         background = round(CARD2, 14); isClickable = true; setOnClickListener { onClick() }
     }
 
-    private fun active(v: TextView, on: Boolean) { v.background = round(if (on) ACCENT_DIM else CARD2, 14); v.setTextColor(if (on) ACCENT else Color.WHITE) }
+    internal fun active(v: TextView, on: Boolean) { v.background = round(if (on) ACCENT_DIM else CARD2, 14); v.setTextColor(if (on) ACCENT else Color.WHITE) }
 
-    private fun chip(t: String, color: Int) = TextView(this).apply {
+    internal fun chip(t: String, color: Int) = TextView(this).apply {
         text = t; textSize = 15f; setTextColor(color); setPadding(dp(14), dp(9), dp(14), dp(9)); background = round(CARD, 16); maxLines = 1
     }
 
     @Suppress("FunctionName")
-    private fun HorizontalScroll(child: View) = android.widget.HorizontalScrollView(this).apply { isHorizontalScrollBarEnabled = false; addView(child) }
+    internal fun HorizontalScroll(child: View) = android.widget.HorizontalScrollView(this).apply { isHorizontalScrollBarEnabled = false; addView(child) }
 
-    private fun toast(m: String) = Toast.makeText(this, m, Toast.LENGTH_SHORT).show()
-    private fun round(color: Int, r: Int) = GradientDrawable().apply { setColor(color); cornerRadius = dp(r).toFloat() }
-    private fun dp(v: Int) = (v * resources.displayMetrics.density).toInt()
-    private fun fmt1(v: Double) = String.format(java.util.Locale.getDefault(), "%.1f", v)
-    private fun dur(min: Int) = when { min < 60 -> "$min min"; min < 1440 -> "${min / 60} h ${min % 60} min"; else -> "${min / 1440} d" }
+    internal fun toast(m: String) = Toast.makeText(this, m, Toast.LENGTH_SHORT).show()
+    internal fun round(color: Int, r: Int) = GradientDrawable().apply { setColor(color); cornerRadius = dp(r).toFloat() }
+    internal fun dp(v: Int) = (v * resources.displayMetrics.density).toInt()
+    internal fun fmt1(v: Double) = String.format(java.util.Locale.getDefault(), "%.1f", v)
+    internal fun dur(min: Int) = when { min < 60 -> "$min min"; min < 1440 -> "${min / 60} h ${min % 60} min"; else -> "${min / 1440} d" }
 
     /** Barra de progreso fina con esquinas redondas. */
-    private inner class Bar(private var color: Int) : View(this@HomeActivity) {
+    internal inner class Bar(private var color: Int) : View(this@HomeActivity) {
         private var pct = 0
         private val bg = Paint(Paint.ANTI_ALIAS_FLAG).apply { this.color = 0x33FFFFFF }
         private val fg = Paint(Paint.ANTI_ALIAS_FLAG)
@@ -690,7 +700,7 @@ class HomeActivity : Activity() {
     }
 
     /** Iconos de música dibujados (sin depender de fuentes del sistema). */
-    private class MediaIcon(private val kind: Int) : Drawable() {
+    internal class MediaIcon(private val kind: Int) : Drawable() {
         companion object { const val PREV = 0; const val PLAY = 1; const val PAUSE = 2; const val NEXT = 3; const val NOTE = 4 }
         private val p = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE }
         override fun draw(c: Canvas) {
@@ -725,7 +735,7 @@ class HomeActivity : Activity() {
         @Deprecated("Drawable") override fun getOpacity() = PixelFormat.TRANSLUCENT
     }
 
-    private companion object {
+    internal companion object {
         val CARD = 0xE6151C26.toInt()
         val CARD2 = 0xFF1C2532.toInt()
         val LINE = 0x22FFFFFF

@@ -1,15 +1,21 @@
 package com.bydlink.carapp.camera
 
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.os.SystemClock
+import android.util.Base64
 import com.bydlink.carapp.App
 import com.bydlink.carapp.BuildConfigCompat
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.ServerValue
+import com.google.android.gms.tasks.Tasks
 import org.json.JSONObject
+import java.io.File
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 
 /**
@@ -30,8 +36,12 @@ class CameraCommands(ctx: Context, private val isParked: () -> Boolean) {
             "camTest", "runCamTest", "takePhoto", "snapshot",
             "startLiveJpeg", "switchLiveJpeg", "stopLiveJpeg",
             "startLiveCam", "switchLiveCam", "stopLiveCam",
-            "getCamStatus", "setCamProfile", "camReset", "dumpCamLog"
+            "getCamStatus", "setCamProfile", "camReset", "dumpCamLog",
+            "recordVideo", "stopVideo", "listVideos", "deleteVideo", "keepVideo", "getVideo", "setVideoConfig", "getVideoStatus"
         )
+        /** Lo más que se manda al móvil por la nube (un tramo de 3 min en calidad normal son ~30 MB). */
+        private const val MAX_SEND = 60L * 1024 * 1024
+        private const val CHUNK = 512 * 1024
     }
 
     private val app = ctx.applicationContext
@@ -46,6 +56,9 @@ class CameraCommands(ctx: Context, private val isParked: () -> Boolean) {
     private val jpeg = LiveJpeg(hub, views, root, sched, remote)
     private val rtc = LiveStreamer(app, hub, views, sched)
     private val runner = CamTestRunner(app, hub, root) { onTestDone(it) }
+    private val dashcam = Dashcam(app, hub, clips)
+    private val sendExec = Executors.newSingleThreadExecutor { r -> Thread(r, "cam-video-send").apply { isDaemon = true } }
+    private val screenExec = Executors.newSingleThreadExecutor { r -> Thread(r, "cam-screen").apply { isDaemon = true } }
     private val versionCode = BuildConfigCompat.versionCode(app)
 
     @Volatile private var started = false
@@ -54,11 +67,17 @@ class CameraCommands(ctx: Context, private val isParked: () -> Boolean) {
     private var parkedSince = 0L
     private var lastLogUpload = 0L
     private var lastLogChanges = -1L
+    @Volatile private var videoQueued = false
+    private var lastVideoPublish = 0L
+    private var lastVideoList = ""
+    @Volatile private var sending: String? = null
+    private var screenTap: CameraHub.Tap? = null
 
     init {
         hub.onChange = { schedulePublish() }
         jpeg.onStop = { schedulePublish() }
         rtc.onStopped = { hub.release(CameraHub.LIVE); schedulePublish() }
+        clips.onChange = { scheduleVideoPublish(); schedulePublish() }
     }
 
     // ---------------------------------------------------------------- API para MainService
@@ -131,6 +150,22 @@ class CameraCommands(ctx: Context, private val isParked: () -> Boolean) {
                 mapOf("block" to hub.block, "state" to hub.state)
             }
             "dumpCamLog" -> { uploadLog(); mapOf("path" to "diag/camlog") }
+            "recordVideo" -> recordVideo(p)
+            "stopVideo" -> { clips.stop(VideoStore.MANUAL); mapOf("stopped" to true) }
+            "listVideos" -> mapOf("videos" to VideoStore.list(app, ((p["limit"] as? Number)?.toInt() ?: 100).coerceIn(1, 300)).map { it.toMap() })
+            "deleteVideo" -> {
+                val id = p["id"] as? String ?: throw CamError("bad_args", "Falta el vídeo.")
+                if (!VideoStore.delete(app, id)) throw CamError("not_found", "Ese vídeo ya no está en el coche.")
+                scheduleVideoPublish(); mapOf("deleted" to id)
+            }
+            "keepVideo" -> {
+                val id = p["id"] as? String ?: throw CamError("bad_args", "Falta el vídeo.")
+                val nid = VideoStore.keep(app, id) ?: throw CamError("not_found", "No se pudo guardar ese vídeo.")
+                scheduleVideoPublish(); mapOf("id" to nid)
+            }
+            "getVideo" -> sendVideo(p)
+            "setVideoConfig" -> { setVideoConfig(p); videoStatus(false) }
+            "getVideoStatus" -> videoStatus(false)
             else -> null
         }
     }
@@ -287,7 +322,9 @@ class CameraCommands(ctx: Context, private val isParked: () -> Boolean) {
         hub.block = computeBlock()
         CamLog.i("cámara: jar=${BmmRuntime.findJar()} perfil=${hub.profile.source} bloqueo=${hub.block} test=${CamPrefs.testVerdict(app)}@${CamPrefs.testVersion(app)} (versión $versionCode)")
         sched.scheduleWithFixedDelay({ try { periodic() } catch (e: Throwable) { CamLog.w("cámara: fallo periódico", e) } }, 5, 5, TimeUnit.SECONDS)
+        sched.execute { try { dashcam.configure() } catch (e: Throwable) { CamLog.w("dashcam: no arranca", e) } }
         schedulePublish()
+        scheduleVideoPublish()
     }
 
     /** Veredictos que no se repiten solos (los demás se reintentan, como mucho 5 veces por versión). */
@@ -333,6 +370,166 @@ class CameraCommands(ctx: Context, private val isParked: () -> Boolean) {
         // Log de cámara a Firebase cada 10 s mientras se usa.
         if ((hub.isOpen() || runner.running) && CamLog.changes != lastLogChanges && now - lastLogUpload >= 10_000) uploadLog()
         if (hub.isOpen() && now - lastPublish > 60_000) schedulePublish()
+        dashcam.tick()
+        if (now - lastVideoPublish > (if (clips.active().isNotEmpty()) 60_000L else 300_000L)) scheduleVideoPublish()
+    }
+
+    // ---------------------------------------------------------------- vídeos (grabar, guardar, mandar al móvil)
+
+    /** Grabación a mano: [p].seconds s (0 = hasta parar, como mucho 30 min) en el soporte elegido. */
+    private fun recordVideo(p: Map<String, Any?>): Map<String, Any?> {
+        if (!(hub.drivingOpen && hub.streaming())) requireUsable(remoteOk = false)
+        val cam = views.check(p["camera"] as? String)
+        val secs = ((p["seconds"] as? Number)?.toInt() ?: 60).let { if (it <= 0) 1800 else it }.coerceIn(5, 1800)
+        if (clips.busy(VideoStore.MANUAL)) return mapOf("recording" to true, "already" to true)
+        views.want(cam)
+        val sp = VideoStore.prefs(app)
+        val path = clips.record(cam, secs, VideoStore.MANUAL, ClipRecorder.Quality.of(sp.getString("quality", "normal")),
+            CameraHub.REC, sp.getBoolean("stamp", true))
+            ?: throw CamError("no_space", "No hay dónde guardar el vídeo (¿memoria llena o USB quitado?).")
+        if (!hub.awaitFrames(9_000)) { clips.stop(VideoStore.MANUAL); throw hubFailure() }
+        return mapOf("recording" to true, "camera" to cam, "seconds" to secs, "id" to VideoStore.idOf(app, File(path)),
+            "store" to VideoStore.current(app)?.label)
+    }
+
+    /** Manda un vídeo al móvil por la nube, en trozos (`cars/{id}/videoDl`); el móvil lo junta y lo reproduce. */
+    private fun sendVideo(p: Map<String, Any?>): Map<String, Any?> {
+        val id = p["id"] as? String ?: throw CamError("bad_args", "Falta el vídeo.")
+        val f = VideoStore.find(app, id) ?: throw CamError("not_found", "Ese vídeo ya no está en el coche.")
+        val len = f.length()
+        if (len > MAX_SEND) throw CamError("too_big", "Ese vídeo ocupa ${len / 1048576} MB: es mucho para mandarlo por datos (máximo 60 MB). " +
+            "Puedes verlo en la pantalla del coche o copiarlo de la memoria.")
+        if (sending != null) throw CamError("busy", "Ya se está mandando otro vídeo al móvil; espera a que termine.")
+        val req = (p["req"] as? String)?.takeIf { it.isNotBlank() } ?: "v${System.currentTimeMillis()}"
+        val n = ((len + CHUNK - 1) / CHUNK).toInt()
+        val ref = root.child("videoDl")
+        sending = req
+        sendExec.execute {
+            try {
+                Tasks.await(ref.setValue(mapOf("req" to req, "id" to id, "bytes" to len, "n" to n, "done" to 0,
+                    "state" to "uploading", "ts" to ServerValue.TIMESTAMP)), 30, TimeUnit.SECONDS)
+                f.inputStream().use { inp ->
+                    val buf = ByteArray(CHUNK)
+                    for (i in 0 until n) {
+                        var got = 0
+                        while (got < CHUNK) { val r = inp.read(buf, got, CHUNK - got); if (r < 0) break; got += r }
+                        Tasks.await(ref.child("parts").child("$i").setValue(Base64.encodeToString(buf, 0, got, Base64.NO_WRAP)), 120, TimeUnit.SECONDS)
+                        ref.child("done").setValue(i + 1)
+                    }
+                }
+                ref.child("state").setValue("ready")
+                CamLog.i("vídeo: mandado $id al móvil (${len / 1024} KB en $n trozos)")
+            } catch (e: Throwable) {
+                CamLog.w("vídeo: no se pudo mandar $id", e)
+                ref.updateChildren(mapOf("state" to "error", "error" to "No se pudo mandar el vídeo (¿sin cobertura?)."))
+            } finally {
+                sending = null
+                // Si el móvil no lo borra, fuera a los 15 min (no dejar decenas de MB en la nube).
+                sched.schedule({
+                    ref.child("req").get().addOnSuccessListener { if (it.getValue(String::class.java) == req) ref.removeValue() }
+                }, 15, TimeUnit.MINUTES)
+            }
+        }
+        return mapOf("path" to "videoDl", "req" to req, "bytes" to len, "parts" to n)
+    }
+
+    private fun setVideoConfig(p: Map<String, Any?>) {
+        (p["store"] as? String)?.let { VideoStore.select(app, it) }
+        (p["quotaGb"] as? Number)?.let { VideoStore.setQuotaGb(app, it.toInt()) }
+        val ed = VideoStore.prefs(app).edit()
+        (p["mode"] as? String)?.takeIf { it in Dashcam.MODES }?.let { ed.putString("mode", it) }
+        (p["quality"] as? String)?.takeIf { it == "normal" || it == "alta" }?.let { ed.putString("quality", it) }
+        (p["stamp"] as? Boolean)?.let { ed.putBoolean("stamp", it) }
+        (p["segMin"] as? Number)?.let { ed.putInt("segMin", it.toInt().coerceIn(1, 10)) }
+        ed.commit()
+        CamLog.i("vídeo: configuración $p")
+        dashcam.configure()
+        sched.execute {
+            VideoStore.volumes(app, fresh = true)
+            VideoStore.current(app)?.let { VideoStore.cleanup(app, it) }
+            scheduleVideoPublish()
+        }
+    }
+
+    /** Estado de los vídeos: soportes, el elegido, límite, dashcam y lo que se está grabando (`cars/{id}/video`). */
+    fun videoStatus(serverTs: Boolean = true): Map<String, Any?> {
+        val sp = VideoStore.prefs(app)
+        val cur = VideoStore.current(app)
+        return mapOf(
+            "store" to VideoStore.selectedId(app), "current" to cur?.id, "missing" to VideoStore.missing(app),
+            "quotaGb" to VideoStore.quotaGb(app), "quotaBytes" to cur?.let { VideoStore.quotaBytes(app, it) },
+            "mode" to dashcam.mode, "quality" to (sp.getString("quality", "normal") ?: "normal"),
+            "stamp" to sp.getBoolean("stamp", true), "segMin" to sp.getInt("segMin", 3),
+            "volumes" to VideoStore.volumes(app).map { it.toMap(VideoStore.used(it)) },
+            "recording" to clips.active().map { it.toMap() },
+            "dashcam" to mapOf("holding" to dashcam.holding(), "recording" to dashcam.recording(), "driving" to hub.drivingOpen),
+            "usable" to (hub.block == null && BmmRuntime.findJar() != null), "sending" to sending,
+            "ts" to if (serverTs) ServerValue.TIMESTAMP else System.currentTimeMillis()
+        )
+    }
+
+    fun recordings() = clips.active()
+
+    private fun scheduleVideoPublish() {
+        if (videoQueued) return
+        videoQueued = true
+        try {
+            sched.schedule({
+                videoQueued = false; lastVideoPublish = SystemClock.elapsedRealtime()
+                try {
+                    root.child("video").setValue(videoStatus(true))
+                    val items = VideoStore.list(app, 150).map { it.toMap() }
+                    val key = items.joinToString { "${it["id"]}:${it["bytes"]}" }
+                    if (key != lastVideoList) {
+                        lastVideoList = key
+                        root.child("videos").setValue(mapOf("ts" to ServerValue.TIMESTAMP, "items" to items))
+                    }
+                } catch (e: Throwable) { CamLog.w("no se pudo publicar video", e) }
+            }, 2, TimeUnit.SECONDS)
+        } catch (e: Throwable) { videoQueued = false }
+    }
+
+    /**
+     * Imagen en directo para la pantalla del coche (página Cámara del lanzador), unas 6 por segundo. null = parar.
+     * Devuelve un texto si ahora no se puede (coche en marcha, cámara en prueba…).
+     */
+    @Synchronized fun screenPreview(cb: ((Bitmap) -> Unit)?): String? {
+        screenTap?.let { hub.removeTap(it); hub.release(CameraHub.SCREEN) }
+        screenTap = null
+        if (cb == null) return null
+        ensureStarted()
+        try { if (!hub.drivingOpen) requireUsable(remoteOk = false) } catch (e: CamError) { return e.message }
+        val cam = hub.profile.cams.keys.firstOrNull() ?: "back"
+        val busy = AtomicBoolean(false)
+        var last = 0L
+        val t = object : CameraHub.Tap {
+            override fun onFrame(f: CameraHub.Frame) {
+                val now = SystemClock.elapsedRealtime()
+                if (now - last < 150 || !busy.compareAndSet(false, true)) return
+                val r = views.render(f, cam, 640)
+                if (r == null) { busy.set(false); return }
+                last = now
+                screenExec.execute {
+                    try { val jpg = Yuv.jpeg(r.nv21, r.w, r.h, 80); BitmapFactory.decodeByteArray(jpg, 0, jpg.size)?.let(cb) }
+                    catch (e: Throwable) {} finally { busy.set(false) }
+                }
+            }
+        }
+        screenTap = t; hub.addTap(t); hub.acquire(CameraHub.SCREEN)
+        return null
+    }
+
+    fun screenActive() = screenTap != null
+
+    /** Cómo está la cámara, en palabras para la pantalla del coche ("" si se está viendo). */
+    fun screenState(): String = when {
+        hub.streaming() -> ""
+        BmmRuntime.findJar() == null -> "Este coche no tiene el sistema de cámaras BYD."
+        hub.state == "not_parked" -> "Por seguridad, la cámara solo se ve con el coche parado."
+        hub.block == "testing" || hub.block == "pending_test" -> "La cámara se está comprobando (tarda un minuto con el coche parado)."
+        hub.block != null -> "La cámara no está disponible ahora (${hub.block})."
+        hub.state == "error" || hub.state == "unavailable" -> hub.lastError ?: "Error de cámara."
+        else -> "Abriendo la cámara…"
     }
 
     private fun onTestDone(result: JSONObject) {
