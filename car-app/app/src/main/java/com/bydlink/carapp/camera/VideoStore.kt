@@ -4,6 +4,7 @@ import android.content.Context
 import android.os.SystemClock
 import android.os.storage.StorageManager
 import java.io.File
+import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -133,8 +134,10 @@ object VideoStore {
         return if (i > 0) File(p.substring(0, i)) else dir.parentFile
     }
 
+    /** ¿Se puede escribir de verdad? (también en una subcarpeta: ver [newFile]). */
     private fun writable(d: File): Boolean = try {
-        (d.isDirectory || d.mkdirs()) && File(d, ".w").let { it.writeText("1"); it.delete() }
+        val sub = File(d, ".prueba")
+        (sub.isDirectory || sub.mkdirs()) && File(sub, ".w").let { it.writeText("1"); it.delete() } && sub.delete()
     } catch (e: Throwable) { false }
 
     // ───────────────────────── ficheros ─────────────────────────
@@ -146,24 +149,42 @@ object VideoStore {
         val now = Date()
         val sub = SimpleDateFormat("yyyy-MM", Locale.US).format(now) + "/" + SimpleDateFormat("dd", Locale.US).format(now)
         val name = SimpleDateFormat("HHmmss", Locale.US).format(now) + "_$camera.mp4"
-        val vols = volumes(ctx)
-        val order = listOfNotNull(current(ctx)) + vols.filter { it.kind == "internal" }
-        for (v in order.distinct()) {
+        // El elegido y, si falla, las carpetas de la memoria del coche (pública, de la app, privada).
+        val roots = (listOfNotNull(current(ctx)?.root) + internalRoots(ctx)).distinctBy { canon(it) }
+        for (root in roots) {
             try {
-                val d = File(File(v.root, FOLDER[kind] ?: "Grabaciones"), sub)
-                if (!d.isDirectory && !d.mkdirs()) continue
-                if (v.free < RESERVE || SystemClock.elapsedRealtime() - lastCleanup > 60_000) { lastCleanup = SystemClock.elapsedRealtime(); cleanup(ctx, v) }
-                return File(d, name)
-            } catch (e: Throwable) { CamLog.w("vídeo: no se pudo usar ${v.label}", e) }
+                val d = File(File(root, FOLDER[kind] ?: "Grabaciones"), sub)
+                d.mkdirs()
+                val f = File(d, name)
+                // Crear el fichero de verdad: en Android 10, recién dado el permiso de almacenamiento, mkdirs dice que sí
+                // y luego abrir falla (ENOENT) hasta que la app se reinicia.
+                FileOutputStream(f).close()
+                val v = volumes(ctx).firstOrNull { canon(root).startsWith(canon(it.root)) }
+                if (v != null && (v.free < RESERVE || SystemClock.elapsedRealtime() - lastCleanup > 60_000)) {
+                    lastCleanup = SystemClock.elapsedRealtime(); cleanup(ctx, v)
+                }
+                return f
+            } catch (e: Throwable) { CamLog.w("vídeo: no se puede grabar en $root (${e.message})"); cache = null }
         }
         CamLog.w("vídeo: no hay dónde guardar")
         return null
     }
 
+    /** Carpetas BYDLink de la memoria del coche (pública, de la app y privada): se miran todas al listar y buscar. */
+    private fun internalRoots(ctx: Context) = listOfNotNull(
+        File("/sdcard/BYDLink"), ctx.getExternalFilesDir(null)?.let { File(it, "BYDLink") }, File(ctx.filesDir, "BYDLink"))
+
+    private fun canon(f: File) = try { f.canonicalPath } catch (e: Throwable) { f.absolutePath }
+
+    /** (soporte, carpeta BYDLink) de todo lo que existe ahora. */
+    private fun allRoots(ctx: Context): List<Pair<String, File>> =
+        (volumes(ctx).map { it.id to it.root } + internalRoots(ctx).map { "internal" to it })
+            .filter { it.second.isDirectory }.distinctBy { canon(it.second) }
+
     /** Todos los vídeos (los más nuevos primero). */
     fun list(ctx: Context, limit: Int = 300): List<Video> {
         val out = ArrayList<Video>()
-        for (v in volumes(ctx)) for ((kind, folder) in FOLDER) collect(File(v.root, folder), kind, folder, v.id, out)
+        for ((vol, root) in allRoots(ctx)) for ((kind, folder) in FOLDER) collect(File(root, folder), kind, folder, vol, out)
         legacyBases(ctx).forEach { collect(it, SENTRY, null, "internal", out) }
         return out.sortedByDescending { it.ts }.take(limit)
     }
@@ -184,7 +205,7 @@ object VideoStore {
     /** El fichero de un id, en cualquier soporte. */
     fun find(ctx: Context, id: String): File? {
         if (id.contains("..")) return null
-        val roots = if (FOLDER.values.any { id.startsWith("$it/") }) volumes(ctx).map { it.root } else legacyBases(ctx)
+        val roots = if (FOLDER.values.any { id.startsWith("$it/") }) allRoots(ctx).map { it.second } else legacyBases(ctx)
         return roots.map { File(it, "$id.mp4") }.firstOrNull { it.isFile }
     }
 
@@ -199,9 +220,9 @@ object VideoStore {
     /** Pasa un vídeo a "Grabaciones" (lo último que se borra). Devuelve el id nuevo. */
     fun keep(ctx: Context, id: String): String? {
         val f = find(ctx, id) ?: return null
-        val v = volumes(ctx).firstOrNull { f.path.startsWith(it.root.path) } ?: current(ctx) ?: return null
+        val root = allRoots(ctx).map { it.second }.firstOrNull { canon(f).startsWith(canon(it) + "/") } ?: current(ctx)?.root ?: return null
         val rel = id.substringAfter('/').takeIf { FOLDER.values.any { id.startsWith("$it/") } } ?: id
-        val dst = File(File(v.root, FOLDER.getValue(MANUAL)), "$rel.mp4")
+        val dst = File(File(root, FOLDER.getValue(MANUAL)), "$rel.mp4")
         dst.parentFile?.mkdirs()
         if (f.renameTo(dst)) return idOf(ctx, dst)
         return try { f.copyTo(dst, true); f.delete(); idOf(ctx, dst) } catch (e: Throwable) { null }
