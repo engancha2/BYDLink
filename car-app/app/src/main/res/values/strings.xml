@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">BYDLink</string>
+    <string name="wheel_keys_desc">BYDLink usa los botones del volante que tú le asignes (pulsación corta, larga o doble). Solo mira las teclas: no lee la pantalla ni lo que escribes.</string>
 </resources>

@@ -109,7 +109,8 @@ class HomeActivity : Activity() {
     override fun onPause() { super.onPause(); ui.removeCallbacks(tick); stopMusic(); leaveTab?.invoke(); leaveTab = null; resumeTab = tab }
     /** Página a rehacer al volver (si soltó algo al salir, como la cámara). */
     private var resumeTab: String? = null
-    override fun onNewIntent(intent: Intent?) { super.onNewIntent(intent); closeOverlay(); showTab("inicio") }   // casita: al inicio
+    // Casita: al inicio. Los botones del volante pueden pedir otra página (extra "tab").
+    override fun onNewIntent(intent: Intent?) { super.onNewIntent(intent); closeOverlay(); showTab(intent?.getStringExtra("tab") ?: "inicio") }
     override fun onBackPressed() { if (overlay != null) closeOverlay() else if (tab != "inicio") showTab("inicio") }
 
     // ═════════════════════════ estructura ═════════════════════════
@@ -137,7 +138,7 @@ class HomeActivity : Activity() {
             addView(root, FrameLayout.LayoutParams(-1, -1))
         }
         setContentView(frame)
-        showTab("inicio")
+        showTab(intent?.getStringExtra("tab") ?: "inicio")
     }
 
     // ═════════════════════════ Estado ═════════════════════════
@@ -616,6 +617,12 @@ class HomeActivity : Activity() {
         }
         homeRefresh()
         homeBtn.setOnClickListener { homeBtn.isEnabled = false; Thread { val m = LauncherMode.set(applicationContext, !LauncherMode.isOn(this)); ui.post { homeBtn.isEnabled = true; homeRefresh(); toast(m) } }.start() }
+
+        val keys = card(); col.addView(keys, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(12) })
+        keys.addView(label("Botones del volante", 18f, Color.WHITE, bold = true))
+        keys.addView(label("Asigna a un botón (pulsación corta, larga o doble) abrir una página, guardar un vídeo, la foto, el centinela o el aire.", 14f, MUTED)
+            .apply { setPadding(0, dp(6), 0, dp(10)) })
+        keys.addView(pill("Configurar botones") { keysPanel() }, LinearLayout.LayoutParams(-2, dp(52)))
 
         val st = card(); col.addView(st, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(12) })
         st.addView(label("Estado de BYDLink", 18f, Color.WHITE, bold = true))

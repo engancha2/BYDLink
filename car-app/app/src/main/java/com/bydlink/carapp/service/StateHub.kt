@@ -24,6 +24,8 @@ object StateHub {
     /** Cámara y vídeos (para la página Cámara del lanzador). */
     @Volatile var camera: com.bydlink.carapp.camera.CameraCommands? = null
     @Volatile var commander: ((String, Map<String, Any?>) -> Map<String, Any?>?)? = null
+    /** Cualquier orden como si llegara del móvil (también las de MainService: centinela, ajustes…); responde a [cb]. */
+    @Volatile var run: ((String, Map<String, Any?>, (Boolean, Map<String, Any?>) -> Unit) -> Unit)? = null
 
     fun update(s: CarState) { state = s; readAt = System.currentTimeMillis(); sdkOk = true }
 }

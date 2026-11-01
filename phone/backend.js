@@ -119,6 +119,26 @@
       },
       emit() { if (this.onStatus) this.onStatus(this.status()); if (this.onList) this.onList({ items: this.items.slice() }); }
     };
+    // Botones del volante de ejemplo (en el coche los aprende al pulsarlos; ver keys/WheelKeys.kt)
+    const demoKeys = {
+      cb: null,
+      v: {
+        config: { enabled: true, bindings: { k87: { long: 'clip' } } },
+        status: { enabled: true, service: true, sdk: 'ok', learning: false },
+        learned: {
+          k87: { id: 'k87', src: 'android', name: 'Siguiente', code: 87, count: 6, last: now0 - 60e3 },
+          k88: { id: 'k88', src: 'android', name: 'Anterior', code: 88, count: 4, last: now0 - 90e3 },
+          k231: { id: 'k231', src: 'android', name: 'Voz', code: 231, count: 2, last: now0 - 120e3 },
+          sdk22: { id: 'sdk22', src: 'sdk', name: 'Botón del coche 22', code: 22, count: 3, last: now0 - 150e3 }
+        },
+        log: [
+          { ts: now0 - 60e3, src: 'accion', id: 'k87', name: 'Guardar vídeo (lo último + 1 min)', info: 'larga' },
+          { ts: now0 - 61e3, src: 'android', id: 'k87', name: 'Siguiente', info: '820 ms · scan 163 · byd_keys' }
+        ],
+        apps: [{ pkg: 'com.google.android.apps.maps', label: 'Maps' }, { pkg: 'com.spotify.music', label: 'Spotify' }, { pkg: 'com.waze', label: 'Waze' }]
+      },
+      emit() { if (this.cb) this.cb(JSON.parse(JSON.stringify(this.v))); }
+    };
     const sentryEvents = [
       { id: 's2', ts: now - 1800e3, camera: 'front' },
       { id: 's1', ts: now - 7200e3, camera: 'left' },
@@ -255,6 +275,21 @@
           case 'deleteVideo': demoVid.items = demoVid.items.filter(v => v.id !== payload.id); demoVid.emit(); break;
           case 'keepVideo': demoVid.items.forEach(v => { if (v.id === payload.id) v.kind = 'manual'; }); demoVid.emit(); break;
           case 'getVideo': demoVid.req = payload.req; data = { parts: 1, bytes: 2.1e6 }; break;
+          case 'setKeyConfig': {
+            const c = demoKeys.v.config;
+            if (payload.enabled != null) c.enabled = demoKeys.v.status.enabled = !!payload.enabled;
+            if (payload.key) {
+              const b = Object.assign({}, c.bindings[payload.key]);
+              if (payload.action) b[payload.press || 'short'] = payload.action; else delete b[payload.press || 'short'];
+              if (Object.keys(b).length) c.bindings[payload.key] = b; else delete c.bindings[payload.key];
+              if (payload.action) c.enabled = demoKeys.v.status.enabled = true;
+            }
+            demoKeys.emit(); break;
+          }
+          case 'keyLearn':
+            demoKeys.v.status.learning = payload.on !== false;
+            demoKeys.v.status.learnUntil = demoKeys.v.status.learning ? Date.now() + (payload.minutes || 5) * 60e3 : null;
+            demoKeys.emit(); break;
           case 'setLock':
             status.locked = !!payload.locked;
             if (status.locked && config.automations.autoCloseWindowsOnLock && anyWindowOpen()) setAllWindows(false);
@@ -291,6 +326,7 @@
       videoDlWatch(cb) { setTimeout(() => cb({ req: demoVid.req, state: 'error', error: 'En la demo no hay vídeos de verdad: con tu coche se ven aquí.' }), 700); return () => {}; },
       videoDlPart() { return Promise.resolve(null); },
       videoDlClear() { return Promise.resolve(); },
+      keysWatch(cb) { demoKeys.cb = cb; setTimeout(() => demoKeys.emit(), 150); return () => { demoKeys.cb = null; }; },
       getDemoCameraStream(camera) { return makeSyntheticStream(camera, status); },
       camLive(cb) { demoCam.onLive = cb; return () => { demoCam.onLive = null; }; },
       camPhoto(cb) { demoCam.onPhoto = cb; return () => { demoCam.onPhoto = null; }; },
@@ -482,6 +518,8 @@
         return () => refs.forEach((r, i) => r.off('value', fs[i]));
       },
       videoDlPart(i) { return root.child('videoDl/parts/' + i).once('value').then(s => s.val()); },
+      // Botones del volante: config, estado, lo aprendido, lo último que llegó y las apps (ver keys/WheelKeys.kt)
+      keysWatch(cb) { const r = root.child('keys'), f = s => cb(s.val()); r.on('value', f); return () => r.off('value', f); },
       videoDlClear() { return root.child('videoDl').remove().catch(() => {}); },
       // Resultado de la última prueba de cámara (solo el veredicto: las miniaturas pesan)
       camViews() { return root.child('cameras/list').once('value').then(s => s.val() || null, () => null); },

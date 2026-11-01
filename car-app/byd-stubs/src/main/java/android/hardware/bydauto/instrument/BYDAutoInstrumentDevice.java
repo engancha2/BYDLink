@@ -10,5 +10,7 @@ public class BYDAutoInstrumentDevice {
     public void setSeatVentilatingState(int position, int stage) {}
     public int getSafetyBeltStatus(int position) { return 0; }
     public void registerListener(AbsBYDAutoInstrumentListener l) {}
+    /** Solo los feature ids pedidos (así lo usa AutoVideo del Surf para INSTRUMENT_INPUT_KEYCODE_STATUS). */
+    public void registerListener(AbsBYDAutoInstrumentListener l, int[] featureIds) {}
     public void unregisterListener(AbsBYDAutoInstrumentListener l) {}
 }

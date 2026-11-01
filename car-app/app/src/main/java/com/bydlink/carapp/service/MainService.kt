@@ -80,6 +80,8 @@ class MainService : Service() {
         // Mandos desde el propio lanzador: mismas reglas de seguridad que desde el móvil (CarCommands).
         StateHub.commander = { action, payload -> carCommands.handle(action, payload) }
         StateHub.camera = camera
+        StateHub.run = { action, payload, cb -> handleCommand(Command("local", action, payload), cb) }
+        com.bydlink.carapp.keys.WheelKeys.start(applicationContext)   // botones del volante (si el usuario los usa)
 
         client.connect(
             onReady = {
@@ -192,13 +194,16 @@ class MainService : Service() {
     }
 
     // ---------------- Comandos ----------------
-    private fun handleCommand(cmd: Command) {
+    private fun handleCommand(cmd: Command, respond: (Boolean, Map<String, Any?>) -> Unit = { ok, data -> client.respond(cmd.id, ok, data) }) {
         // Comandos de cámara: en su propio hilo (foto/directo pueden tardar unos segundos), con respuesta real.
-        if (camera.dispatch(cmd.action, cmd.payload) { ok, data -> client.respond(cmd.id, ok, data) }) return
+        if (camera.dispatch(cmd.action, cmd.payload, respond)) return
+        if (com.bydlink.carapp.keys.WheelKeys.dispatch(cmd.action, cmd.payload, respond)) return
         try {
             val p = cmd.payload
             when (cmd.action) {
                 "setSentryConfig" -> { mergeInto(config.sentryMap(), p); applySentry(); publishConfig() }
+                "toggleSentry" -> { config.sentryMap()["on"] = config.sentryMap()["on"] != true; applySentry(); publishConfig()
+                    respond(true, mapOf("on" to (config.sentryMap()["on"] == true))); return }
                 "setDashcamConfig" -> { mergeInto(config.dashcamMap(), p); publishConfig() }
                 "setAutomation" -> { (p["key"] as? String)?.let { config.automationsMap()[it] = (p["value"] as? Boolean ?: false) }; publishConfig() }
                 "setConfig" -> { deepMerge(config, p); applySentry(); publishConfig() }
@@ -210,17 +215,17 @@ class MainService : Service() {
                     cmdExec.execute {
                         try {
                             val res = carCommands.handle(cmd.action, p) ?: throw IllegalArgumentException("Acción desconocida: ${cmd.action}")
-                            client.respond(cmd.id, true, res)
+                            respond(true, res)
                         } catch (e: Throwable) {
-                            client.respond(cmd.id, false, mapOf("error" to (e.message ?: "error")))
+                            respond(false, mapOf("error" to (e.message ?: "error")))
                         }
                     }
                     return
                 }
             }
-            client.respond(cmd.id, true)
+            respond(true, emptyMap())
         } catch (e: Throwable) {
-            client.respond(cmd.id, false, mapOf("error" to (e.message ?: "error")))
+            respond(false, mapOf("error" to (e.message ?: "error")))
         }
     }
 

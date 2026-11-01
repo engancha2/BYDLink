@@ -78,6 +78,15 @@
             android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
             <intent-filter><action android:name="android.service.notification.NotificationListenerService"/></intent-filter>
         </service>
+        <!-- Botones del volante: accesibilidad SOLO con filtro de teclas (no lee la pantalla). La activa keys/WheelKeys. -->
+        <service
+            android:name=".keys.WheelKeyService"
+            android:exported="false"
+            android:label="BYDLink (botones del volante)"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter><action android:name="android.accessibilityservice.AccessibilityService"/></intent-filter>
+            <meta-data android:name="android.accessibilityservice" android:resource="@xml/wheel_keys_service"/>
+        </service>
         <activity-alias
             android:name=".ui.HomeAlias"
             android:targetActivity=".ui.HomeActivity"
