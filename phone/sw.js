@@ -1,7 +1,7 @@
 /* Service worker: "red primero" para los archivos propios (siempre la última versión
  * publicada) y caché solo como respaldo sin conexión. Firebase, mapas y CDNs van
  * directos a la red. */
-const CACHE = 'bydlink-2.8';   // cambiarla junto con WEB_VERSION de app.js
+const CACHE = 'bydlink-2.9';   // cambiarla junto con WEB_VERSION de app.js
 const SHELL = ['./', './style.css', './backend.js', './webrtc.js', './app.js', './extras.js', './videos.js', './history.js', './history.css', './keys.js', './firebase-config.js',
                './manifest.webmanifest', './icon.svg'];
 
