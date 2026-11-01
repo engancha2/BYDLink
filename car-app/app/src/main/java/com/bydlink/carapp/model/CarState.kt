@@ -103,6 +103,7 @@ data class CarState(
     val chargeRestMin: Int? = null,             // minutos restantes
     val chargeLimit: Int? = null,               // límite de carga % (60/70/80/90/100), el informado o el último pedido
     val chargeLimitConfirmed: Boolean? = null,  // true si lo informa el coche; false si es solo lo último que pedimos
+    val chargeLimitIgnored: Boolean? = null,    // true si en una carga real pasó del límite (el coche no lo respeta)
     val chargingGun: String? = null,            // "none"/"AC"/"DC"/null
     val bmsState: Int? = null,                  // estado BMS crudo (0 ready,1 charging,2 finish,3 discharg,15 idle…)
     val soh: Int? = null,                       // salud de batería % (STAT_BATTERY_HEALTHY_INDEX)

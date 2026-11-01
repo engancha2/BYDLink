@@ -122,20 +122,24 @@ class BydGateway(ctx: Context) : CarGateway {
         val volt = slowBmsVolt ?: slowHv?.toDouble()           // 302 V en el Surf (la misma lectura del BMS que "voltage")
         val vi = if (charging) volt?.let { v -> slowBmsAmp?.let { a -> v * kotlin.math.abs(a) / 1000.0 } }?.takeIf { it in 0.1..400.0 } else null
         val kw = vi?.let { Math.round(it * 10) / 10.0 } ?: chargeRate(charging, charged)
+        val soc = prot { san(BydReflect.callInt(statistic, "getSOCBatteryPercentage"))
+            ?: BydReflect.callDouble(statistic, "getElecPercentageValue")?.let { sanD(it)?.toInt() }
+            ?: (san(BydReflect.callInt(body, "getBatteryCapacity"))?.div(2)) }
+        val limit = limitReal ?: ChargeLimits.remembered(appCtx)
+        ChargeLimits.learn(appCtx, limit, limitReal != null, soc, charging)
         return CarState(
             ts = System.currentTimeMillis(),
             // batería / carga
-            soc = prot { san(BydReflect.callInt(statistic, "getSOCBatteryPercentage"))
-                ?: BydReflect.callDouble(statistic, "getElecPercentageValue")?.let { sanD(it)?.toInt() }
-                ?: (san(BydReflect.callInt(body, "getBatteryCapacity"))?.div(2)) },
+            soc = soc,
             charging = charging,
             chargingPower = prot { BydReflect.callDouble(charge, "getChargingPower")?.let { sanD(it) }?.takeIf { it > 0 }?.toInt() }
                 ?: kw?.let { Math.round(it).toInt() },
             chargeKw = prot { BydReflect.callDouble(charge, "getChargingPower")?.let { sanD(it) }?.takeIf { it > 0 } } ?: kw,
             chargedKwh = if (charging) charged else null,
             chargeRestMin = prot { chargingRestMin() },
-            chargeLimit = limitReal ?: ChargeLimits.remembered(appCtx),
+            chargeLimit = limit,
             chargeLimitConfirmed = limitReal != null,
+            chargeLimitIgnored = ChargeLimits.ignored(appCtx),
             chargingGun = prot { gunName(BydReflect.callInt(charge, "getChargingGunState")) },
             bmsState = prot { san(BydReflect.callInt(charge, "getBatteryManagementDeviceState")) },
             soh = slowSoh,
