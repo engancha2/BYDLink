@@ -384,12 +384,19 @@ class CarCommands(
     private fun chargeLimit(percent: Int): Map<String, Any?> {
         val pct = listOf(60, 70, 80, 90, 100).minByOrNull { kotlin.math.abs(it - percent) }!!
         val code = ChargeLimits.codeOf(pct)
+        // El límite tiene además su interruptor (CHARGING_STOP_QUANTITY_SWITCH): en la carga del 31/10/2026 el Surf aceptó
+        // solo el código (80 %) y cargó hasta el 96 %. Se enciende antes (y se apaga con "sin límite") por si es eso.
+        val support = BydReflect.san(BydReflect.callInt(charge, "getChargeStopSupportConfig"))
+        val sw = BydReflect.call(charge, "setChargeStopSwitchState", if (pct < 100) 1 else 0)
         val r = BydReflect.call(charge, "setChargeStopCapacityState", code)
         ChargeLimits.remember(ctx, pct)
         Thread.sleep(500)
         val real = ChargeLimits.read(charge)
+        val swReal = BydReflect.san(BydReflect.callInt(charge, "getChargeStopSwitchState"))
+        Log.i(TAG, "setChargeLimit($pct) code=$code support=$support switch=$sw→$swReal set=$r→$real")
         return mapOf("applied" to (if (real != null) real == pct else if (r != null) null else false),
-            "chargeLimit" to (real ?: pct), "confirmed" to (real != null))
+            "chargeLimit" to (real ?: pct), "confirmed" to (real != null),
+            "supportConfig" to support, "switch" to swReal, "ignored" to ChargeLimits.ignored(ctx))
     }
     private fun preheat(on: Boolean): Map<String, Any?> {
         val ok = BydReflect.setFeature(charge, FID_PREHEAT, if (on) 1 else 2) != null

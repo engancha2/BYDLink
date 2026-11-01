@@ -107,7 +107,11 @@ internal fun HomeActivity.energyPage(): View {
             else "Enchufa el coche para ver la potencia, los kWh que entran y el tiempo que falta."
         cBar.visibility = if (s?.charging == true) View.VISIBLE else View.GONE; cBar.set(soc ?: 0, ACCENT)
         limBtns.forEach { (b, p) -> active(b, s?.chargeLimit == p) }
-        lHint.text = if (s?.chargeLimitConfirmed == false) "El coche no confirma el límite al leerlo: se comprueba en la carga." else ""
+        lHint.text = when {
+            s?.chargeLimitIgnored == true -> "Este coche no respeta el límite: en una carga pasó de él. Vigila el porcentaje y desenchufa tú."
+            s?.chargeLimitConfirmed == false -> "El coche no confirma el límite. En algunos modelos (como el Dolphin Surf) lo ignora: se comprueba en la carga."
+            else -> ""
+        }
         chg.visibility = if (caps["chargeLimit"] == false && s?.charging != true) View.GONE else View.VISIBLE
         avg.text = s?.consumptionKwh100?.let { fmt1(it) } ?: "--"
         last.text = s?.lastTripKwh100?.let { fmt1(it) } ?: "--"

@@ -137,7 +137,11 @@
   $$('[data-limit]').forEach(b => b.addEventListener('click', needs(() => {
     const p = +b.dataset.limit;
     command('setChargeLimit', { percent: p }, { el: b, ok: p === 100 ? 'Sin límite de carga' : 'Límite de carga al ' + p + ' %', what: 'cambiar el límite' })
-      .then(r => { if (r && r.ok && r.data && r.data.confirmed === false) toast('Enviado. El coche no confirma el límite; se verá en la próxima carga.'); return applied(r); });
+      .then(r => {
+        if (r && r.ok && r.data && r.data.ignored === true) toast('Enviado, pero tu coche no respetó el límite en otra carga: vigila el porcentaje.', 'err');
+        else if (r && r.ok && r.data && r.data.confirmed === false) toast('Enviado. El coche no confirma el límite; se verá en la próxima carga.');
+        return applied(r);
+      });
   })));
 
   function renderBattery() {
@@ -152,7 +156,11 @@
     const lim = raw.chargeLimit;
     $('#limitOut').textContent = has(lim) ? (lim === 100 ? 'sin límite' : lim + ' %') : 'sin datos';
     $$('[data-limit]').forEach(b => b.classList.toggle('active', +b.dataset.limit === lim));
-    $('#limitHint').hidden = !(has(lim) && raw.chargeLimitConfirmed === false);
+    const hint = $('#limitHint');
+    hint.textContent = raw.chargeLimitIgnored === true
+      ? 'Tu coche no respeta el límite: en una carga pasó de él. Vigila el porcentaje y desenchufa tú.'
+      : 'El coche no confirma el límite. En algunos modelos (como el Dolphin Surf) lo ignora: se comprobará en la próxima carga.';
+    hint.hidden = !(has(lim) && (raw.chargeLimitIgnored === true || raw.chargeLimitConfirmed === false));
   }
 
   // ───────── neumáticos con aviso ─────────
