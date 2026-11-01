@@ -63,4 +63,8 @@ dependencies {
 
     // Código QR de vinculación en pantalla (solo el codificador, sin cámara).
     implementation("com.google.zxing:core:3.5.3")
+
+    // Pruebas en el PC (grabador de viajes y cargas, rutas, tarifas): `gradle testDebugUnitTest`
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.json:json:20240303")   // el org.json de Android no funciona fuera del coche
 }

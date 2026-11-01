@@ -27,8 +27,11 @@ responde. Campos tomados del análisis de la app Electro (nombres propios aquí)
                 }
       seats:    { driverStage, passengerStage }      // -2..2 (negativo = ventilación, positivo = calefacción)
       cameras:  { count, list: [ { id, tag, name } ] }
-      trips/{tripId}:        { start, end, distanceKm, durationSec, startAddr, endAddr }
+      trips/{tripId}:        { start, end, distanceKm, durationSec, startAddr, endAddr, …v2 }   // ver historial.md
       tripPoints/{tripId}:   [ { lat, lng, t, speed } ]
+      tripRoutes/{tripId}:   "polilínea codificada"                                  // ver historial.md
+      chargingSessions/{id}: { start, end, socStart, socEnd, kwh, durationMin, type, …v2 }
+      historyCfg / historyEdits                                                     // escribe el MÓVIL (precios, correcciones)
       sentryEvents/{eventId}:{ ts, camera, thumbUrl, videoId }
       recordings/sentry/{id}:{ ts, camera, durationSec, thumbUrl, size }
       recordings/dashcam/{id}:{ ts, durationSec, thumbUrl, size }

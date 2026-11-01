@@ -10,22 +10,17 @@ import android.view.View
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
-import com.bydlink.carapp.App
-import com.bydlink.carapp.BuildConfigCompat
 import com.bydlink.carapp.service.StateHub
 import com.bydlink.carapp.ui.HomeActivity.Companion.ACCENT
 import com.bydlink.carapp.ui.HomeActivity.Companion.AMBER
 import com.bydlink.carapp.ui.HomeActivity.Companion.MUTED
 import com.bydlink.carapp.ui.HomeActivity.Companion.RED
 import com.bydlink.carapp.ui.HomeActivity.Companion.TEXT
-import com.google.firebase.database.DataSnapshot
-import com.google.firebase.database.DatabaseError
-import com.google.firebase.database.ValueEventListener
 
 /**
  * Página Energía del lanzador: batería (carga, autonomía, salud, temperaturas, 12 V, voltaje y corriente del BMS),
- * la carga en curso con el límite (códigos de BYD), consumos e historial de las últimas cargas (lo que guarda el
- * Recorder en la nube).
+ * la carga en curso con el límite (códigos de BYD), consumos, y el resumen del mes con los últimos viajes y cargas
+ * (lo que guarda el Recorder en la nube, ver HistoryCard.kt).
  */
 internal fun HomeActivity.energyPage(): View {
     val col = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(4), 0, dp(4), dp(8)) }
@@ -77,13 +72,8 @@ internal fun HomeActivity.energyPage(): View {
     val avg = stat("media (kWh/100 km)"); val last = stat("último viaje"); val total = stat("kWh gastados"); val odo = stat("kilómetros")
     cons.addView(cRow)
 
-    // ── fila 4: historial de cargas ──
-    val hist = card(); col.addView(hist, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(12) })
-    hist.addView(label("Últimas cargas", 16f, MUTED, bold = true))
-    val histList = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(0, dp(6), 0, 0) }
-    hist.addView(histList)
-    histList.addView(label("Cargando…", 14f, MUTED))
-    loadChargeHistory(histList)
+    // ── fila 4: este mes y los últimos viajes y cargas (HistoryCard.kt) ──
+    historyCard(col)
 
     refreshTab = {
         val s = StateHub.state
@@ -115,36 +105,6 @@ internal fun HomeActivity.energyPage(): View {
         odo.text = s?.odometer?.let { String.format(java.util.Locale.getDefault(), "%,d", it) } ?: "--"
     }
     return ScrollView(this).apply { addView(col) }
-}
-
-/** Las últimas cargas que guardó el Recorder (cars/{id}/chargingSessions). */
-private fun HomeActivity.loadChargeHistory(list: LinearLayout) {
-    val ref = App.db.getReference("cars/${BuildConfigCompat.carId(this)}/chargingSessions").orderByChild("start").limitToLast(8)
-    ref.addListenerForSingleValueEvent(object : ValueEventListener {
-        override fun onDataChange(snap: DataSnapshot) {
-            list.removeAllViews()
-            val rows = snap.children.mapNotNull { it.value as? Map<*, *> }.reversed()
-            if (rows.isEmpty()) { list.addView(label("Aún no hay cargas guardadas.", 14f, MUTED)); return }
-            val fmt = java.text.SimpleDateFormat("d MMM HH:mm", java.util.Locale.getDefault())
-            rows.forEach { r ->
-                val start = (r["start"] as? Number)?.toLong() ?: 0L
-                val kwh = (r["kwh"] as? Number)?.toDouble()
-                val s0 = (r["socStart"] as? Number)?.toInt(); val s1 = (r["socEnd"] as? Number)?.toInt()
-                val min = (r["durationMin"] as? Number)?.toInt()
-                val live = r["live"] == true
-                val row = LinearLayout(this@loadChargeHistory).apply { orientation = LinearLayout.HORIZONTAL; setPadding(0, dp(7), 0, dp(7)) }
-                row.addView(label(fmt.format(java.util.Date(start)) + if (live) "  · ahora" else "", 15f, if (live) ACCENT else TEXT), LinearLayout.LayoutParams(0, -2, 1.3f))
-                row.addView(label(if (s0 != null && s1 != null) "$s0 → $s1 %" else "--", 15f, TEXT), LinearLayout.LayoutParams(0, -2, 1f))
-                row.addView(label(kwh?.let { "+${fmt1(it)} kWh" } ?: "--", 15f, Color.WHITE, bold = true), LinearLayout.LayoutParams(0, -2, 1f))
-                row.addView(label(listOfNotNull(min?.let { dur(it) }, r["type"] as? String).joinToString(" · "), 14f, MUTED).apply { gravity = Gravity.END },
-                    LinearLayout.LayoutParams(0, -2, 1f))
-                list.addView(row)
-            }
-        }
-        override fun onCancelled(error: DatabaseError) {
-            list.removeAllViews(); list.addView(label("No se pudo leer el historial (${error.message}).", 14f, MUTED))
-        }
-    })
 }
 
 /** Anillo de carga de la batería con el % en el centro. */
