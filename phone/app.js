@@ -5,7 +5,7 @@
   const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
   const B = window.Backend;
   const ONLINE_MS = 90e3;           // sin datos en este tiempo → coche desconectado
-  const WEB_VERSION = '2.15';        // cambiarla junto con CACHE de sw.js
+  const WEB_VERSION = '2.16';        // cambiarla junto con CACHE de sw.js
   const CAR_APP_MIN = '2.0';        // la app del coche más antigua que no hace falta actualizar
 
   const st = {
@@ -1015,7 +1015,11 @@
       if (!email) { msg('Escribe tu correo arriba y vuelve a pulsar.'); $('#authEmail').focus(); return; }
       B.resetPassword(email).then(() => msg('Te hemos enviado un correo para cambiar la contraseña.', true)).catch(err => msg(authMsg(err)));
     });
-    if (B.redirectResult) B.redirectResult().catch(err => msg(authMsg(err)));
+    // Al volver de Google (redirección en el móvil): el botón en "cargando" hasta que la sesión está lista.
+    let backFromGoogle = false;
+    try { backFromGoogle = sessionStorage.getItem('bydlink_google') === '1'; sessionStorage.removeItem('bydlink_google'); } catch (e) {}
+    if (backFromGoogle) busyBtn($('#googleBtn'), true);
+    if (B.redirectResult) B.redirectResult().catch(err => msg(authMsg(err))).then(() => { if (backFromGoogle) busyBtn($('#googleBtn'), false); });
   }
   function authMsg(e) {
     const c = (e && e.code) || '';
