@@ -477,11 +477,9 @@
         const p = new firebase.auth.GoogleAuthProvider();
         // La marca la lee app.js al volver de Google para enseñar "cargando" hasta que entra.
         const redirect = () => { try { sessionStorage.setItem('bydlink_google', '1'); } catch (e) {} return auth.signInWithRedirect(p); };
-        // En Android y en la app instalada (PWA/TWA), sin ventana emergente: se abría aparte y se quedaba en blanco
-        // minutos con la app congelada detrás. Con authDomain = app.bydhack.com la redirección es del mismo sitio:
-        // va a Google en la misma pantalla y vuelve a la app ya con la sesión iniciada.
-        const installed = (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
-        if (installed || /Android/i.test(navigator.userAgent)) return redirect();
+        // OJO: en Android NO usar la redirección (probado en la 2.16): la vuelta de Google a app.bydhack.com/__/auth/handler
+        // es un enlace de la app BYDLink (TWA), Android la abre en otra pantalla sin el estado guardado y sale "missing
+        // initial state". La ventana emergente sí llega a entrar.
         return auth.signInWithPopup(p).catch(e => {
           // Navegadores que bloquean ventanas emergentes (p. ej. app instalada en iPhone)
           if (e && (e.code === 'auth/popup-blocked' || e.code === 'auth/operation-not-supported-in-this-environment'))

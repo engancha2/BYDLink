@@ -83,11 +83,20 @@
     });
   }
 
-  // App para Android: se ofrece fuera de la propia app (y no en iPhone/iPad, donde no sirve).
+  // App para Android: se ofrece en Ajustes fuera de la propia app (y no en iPhone/iPad, donde no sirve). Dentro de la
+  // app (TWA) se sabe por el referrer de la primera carga y se recuerda solo en esa pestaña (sessionStorage): la TWA
+  // comparte el almacenamiento con Chrome y, guardado para siempre, escondía la tarjeta también en el navegador.
   function apkCard() {
-    if (document.referrer.indexOf('android-app://') === 0) set('bydlink_twa', '1');
+    try { localStorage.removeItem('bydlink_twa'); } catch (e) {}   // la marca antigua (hasta la 2.16)
+    let inApp = false;
+    try {
+      if (document.referrer.indexOf('android-app://') === 0) sessionStorage.setItem('bydlink_twa', '1');
+      inApp = sessionStorage.getItem('bydlink_twa') === '1';
+    } catch (e) {}
+    // App ya instalada (PWA o TWA a pantalla completa): no hace falta ofrecerla.
+    if (window.matchMedia && matchMedia('(display-mode: standalone)').matches) inApp = true;
     const card = document.getElementById('apkCard'); if (!card) return;
-    card.hidden = get('bydlink_twa') === '1' || /iPhone|iPad|iPod/i.test(navigator.userAgent);
+    card.hidden = inApp || /iPhone|iPad|iPod/i.test(navigator.userAgent);
   }
 
   apply();
