@@ -151,9 +151,15 @@ class HomeActivity : Activity() {
     // ── barra de arriba ──
     private fun topBar(): View {
         val bar = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL; setPadding(dp(26), 0, dp(26), 0) }
-        bar.addView(ImageView(this).apply { setImageDrawable(BrandMark(Skins.cur)); setOnClickListener { showTab("inicio") } },
-            LinearLayout.LayoutParams(dp(30), dp(30)).apply { rightMargin = dp(12) })
-        bar.addView(label("BYDLINK", 17f, INK, bold = true).apply { letterSpacing = 0.22f; setOnClickListener { showTab("inicio") } })
+        // Logo de bydhack.com teñido con el acento de la skin, y "BYDlink" como en el logo (BYD grueso, link fino).
+        val mark = getDrawable(com.bydlink.carapp.R.drawable.ic_bydlink_mark)?.mutate()?.apply { setTint(ACCENT) }
+        bar.addView(ImageView(this).apply { setImageDrawable(mark); contentDescription = "BYDLink"; setOnClickListener { showTab("inicio") } },
+            LinearLayout.LayoutParams(dp(33), dp(30)).apply { rightMargin = dp(12) })
+        val word = android.text.SpannableString("BYDlink").apply {
+            setSpan(android.text.style.TypefaceSpan("sans-serif-black"), 0, 3, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            setSpan(android.text.style.TypefaceSpan("sans-serif-light"), 3, 7, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        }
+        bar.addView(label("", 21f, INK).apply { text = word; includeFontPadding = false; setOnClickListener { showTab("inicio") } })
         stateChip = badge("…")
         bar.addView(stateChip, LinearLayout.LayoutParams(-2, -2).apply { leftMargin = dp(20) })
         bar.addView(View(this), LinearLayout.LayoutParams(0, 1, 1f))

@@ -81,7 +81,9 @@ svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-l
 
 .brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:19px;letter-spacing:-.01em}
 .brand-mark{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:12px;
-  background:linear-gradient(145deg,#0d1a22,#070b10);box-shadow:inset 0 0 0 1px rgba(116,225,206,.22),0 6px 18px -8px rgba(76,141,255,.45)}
+  background:#06202a;color:#1ee2c8;box-shadow:inset 0 0 0 1px rgba(30,226,200,.22),0 6px 18px -8px rgba(30,226,200,.35)}
+.brand-word{font-weight:300;letter-spacing:-.01em}
+.brand-word b{font-weight:800}
 .brand-mark svg{width:24px;height:24px}
 .brand-mark.big{width:72px;height:72px;border-radius:22px}
 .brand-mark.big svg{width:44px;height:44px}

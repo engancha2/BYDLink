@@ -6,7 +6,7 @@
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Michroma&family=Sora:wght@200;300;400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Michroma&family=Sora:wght@200;300;400;500;600;800&display=swap">
 <style>
 /* Layout: one 16:10 car screen (1600x1000 design px; 1000x1600 when the screen is rotated) scaled to fit.
    Glass cards on a still, skin-tinted backdrop: navigation left, energy + security + trip in the middle, music right, dock below.
@@ -215,8 +215,9 @@ svg.lucide, [data-lucide] { width: 26px; height: 26px; stroke-width: 1.7; flex: 
 .brand, .status-right { display: flex; align-items: center; gap: 18px; }
 .defs { position: absolute; width: 0; height: 0; overflow: hidden; }
 .logo { display: flex; align-items: center; gap: 12px; }
-.logo .mark { width: 40px; height: 40px; filter: drop-shadow(0 0 10px var(--glow)); }
-.wordmark { font-family: var(--font-badge); font-size: 17px; letter-spacing: .34em; }
+.logo .mark { width: 44px; height: 40px; filter: drop-shadow(0 0 10px var(--glow)); }
+.wordmark { font-size: 25px; font-weight: 300; letter-spacing: -.01em; }
+.wordmark b, .boot .mark b { font-weight: 800; }
 .gear { width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; font-family: var(--font-badge); font-size: 17px;
   color: var(--accent); border: 1.5px solid color-mix(in srgb, var(--accent) 70%, transparent);
   box-shadow: 0 0 22px var(--glow), inset 0 0 12px color-mix(in srgb, var(--accent) 22%, transparent); }
@@ -367,17 +368,15 @@ svg.lucide, [data-lucide] { width: 26px; height: 26px; stroke-width: 1.7; flex: 
 .boot .line { position: absolute; left: 50%; top: 50%; width: 900px; height: 2px; margin-left: -450px; background: linear-gradient(90deg, transparent, var(--accent), transparent);
   box-shadow: 0 0 24px var(--glow); transform: scaleX(0); }
 .boot-logo { position: relative; display: grid; justify-items: center; gap: 26px; margin-top: -60px; }
-.boot-logo svg { width: 132px; height: 132px; filter: drop-shadow(0 0 22px var(--glow)); }
-.boot-logo path { stroke-dasharray: 1; stroke-dashoffset: 1; }
-.boot .mark { font-family: var(--font-badge); font-size: 30px; color: var(--boot-ink); letter-spacing: .9em; opacity: 0; }
+.boot-logo svg { width: 150px; height: 138px; filter: drop-shadow(0 0 22px var(--glow)); opacity: 0; transform: scale(.86); }
+.boot .mark { font-size: 44px; font-weight: 300; color: var(--boot-ink); letter-spacing: .3em; opacity: 0; }
 .boot.is-run .line { animation: boot-line 1.1s var(--ease-out) forwards; }
-.boot.is-run .boot-logo path { animation: draw 1s var(--ease-move) forwards; }
-.boot.is-run .boot-logo path + path { animation-delay: .18s; }
+.boot.is-run .boot-logo svg { animation: logo-in .9s var(--ease-out) forwards; }
 .boot.is-run .mark { animation: boot-mark 1.2s var(--ease-out) .5s forwards; }
-@keyframes draw { to { stroke-dashoffset: 0; } }
+@keyframes logo-in { to { opacity: 1; transform: none; } }
 .boot.is-out { opacity: 0; }
 @keyframes boot-line { to { transform: scaleX(1); } }
-@keyframes boot-mark { to { opacity: 1; letter-spacing: .42em; } }
+@keyframes boot-mark { to { opacity: 1; letter-spacing: -.01em; } }
 
 /* entrance: starts visible, settles in (never parked at opacity 0) */
 .screen.is-entering .nav, .screen.is-entering .media, .screen.is-entering .dock, .screen.is-entering .energy, .screen.is-entering .duo { animation: settle .6s var(--ease-out) both; }
@@ -489,24 +488,14 @@ svg.lucide, [data-lucide] { width: 26px; height: 26px; stroke-width: 1.7; flex: 
         <svg class="defs" width="0" height="0" aria-hidden="true">
           <defs>
             <linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color: var(--accent-2)"/><stop offset="1" style="stop-color: var(--accent)"/></linearGradient>
-            <linearGradient id="bl-grad" x1="12" y1="8" x2="52" y2="56" gradientUnits="userSpaceOnUse">
-              <stop offset="0" style="stop-color: var(--accent)"/><stop offset="1" style="stop-color: var(--accent-2)"/>
-            </linearGradient>
-            <mask id="bl-weave" maskUnits="userSpaceOnUse" x="0" y="0" width="64" height="64">
-              <rect width="64" height="64" fill="#fff"/>
-              <path d="M17 25 H33 A15 15 0 0 1 33 55 H17 Z" fill="#000" stroke="#000" stroke-width="10" stroke-linejoin="round"/>
-            </mask>
-            <symbol id="bl-mark" viewBox="0 0 64 64">
-              <path d="M17 9 H31 A13 13 0 0 1 31 35 H17 Z" fill="none" stroke="url(#bl-grad)" stroke-width="6" stroke-linejoin="round" mask="url(#bl-weave)"/>
-              <path d="M17 25 H33 A15 15 0 0 1 33 55 H17 Z" fill="none" stroke="url(#bl-grad)" stroke-width="6" stroke-linejoin="round"/>
-            </symbol>
+            <symbol id="bl-mark" viewBox="0 0 661.3 607.32"><path style="fill: var(--accent)" d="M310.12,606.82c-72,0-144.32-.85-214.94-2.53-21.65-1.71-43.03-10.41-60.17-24.48-18.06-14.82-29.56-34.45-32.38-55.28-2.65-19.53-2.88-71.23-.4-89.21,1.3-9.45,6.84-17.55,12.65-24.89,30.01-23.17,60.21-47.2,89.41-70.44,57.14-45.48,116.22-92.51,176.77-135.27,26.87.54,69.91.66,101.31.66,12.75,0,22.33-.02,25.85-.03L98.77,446.78c-12.96,12.23-9.26,35.43-7.07,44.83,2.51,10.77,14.1,16.41,24.25,16.41.19,0,.39,0,.58,0l397.68-1.16c21.89-3.19,39.83-16.47,48.06-35.54,7.65-17.73,5.32-37.48-6.39-54.21-5.56-7.93-25.66-24.09-35.85-24.09H243.96c-.58-2.74.52-3.43,2.03-4.37.65-.41,1.33-.83,1.93-1.45,3.54-3.62,8.99-7.75,14.26-11.74,2.42-1.83,4.71-3.57,6.71-5.17,39.97-32.16,81.55-63.72,121.76-94.24,31.37-23.81,63.8-48.42,95.26-73.17,15.64-18.37,20.56-41.64,13.24-62.33-7.17-20.24-25.13-34.89-48.06-39.19-16.74-1.15-34.76-1.71-55.16-1.71-27.59,0-56.12,1.03-83.7,2.02-27.52.99-55.98,2.02-83.45,2.02-24.32,0-45.5-.8-64.76-2.46-15.44-1.33-30.07-7.09-42.31-16.65-17.57-13.73-32.95-37.98-28.36-57.76,2.87-12.34,13.38-20.76,30.4-24.35,18,.79,37.18,1.18,58.66,1.18,30.69,0,62.15-.8,92.58-1.57,30.4-.77,61.84-1.57,92.49-1.57,26.72,0,50.25.61,71.93,1.86,27.78,1.6,54.88,9.09,78.35,21.65,23.05,12.34,42.77,29.63,57.02,50,26.76,38.24,33.63,85.45,19.35,132.94-14.14,47.04-48.62,74.37-82.72,98.34l-1.21.85,1.47.06c98.02,4.02,145.41,72.63,148.89,138.84,1.93,36.76-9.11,72.61-31.09,100.96-24.48,31.58-60.74,51.7-104.84,58.18-68.67,1.75-140.86,2.64-214.53,2.64Z"/></symbol>
           </defs>
         </svg>
 
         <div class="ui" id="ui">
           <header class="status">
             <div class="brand">
-              <span class="logo"><svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><use href="#bl-mark"/></svg><span class="wordmark">BYDLINK</span></span>
+              <span class="logo"><svg class="mark" viewBox="0 0 661.3 607.32" aria-hidden="true"><use href="#bl-mark"/></svg><span class="wordmark"><b>BYD</b>link</span></span>
               <span class="gear" id="gear" aria-label="Marcha">P</span>
               <span class="state-line" id="stateLine"><i></i><span id="stateText">Móvil conectado</span></span>
             </div>
@@ -645,11 +634,8 @@ svg.lucide, [data-lucide] { width: 26px; height: 26px; stroke-width: 1.7; flex: 
         <div class="boot" id="boot" hidden>
           <div class="line"></div>
           <div class="boot-logo">
-            <svg viewBox="0 0 64 64" aria-hidden="true">
-              <path pathLength="1" d="M17 9 H31 A13 13 0 0 1 31 35 H17 Z" fill="none" stroke="url(#bl-grad)" stroke-width="5" stroke-linejoin="round" mask="url(#bl-weave)"/>
-              <path pathLength="1" d="M17 25 H33 A15 15 0 0 1 33 55 H17 Z" fill="none" stroke="url(#bl-grad)" stroke-width="5" stroke-linejoin="round"/>
-            </svg>
-            <div class="mark">BYDLINK</div>
+            <svg viewBox="0 0 661.3 607.32" aria-hidden="true"><use href="#bl-mark"/></svg>
+            <div class="mark"><b>BYD</b>link</div>
           </div>
         </div>
       </div>

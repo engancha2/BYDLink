@@ -231,36 +231,6 @@ internal class Gauge(ctx: Context, private val p: Palette, private val density: 
     }
 }
 
-/**
- * Marca de BYDLink (la "B" de dos eslabones) dibujada en código: el eslabón de arriba se recorta por detrás del de
- * abajo con un recorte de verdad, así queda bien sobre cualquier fondo. Colores del acento de la skin.
- */
-internal class BrandMark(private val p: Palette) : Drawable() {
-    private val up = Path().apply { moveTo(17f, 9f); lineTo(31f, 9f); arcTo(RectF(18f, 9f, 44f, 35f), -90f, 180f); lineTo(17f, 35f); close() }
-    private val low = Path().apply { moveTo(17f, 25f); lineTo(33f, 25f); arcTo(RectF(18f, 25f, 48f, 55f), -90f, 180f); lineTo(17f, 55f); close() }
-    private val stroke = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        style = Paint.Style.STROKE; strokeWidth = 6f; strokeJoin = Paint.Join.ROUND
-        shader = android.graphics.LinearGradient(12f, 8f, 52f, 56f, p.accent, p.accent2, android.graphics.Shader.TileMode.CLAMP)
-    }
-    private val hole = Path().apply {
-        val band = Path(); Paint().apply { style = Paint.Style.STROKE; strokeWidth = 10f; strokeJoin = Paint.Join.ROUND }.getFillPath(low, band)
-        addPath(low); op(band, Path.Op.UNION)
-    }
-    @Suppress("DEPRECATION")
-    override fun draw(c: Canvas) {
-        val b = bounds; if (b.isEmpty) return
-        val s = minOf(b.width(), b.height()) / 64f
-        c.save()
-        c.translate(b.left + (b.width() - 64f * s) / 2f, b.top + (b.height() - 64f * s) / 2f); c.scale(s, s)
-        c.save(); c.clipPath(hole, Region.Op.DIFFERENCE); c.drawPath(up, stroke); c.restore()
-        c.drawPath(low, stroke)
-        c.restore()
-    }
-    override fun setAlpha(alpha: Int) { stroke.alpha = alpha }
-    override fun setColorFilter(cf: android.graphics.ColorFilter?) { stroke.colorFilter = cf }
-    @Deprecated("Drawable") override fun getOpacity() = android.graphics.PixelFormat.TRANSLUCENT
-}
-
 /** Cuadrado del alto que le den (para el anillo). */
 internal class SquareFrame(ctx: Context) : FrameLayout(ctx) {
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
