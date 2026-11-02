@@ -20,8 +20,8 @@
   const view = $('[data-view="cam"]');
   if (!view || !B.videoList) return;               // la demo no tiene vídeos
 
-  const size = b => !b ? '0 MB' : b >= 1073741824 ? (b / 1073741824).toFixed(1).replace('.', ',') + ' GB' : Math.max(1, Math.round(b / 1048576)) + ' MB';
-  const day = ts => new Date(ts).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
+  const size = b => !b ? '0 MB' : b >= 1073741824 ? (b / 1073741824).toLocaleString(((window.I18N && I18N.locale) || 'es-ES'), { maximumFractionDigits: 1, minimumFractionDigits: 1 }) + ' GB' : Math.max(1, Math.round(b / 1048576)) + ' MB';
+  const day = ts => new Date(ts).toLocaleDateString(((window.I18N && I18N.locale) || 'es-ES'), { weekday: 'long', day: 'numeric', month: 'long' });
   const needs = () => { if (A.carHas(NEED)) return true; toast('Para grabar vídeos, actualiza la app del coche a la versión ' + NEED + '.', 'err'); return false; };
 
   // ───────── botones de grabar (debajo de la cámara) y tarjeta de vídeos ─────────

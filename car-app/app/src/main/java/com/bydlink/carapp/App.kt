@@ -15,11 +15,14 @@ class App : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        com.bydlink.carapp.ui.I18n.load(this)   // idioma de la pantalla (Ajustes → Idioma)
         BuildConfigCompat.emulatorHost(this)?.let { host ->   // solo pruebas (ver BuildConfigCompat)
             db.useEmulator(host, 9000)
             FirebaseAuth.getInstance().useEmulator(host, 9099)
         }
-        // Arranca el servicio en cuanto la app se crea.
-        ContextCompat.startForegroundService(this, Intent(this, MainService::class.java))
+        // Arranca el servicio en cuanto la app se crea. En Android 12+ no se deja desde segundo plano (p. ej. al
+        // actualizarse sola): sin el try la app entera se cerraba; el servicio arranca luego al abrirla o al encender.
+        try { ContextCompat.startForegroundService(this, Intent(this, MainService::class.java)) }
+        catch (e: Exception) { android.util.Log.w("BYDLink", "servicio no arrancado ahora: ${e.message}") }
     }
 }

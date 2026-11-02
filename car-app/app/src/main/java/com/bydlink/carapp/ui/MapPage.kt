@@ -57,7 +57,7 @@ internal fun HomeActivity.mapPage(): View {
     homeRow.addView(pill("Trabajo") { goFavorite("work") }.apply { textSize = 18f }, LinearLayout.LayoutParams(0, -1, 1f))
 
     val search = EditText(this).apply {
-        hint = "Buscar destino…"; setHintTextColor(MUTED); setTextColor(INK); textSize = 17f; isSingleLine = true
+        hint = I18n.tr("Buscar destino…"); setHintTextColor(MUTED); setTextColor(INK); textSize = 17f; isSingleLine = true
         inputType = InputType.TYPE_CLASS_TEXT; imeOptions = EditorInfo.IME_ACTION_GO
         background = round(CARD2, 14); setPadding(dp(16), 0, dp(16), 0)
     }

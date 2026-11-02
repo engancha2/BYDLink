@@ -74,7 +74,7 @@ private fun HomeActivity.summaryBody(col: LinearLayout) {
         inst.text = if (s != null && s.speed >= 5 && pw != null && pw > 0) "${fmt1(pw * 100.0 / s.speed)} kWh/100 km" else "-- kWh/100 km"
         avg.text = s?.consumptionKwh100?.let { "${fmt1(it)} kWh/100 km" } ?: "--"
         last.text = s?.lastTripKwh100?.let { "${fmt1(it)} kWh/100 km" } ?: "--"
-        total.text = s?.totalEnergyKwh?.let { String.format(Locale.getDefault(), "%,d kWh", it.toInt()) } ?: "--"
+        total.text = s?.totalEnergyKwh?.let { String.format(I18n.locale, "%,d kWh", it.toInt()) } ?: "--"
         regen.text = if (pw != null && pw < 0) "${-pw} kW" else "0 kW"
         regen.setTextColor(if (pw != null && pw < 0) ACCENT else INK)
     }
@@ -153,7 +153,7 @@ private fun HomeActivity.diagBody(col: LinearLayout) {
         val age = (System.currentTimeMillis() - StateHub.readAt) / 60000
         sdk.text = when { s == null -> "Esperando…"; !StateHub.sdkOk -> "Dormido (hace ${dur(age.toInt())})"; else -> "Al día" }
         alarm.text = s?.alarm?.let { if (it) "Armada" else "Desarmada" } ?: "--"
-        odo.text = s?.odometer?.let { String.format(Locale.getDefault(), "%,d km", it) } ?: "--"
+        odo.text = s?.odometer?.let { String.format(I18n.locale, "%,d km", it) } ?: "--"
     }
 }
 

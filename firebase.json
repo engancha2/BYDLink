@@ -6,13 +6,15 @@
     "public": "phone",
     "ignore": [
       "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
+      "**/node_modules/**",
+      "**/.git/**",
+      "**/.DS_Store",
+      "**/.gitignore"
     ],
     "cleanUrls": true,
     "headers": [
       {
-        "source": "**/*.@(html|js|css|webmanifest|svg)",
+        "source": "**/*.@(html|js|css|webmanifest|svg|json)",
         "headers": [
           {
             "key": "Cache-Control",
@@ -28,12 +30,6 @@
             "value": "no-cache"
           }
         ]
-      }
-    ],
-    "rewrites": [
-      {
-        "source": "/.well-known/assetlinks.json",
-        "destination": "/assetlinks.json"
       }
     ]
   },

@@ -166,7 +166,7 @@ private fun HomeActivity.apkPanel() {
                 val txt = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
                 txt.addView(label(a.label, 18f, INK))
                 txt.addView(label(listOfNotNull("versión ${a.version}", a.installed?.let { "tienes la $it" }, a.where,
-                    String.format(Locale.getDefault(), "%.1f MB", a.bytes / 1048576.0)).joinToString(" · "), 14f, MUTED).apply { setPadding(0, dp(4), 0, 0) })
+                    String.format(I18n.locale, "%.1f MB", a.bytes / 1048576.0)).joinToString(" · "), 14f, MUTED).apply { setPadding(0, dp(4), 0, 0) })
                 txt.addView(label(a.file.path, 12f, MUTED))
                 r.addView(txt, LinearLayout.LayoutParams(0, -2, 1f))
                 r.addView(pill(if (a.installed != null) "Actualizar" else "Instalar") { confirmInstall(a) }, LinearLayout.LayoutParams(dp(150), dp(52)))

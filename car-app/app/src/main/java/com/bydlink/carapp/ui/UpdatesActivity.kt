@@ -42,7 +42,7 @@ class UpdatesActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         val root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(24), dp(20), dp(24), dp(24)) }
         val head = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
-        head.addView(TextView(this).apply {
+        head.addView(TrText(this).apply {
             text = "Actualizaciones"; textSize = 26f; setTextColor(Color.WHITE); setTypeface(typeface, Typeface.BOLD)
         }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
         head.addView(Button(this).apply { text = "Volver"; isAllCaps = false; setOnClickListener { finish() } })
@@ -50,12 +50,12 @@ class UpdatesActivity : AppCompatActivity() {
 
         // Versión instalada + estado
         val card = card()
-        card.addView(TextView(this).apply { text = "Versión instalada"; textSize = 15f; setTextColor(MUTED) })
-        card.addView(TextView(this).apply {
+        card.addView(TrText(this).apply { text = "Versión instalada"; textSize = 15f; setTextColor(MUTED) })
+        card.addView(TrText(this).apply {
             text = BuildConfigCompat.appVersion(this@UpdatesActivity); textSize = 44f; setTextColor(Color.WHITE); setTypeface(typeface, Typeface.BOLD)
         })
-        status = TextView(this).apply { textSize = 19f; setTypeface(typeface, Typeface.BOLD); setPadding(0, dp(6), 0, 0) }
-        detail = TextView(this).apply { textSize = 15f; setTextColor(TEXT); setPadding(0, dp(4), 0, 0) }
+        status = TrText(this).apply { textSize = 19f; setTypeface(typeface, Typeface.BOLD); setPadding(0, dp(6), 0, 0) }
+        detail = TrText(this).apply { textSize = 15f; setTextColor(TEXT); setPadding(0, dp(4), 0, 0) }
         bar = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply { max = 100; visibility = View.GONE }
         card.addView(status); card.addView(detail)
         card.addView(bar, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(14)).apply { topMargin = dp(10) })
@@ -81,8 +81,8 @@ class UpdatesActivity : AppCompatActivity() {
         // Instalar automáticamente
         val autoCard = card(horizontal = true)
         val autoTxt = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        autoTxt.addView(TextView(this).apply { text = "Instalar automáticamente"; textSize = 18f; setTextColor(Color.WHITE); setTypeface(typeface, Typeface.BOLD) })
-        autoTxt.addView(TextView(this).apply {
+        autoTxt.addView(TrText(this).apply { text = "Instalar automáticamente"; textSize = 18f; setTextColor(Color.WHITE); setTypeface(typeface, Typeface.BOLD) })
+        autoTxt.addView(TrText(this).apply {
             text = "Se instalan solas cuando el coche está parado. Si lo desactivas, se descargan y esperan a que pulses «Instalar ahora»."
             textSize = 14.5f; setTextColor(MUTED); setPadding(0, dp(3), dp(12), 0)
         })
@@ -95,14 +95,14 @@ class UpdatesActivity : AppCompatActivity() {
 
         // Novedades
         val notesCard = card()
-        notesTitle = TextView(this).apply { textSize = 18f; setTextColor(Color.WHITE); setTypeface(typeface, Typeface.BOLD) }
-        notes = TextView(this).apply { textSize = 15f; setTextColor(TEXT); setPadding(0, dp(6), 0, 0); setLineSpacing(0f, 1.15f) }
+        notesTitle = TrText(this).apply { textSize = 18f; setTextColor(Color.WHITE); setTypeface(typeface, Typeface.BOLD) }
+        notes = TrText(this).apply { textSize = 15f; setTextColor(TEXT); setPadding(0, dp(6), 0, 0); setLineSpacing(0f, 1.15f) }
         notesCard.addView(notesTitle); notesCard.addView(notes)
         root.addView(notesCard)
 
         // Historial
         val histCard = card()
-        histCard.addView(TextView(this).apply { text = "Historial"; textSize = 18f; setTextColor(Color.WHITE); setTypeface(typeface, Typeface.BOLD) })
+        histCard.addView(TrText(this).apply { text = "Historial"; textSize = 18f; setTextColor(Color.WHITE); setTypeface(typeface, Typeface.BOLD) })
         history = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(0, dp(6), 0, 0) }
         histCard.addView(history)
         root.addView(histCard)
@@ -146,9 +146,9 @@ class UpdatesActivity : AppCompatActivity() {
         notes.text = s.latestNotes?.takeIf { it.isNotBlank() } ?: "Sin notas para esta versión."
 
         history.removeAllViews()
-        if (hist.isEmpty()) history.addView(TextView(this).apply { text = "Aún no se ha actualizado ninguna vez desde aquí."; textSize = 15f; setTextColor(MUTED) })
+        if (hist.isEmpty()) history.addView(TrText(this).apply { text = "Aún no se ha actualizado ninguna vez desde aquí."; textSize = 15f; setTextColor(MUTED) })
         hist.forEach { (hv, ts) ->
-            history.addView(TextView(this).apply { text = "BYDLink $hv  ·  ${fmt.format(Date(ts))}"; textSize = 15f; setTextColor(TEXT); setPadding(0, dp(4), 0, 0) })
+            history.addView(TrText(this).apply { text = "BYDLink $hv  ·  ${fmt.format(Date(ts))}"; textSize = 15f; setTextColor(TEXT); setPadding(0, dp(4), 0, 0) })
         }
     }
 

@@ -25,7 +25,8 @@
     return ' (' + d.map(n => DAYS[n - 1]).join(', ') + ')';
   };
   const placeTxt = o => o.label || 'el sitio elegido';   // los resúmenes son texto: se escapan al pintarlos
-  const deg = v => String(v).replace('.', ',') + ' °C';
+  const num = v => (+v).toLocaleString(((window.I18N && I18N.locale) || 'es-ES'));
+  const deg = v => num(v) + ' °C';
   const MODES = { off: 'Apagada', parked: 'Aparcado', drive: 'En marcha', always: 'Siempre' };
 
   // Cuando…  (w = lo fijo de la regla; f = lo que se elige; s = texto del resumen)
@@ -46,7 +47,7 @@
     { k: 'tout_above', t: 'Fuera hace calor', w: { type: 'temp', where: 'out', op: 'above' }, f: ['temp'], d: { value: 30 }, s: o => 'fuera hace ' + deg(o.value) + ' o más' },
     { k: 'tout_below', t: 'Fuera hace frío', w: { type: 'temp', where: 'out', op: 'below' }, f: ['temp'], d: { value: 3 }, s: o => 'fuera hace ' + deg(o.value) + ' o menos' },
     { k: 'sentry', t: 'El centinela ve movimiento', w: { type: 'sentry' }, s: () => 'el centinela ve movimiento' },
-    { k: 'v12', t: 'La batería de 12 V baja', w: { type: 'aux12v' }, f: ['volt'], d: { value: 12 }, s: o => 'la batería de 12 V baja a ' + String(o.value).replace('.', ',') + ' V' }
+    { k: 'v12', t: 'La batería de 12 V baja', w: { type: 'aux12v' }, f: ['volt'], d: { value: 12 }, s: o => 'la batería de 12 V baja a ' + num(o.value) + ' V' }
   ];
   // Solo si…
   const ONLY = [
@@ -85,7 +86,8 @@
     const w = findWhen(r.when || {});
     const o = (r.only || []).map(c => { const e = findOnly(c); return e ? e.s(c) : null; }).filter(Boolean);
     const d = (r.do || []).map(a => { const e = findDo(a); return e ? e.s(Object.assign({}, a.payload)) : null; }).filter(Boolean);
-    return 'Cuando ' + (w ? w.s(r.when) : '…') + (o.length ? ', si ' + o.join(' y ') : '') + ' → ' + (d.join(', ') || '…');
+    const T = s => (window.I18N ? I18N.t(s) : s);   // cada trozo por separado: así se traduce bien en cualquier idioma
+    return T('Cuando') + ' ' + (w ? T(w.s(r.when)) : '…') + (o.length ? ', ' + T('si') + ' ' + o.map(T).join(' ' + T('y') + ' ') : '') + ' → ' + (d.map(T).join(', ') || '…');
   }
 
   // Plantillas listas: abren el editor ya relleno, para retocar y guardar.
@@ -188,7 +190,7 @@
       switch (n) {
         case 'pct': return sel('value', range(5, 100, 5).map(x => [x, x + ' %']), o.value, 'Batería');
         case 'temp': return sel('value', range(-15, 50, 1).map(x => [x, x + ' °C']), o.value, 'Temperatura');
-        case 'volt': return sel('value', [11.5, 11.8, 12, 12.2, 12.4].map(x => [x, String(x).replace('.', ',') + ' V']), o.value, 'Tensión');
+        case 'volt': return sel('value', [11.5, 11.8, 12, 12.2, 12.4].map(x => [x, num(x) + ' V']), o.value, 'Tensión');
         case 'at': return '<label class="ar-f"><span>Hora</span><input type="time" data-f="at" value="' + esc(o.at || '08:00') + '"></label>';
         case 'from': return '<label class="ar-f"><span>Desde</span><input type="time" data-f="from" value="' + esc(o.from || '22:00') + '"></label>';
         case 'to': return '<label class="ar-f"><span>Hasta</span><input type="time" data-f="to" value="' + esc(o.to || '07:00') + '"></label>';
@@ -399,7 +401,8 @@
 
   function renderPush() {
     const box = $('#pushBody'); if (!box) return;
-    const active = P.id && P.rec && !P.rec.error && (B.mode === 'demo' || (P.sub && P.sub.endpoint === P.rec.endpoint));
+    const active = P.id && P.rec && !P.rec.error && (B.mode === 'demo' || (P.sub && P.sub.endpoint === P.rec.endpoint && Notification.permission === 'granted'));
+    const installed = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
     let html;
     if (!pushOk && B.mode !== 'demo') {
       html = '<p class="hint">' + (ios ? 'En iPhone los avisos solo funcionan con BYDLink en la pantalla de inicio: ábrela en Safari, pulsa Compartir → «Añadir a pantalla de inicio» y entra desde ese icono.'
@@ -417,6 +420,7 @@
         '<button type="button" class="btn btn-danger-soft" id="pushOff">Quitar avisos</button></div>';
     } else {
       html = (P.rec && P.rec.error ? '<p class="warn-txt">Los avisos dejaron de llegar a este móvil: vuelve a activarlos.</p>' : '') +
+        (installed && P.id && !(P.rec && P.rec.error) ? '<p class="warn-txt">La app instalada necesita su propio permiso para avisarte: vuelve a activar los avisos aquí.</p>' : '') +
         '<p class="hint">Recibe en este móvil los avisos del centinela y de tus automatizaciones, aunque no tengas la web abierta.</p>' +
         '<button type="button" class="btn btn-primary btn-block" id="pushOn">' + icon('sparkle') + 'Activar avisos en este móvil</button>' +
         (A.carHas(NEED) ? '' : '<p class="hint warn-txt">Necesita la app del coche ' + NEED + '.</p>');
@@ -481,6 +485,6 @@
 
   function demoNotify() {
     if (!('serviceWorker' in navigator) || !('Notification' in window) || Notification.permission !== 'granted') return;
-    navigator.serviceWorker.ready.then(reg => reg.showNotification('BYDLink', { body: 'Así te llegarán los avisos del coche.', icon: './icon.svg', tag: 'test' })).catch(() => {});
+    navigator.serviceWorker.ready.then(reg => reg.showNotification('BYDLink', { body: 'Así te llegarán los avisos del coche.', icon: './icon-192.png', badge: './badge-96.png', tag: 'test' })).catch(() => {});
   }
 })();

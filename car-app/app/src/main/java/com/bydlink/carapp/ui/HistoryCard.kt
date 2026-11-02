@@ -26,7 +26,7 @@ import java.util.Locale
 internal fun HomeActivity.historyCard(col: LinearLayout, first: Boolean = false) {
     val sum = card(); col.addView(sum, LinearLayout.LayoutParams(-1, -2).apply { if (!first) topMargin = dp(12) })
     val head = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
-    val month = Calendar.getInstance().getDisplayName(Calendar.MONTH, Calendar.LONG, Locale("es", "ES")) ?: ""
+    val month = Calendar.getInstance().getDisplayName(Calendar.MONTH, Calendar.LONG, I18n.locale) ?: ""
     head.addView(label("Este mes · $month", 16f, MUTED, bold = true), LinearLayout.LayoutParams(0, -2, 1f))
     head.addView(label("Detalle y precios en el móvil", 13f, MUTED))
     sum.addView(head)
@@ -71,13 +71,13 @@ internal fun HomeActivity.historyCard(col: LinearLayout, first: Boolean = false)
         val chgKwh = chg.sumOf { (it.second["kwh"] as? Number)?.toDouble() ?: 0.0 }
         val chgCost = chg.sumOf { Tariff.chargeCost(cfg, it.second, edit("charges", it.first)) }
         val eurKwh = if (chgKwh >= 1) chgCost / chgKwh else if (cfg.periods) cfg.p3 else cfg.flat
-        km.text = if (trips.isEmpty()) "0" else String.format(Locale.getDefault(), "%,d", Math.round(kmSum))
+        km.text = if (trips.isEmpty()) "0" else String.format(I18n.locale, "%,d", Math.round(kmSum))
         used.text = fmt1(usedSum); charged.text = fmt1(chgKwh)
-        cost.text = String.format(Locale.getDefault(), "%.2f €", chgCost)
-        per100.text = if (kmSum >= 10) String.format(Locale.getDefault(), "%.2f", avg * eurKwh) else "--"
+        cost.text = String.format(I18n.locale, "%.2f €", chgCost)
+        per100.text = if (kmSum >= 10) String.format(I18n.locale, "%.2f", avg * eurKwh) else "--"
         per100.setTextColor(ACCENT)
 
-        val f = java.text.SimpleDateFormat("d MMM HH:mm", Locale("es", "ES"))
+        val f = java.text.SimpleDateFormat(I18n.pattern("dMMM") + " HH:mm", I18n.locale)
         tList.removeAllViews()
         val rt = rows("rTrips").reversed()
         if (rt.isEmpty()) tList.addView(label("Aún no hay viajes guardados.", 14f, MUTED))
@@ -97,7 +97,7 @@ internal fun HomeActivity.historyCard(col: LinearLayout, first: Boolean = false)
             val e = Tariff.chargeCost(cfg, r, edit("charges", id))
             line(cList, f.format(java.util.Date((r["start"] as? Number)?.toLong() ?: 0L)) + if (r["live"] == true) " · ahora" else "",
                 k?.let { "+${fmt1(it)} kWh" } ?: "--",
-                listOfNotNull(if (s0 != null && s1 != null) "$s0 → $s1 %" else null, (r["type"] as? String), String.format(Locale.getDefault(), "%.2f €", e)).joinToString(" · "),
+                listOfNotNull(if (s0 != null && s1 != null) "$s0 → $s1 %" else null, (r["type"] as? String), String.format(I18n.locale, "%.2f €", e)).joinToString(" · "),
                 r["live"] == true)
         }
     }
@@ -131,7 +131,7 @@ private fun HomeActivity.line(list: LinearLayout, whenTxt: String, main: String,
  * historyCfg.gas; si no, 6 l/100 km a 1,55 €/l) menos lo que costaron las cargas del mes.
  */
 internal fun HomeActivity.savingsCard(col: LinearLayout) {
-    val month = Calendar.getInstance().getDisplayName(Calendar.MONTH, Calendar.LONG, Locale("es", "ES")) ?: ""
+    val month = Calendar.getInstance().getDisplayName(Calendar.MONTH, Calendar.LONG, I18n.locale) ?: ""
     val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
     col.addView(row, LinearLayout.LayoutParams(-1, -2))
     val big = card(); row.addView(big, LinearLayout.LayoutParams(0, -2, 1f).apply { rightMargin = dp(16) })
@@ -163,14 +163,14 @@ internal fun HomeActivity.savingsCard(col: LinearLayout) {
         val chg = rows("chg").filter { edit("charges", it.first)?.get("skip") != true }
         val cost = chg.sumOf { Tariff.chargeCost(cfg, it.second, edit("charges", it.first)) }
         val gasCost = kmSum * l100 / 100 * eurL
-        km.text = String.format(Locale.getDefault(), "%,d km", Math.round(kmSum))
-        elec.text = String.format(Locale.getDefault(), "%.2f €", cost)
-        gas.text = String.format(Locale.getDefault(), "%.2f €", gasCost)
-        e100.text = if (kmSum >= 10) String.format(Locale.getDefault(), "%.2f €", cost / kmSum * 100) else "--"
-        g100.text = String.format(Locale.getDefault(), "%.2f €", l100 * eurL)
-        saved.text = String.format(Locale.getDefault(), "%.2f €", gasCost - cost)
+        km.text = String.format(I18n.locale, "%,d km", Math.round(kmSum))
+        elec.text = String.format(I18n.locale, "%.2f €", cost)
+        gas.text = String.format(I18n.locale, "%.2f €", gasCost)
+        e100.text = if (kmSum >= 10) String.format(I18n.locale, "%.2f €", cost / kmSum * 100) else "--"
+        g100.text = String.format(I18n.locale, "%.2f €", l100 * eurL)
+        saved.text = String.format(I18n.locale, "%.2f €", gasCost - cost)
         saved.setTextColor(if (gasCost - cost >= 0) ACCENT else INK)
-        co2.text = if (kmSum >= 1) String.format(Locale.getDefault(), "≈ %.0f kg de CO₂ que no ha salido por un tubo de escape", kmSum * l100 / 100 * 2.31) else ""
+        co2.text = if (kmSum >= 1) String.format(I18n.locale, "≈ %.0f kg de CO₂ que no ha salido por un tubo de escape", kmSum * l100 / 100 * 2.31) else ""
     }
     fun once(k: String, q: Query, asList: Boolean) = q.addListenerForSingleValueEvent(object : ValueEventListener {
         override fun onDataChange(snap: DataSnapshot) {

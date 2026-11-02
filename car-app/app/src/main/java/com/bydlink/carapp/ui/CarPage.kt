@@ -258,7 +258,7 @@ private fun HomeActivity.drivingBody(col: LinearLayout) {
         mode.text = s?.driveMode?.let { "Código $it" } ?: "--"
         cons.text = s?.consumptionKwh100?.let { "${fmt1(it)} kWh/100 km" } ?: "--"
         last.text = s?.lastTripKwh100?.let { "${fmt1(it)} kWh/100 km" } ?: "--"
-        odo.text = s?.odometer?.let { String.format(Locale.getDefault(), "%,d km", it) } ?: "--"
+        odo.text = s?.odometer?.let { String.format(I18n.locale, "%,d km", it) } ?: "--"
         belt.text = s?.seatbelts?.driver?.let { if (it) "Puesto" else "Sin poner" } ?: "--"
         belt.setTextColor(if (s?.seatbelts?.driver == false && moving(s)) AMBER else INK)
         belt2.text = s?.seatbelts?.passenger?.let { if (it) "Puesto" else "Sin poner" } ?: "--"
@@ -365,8 +365,8 @@ internal class CarTopView(a: HomeActivity) : View(a) {
             val bad = p != null && (p < 2.0 || p > 3.0)
             val bp = Paint(big).apply { color = if (bad) AMBER else INK; textAlign = if (left) Paint.Align.RIGHT else Paint.Align.LEFT }
             val sp = Paint(small).apply { textAlign = if (left) Paint.Align.RIGHT else Paint.Align.LEFT }
-            c.drawText(p?.let { String.format(Locale.getDefault(), "%.1f bar", it) } ?: "-- bar", xText, yMid - 4 * dpx, bp)
-            c.drawText(listOfNotNull(temp?.let { "$it °C" }, name).joinToString(" · "), xText, yMid + 16 * dpx, sp)
+            c.drawText(p?.let { String.format(I18n.locale, "%.1f bar", it) } ?: "-- bar", xText, yMid - 4 * dpx, bp)
+            c.drawText(I18n.tr(listOfNotNull(temp?.let { "$it °C" }, name).joinToString(" · ")), xText, yMid + 16 * dpx, sp)
         }
         // etiquetas de lo abierto
         val openDoorLabel = listOfNotNull(if (d?.fl == true || d?.rl == true) true else null, if (d?.fr == true || d?.rr == true) false else null)
@@ -375,7 +375,7 @@ internal class CarTopView(a: HomeActivity) : View(a) {
             val x0 = if (left) l - cw * 0.34f else r + cw * 0.34f
             val x1 = if (left) x0 - cw * 0.35f else x0 + cw * 0.35f
             c.drawLine(x0, y, x1, y, leadW)
-            c.drawText("Puerta abierta", x1 + (if (left) -6 else 6) * dpx, y + 5 * dpx, Paint(warn).apply { textAlign = if (left) Paint.Align.RIGHT else Paint.Align.LEFT })
+            c.drawText(I18n.tr("Puerta abierta"), x1 + (if (left) -6 else 6) * dpx, y + 5 * dpx, Paint(warn).apply { textAlign = if (left) Paint.Align.RIGHT else Paint.Align.LEFT })
         }
         val winLabel = listOf("fl", "fr", "rl", "rr").firstOrNull { winOpen(it) && d?.let { dd -> when (it) { "fl" -> dd.fl; "fr" -> dd.fr; "rl" -> dd.rl; else -> dd.rr } } != true }
         if (winLabel != null) {
@@ -385,7 +385,7 @@ internal class CarTopView(a: HomeActivity) : View(a) {
             val x1 = if (left) l - cw * 0.55f else r + cw * 0.55f
             c.drawLine(x0, y, x1, y, leadW)
             val pct = when (winLabel) { "fl" -> wp?.fl; "fr" -> wp?.fr; "rl" -> wp?.rl; else -> wp?.rr }
-            c.drawText("Ventanilla" + (pct?.takeIf { it > 0 }?.let { " $it%" } ?: ""), x1 + (if (left) -6 else 6) * dpx, y + 5 * dpx,
+            c.drawText(I18n.tr("Ventanilla" + (pct?.takeIf { it > 0 }?.let { " $it%" } ?: "")), x1 + (if (left) -6 else 6) * dpx, y + 5 * dpx,
                 Paint(warn).apply { textAlign = if (left) Paint.Align.RIGHT else Paint.Align.LEFT })
         }
     }

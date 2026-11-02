@@ -93,6 +93,7 @@ class HomeActivity : Activity() {
         try { ContextCompat.startForegroundService(this, Intent(this, MainService::class.java)) } catch (e: Throwable) {}
         portrait = resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT
         Skins.load(this)
+        I18n.load(this)
         build()
         // Qué tiene este coche (multimodelo). En su hilo: pregunta al SDK.
         if (BuildConfigCompat.USE_BYD_SDK) Thread {
@@ -124,6 +125,7 @@ class HomeActivity : Activity() {
             leftMargin = dp(if (portrait) 12 else 22); rightMargin = leftMargin; bottomMargin = dp(12)
         })
         val frame = FrameLayout(this).apply { addView(root, FrameLayout.LayoutParams(-1, -1)) }
+        frame.layoutDirection = if (I18n.rtl) View.LAYOUT_DIRECTION_RTL else View.LAYOUT_DIRECTION_LTR   // árabe: de derecha a izquierda
         setContentView(frame)
         if (first != null) showTab(first) else showTab(intent?.getStringExtra("tab") ?: "inicio", intent?.getStringExtra("sub"))
     }
@@ -506,14 +508,14 @@ class HomeActivity : Activity() {
         isClickable = true
     }
 
-    internal fun label(t: String, size: Float, color: Int, bold: Boolean = false) = TextView(this).apply {
+    internal fun label(t: String, size: Float, color: Int, bold: Boolean = false) = TrText(this).apply {
         text = t; textSize = size; setTextColor(color); if (bold) typeface = Typeface.DEFAULT_BOLD
     }
 
     /** Título de un panel ("Estado de carga", "Consumo"…). */
     internal fun h3(t: String) = label(t, 17f, INK, bold = true).apply { setPadding(0, 0, 0, dp(8)) }
 
-    internal fun pill(t: String, onClick: () -> Unit) = TextView(this).apply {
+    internal fun pill(t: String, onClick: () -> Unit) = TrText(this).apply {
         text = t; textSize = 16f; setTextColor(INK); gravity = Gravity.CENTER; setPadding(dp(16), dp(10), dp(16), dp(10))
         background = round(CARD2, 13); isClickable = true; setOnClickListener { onClick() }
     }
@@ -528,12 +530,12 @@ class HomeActivity : Activity() {
 
     internal fun active(v: TextView, on: Boolean) { v.background = round(if (on) ACCENT else CARD2, 13); v.setTextColor(if (on) ON_ACCENT else INK) }
 
-    internal fun chip(t: String, color: Int) = TextView(this).apply {
+    internal fun chip(t: String, color: Int) = TrText(this).apply {
         text = t; textSize = 14f; setTextColor(color); setPadding(dp(12), dp(7), dp(12), dp(7)); background = round(CARD2, 10); maxLines = 1
     }
 
     /** Etiqueta verde del boceto ("P · Aparcado"). */
-    internal fun badge(t: String) = TextView(this).apply {
+    internal fun badge(t: String) = TrText(this).apply {
         text = t; textSize = 14f; setTextColor(BADGE_TXT); setPadding(dp(12), dp(7), dp(12), dp(7)); background = round(BADGE_BG, 9); maxLines = 1
     }
 
@@ -561,10 +563,10 @@ class HomeActivity : Activity() {
     @Suppress("FunctionName")
     internal fun HorizontalScroll(child: View) = android.widget.HorizontalScrollView(this).apply { isHorizontalScrollBarEnabled = false; addView(child) }
 
-    internal fun toast(m: String) = Toast.makeText(this, m, Toast.LENGTH_SHORT).show()
+    internal fun toast(m: String) = Toast.makeText(this, I18n.tr(m), Toast.LENGTH_SHORT).show()
     internal fun round(color: Int, r: Int) = GradientDrawable().apply { setColor(color); cornerRadius = dp(r).toFloat() }
     internal fun dp(v: Int) = (v * resources.displayMetrics.density).toInt()
-    internal fun fmt1(v: Double) = String.format(java.util.Locale.getDefault(), "%.1f", v)
+    internal fun fmt1(v: Double) = String.format(I18n.locale, "%.1f", v)
     internal fun dur(min: Int) = when { min < 60 -> "$min min"; min < 1440 -> "${min / 60} h ${min % 60} min"; else -> "${min / 1440} d" }
 
     /** Barra de progreso fina con esquinas redondas. */

@@ -251,12 +251,15 @@
     });
   }
 
-  const MONTHS = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+  const LOC = ((window.I18N && I18N.locale) || 'es-ES');   // formato de fechas del idioma elegido
+  const monthName = (y, m) => new Date(y, m, 1).toLocaleDateString(LOC, { month: 'long' });
+  const monthYear = (y, m) => new Date(y, m, 1).toLocaleDateString(LOC, { month: 'long', year: 'numeric' });
   function title(r) {
     const a = new Date(r.from), b = new Date(r.to - 1);
     if (H.span === 'year') return String(a.getFullYear());
-    if (H.span === 'month') return MONTHS[a.getMonth()] + ' de ' + a.getFullYear();
-    const m = d => d.toLocaleDateString('es-ES', { month: 'short' }).replace('.', '');
+    if (H.span === 'month') return monthYear(a.getFullYear(), a.getMonth());
+    try { const f = new Intl.DateTimeFormat(LOC, { day: 'numeric', month: 'short', year: 'numeric' }); if (f.formatRange) return f.formatRange(a, b); } catch (e) {}
+    const m = d => d.toLocaleDateString(LOC, { month: 'short' }).replace('.', '');
     if (a.getFullYear() !== b.getFullYear()) return a.getDate() + ' ' + m(a) + ' ' + a.getFullYear() + ' – ' + b.getDate() + ' ' + m(b) + ' ' + b.getFullYear();
     return a.getDate() + (a.getMonth() !== b.getMonth() ? ' ' + m(a) : '') + ' – ' + b.getDate() + ' ' + m(b) + ' ' + b.getFullYear();
   }
@@ -280,9 +283,10 @@
     list(s);
     $('#hsTab [data-tab="trips"]').textContent = 'Viajes · ' + s.trips.length;
     $('#hsTab [data-tab="charges"]').textContent = 'Cargas · ' + s.charges.length;
-    $('#hsNote').textContent = (A.carHas('2.27') ? '' : 'Con la app del coche 2.27 o más nueva cada viaje guarda su consumo y su ruta, y cada carga el coste por horas. ') +
-      (s.estimated ? 'Los viajes sin dato de energía se calculan con tu consumo medio. ' : '') +
-      'Coste de los viajes: la energía gastada a ' + fmt(s.eurKwh, 3) + ' €/kWh, lo que te cuesta de media cargar.';
+    const T = (k, ...v) => (window.I18N ? I18N.t(k, ...v) : k.replace(/\{(\d+)\}/g, (_, n) => v[n]));   // frase a frase
+    $('#hsNote').textContent = (A.carHas('2.27') ? '' : T('Con la app del coche 2.27 o más nueva cada viaje guarda su consumo y su ruta, y cada carga el coste por horas.') + ' ') +
+      (s.estimated ? T('Los viajes sin dato de energía se calculan con tu consumo medio.') + ' ' : '') +
+      T('Coste de los viajes: la energía gastada a {0} €/kWh, lo que te cuesta de media cargar.', fmt(s.eurKwh, 3));
   }
   const spanOf = v => { const d = (v.r.to - v.r.from) / DAY; return d <= 7.1 ? 'week' : d <= 31.1 ? 'month' : 'year'; };
 
@@ -302,14 +306,14 @@
     const out = [];
     if (H.span === 'year') {
       const y = new Date(r.from).getFullYear();
-      for (let m = 0; m < 12; m++) out.push({ from: new Date(y, m, 1).getTime(), to: new Date(y, m + 1, 1).getTime(), label: 'EFMAMJJASOND'[m], title: MONTHS[m] + ' de ' + y });
+      for (let m = 0; m < 12; m++) out.push({ from: new Date(y, m, 1).getTime(), to: new Date(y, m + 1, 1).getTime(), label: new Date(y, m, 1).toLocaleDateString(LOC, { month: 'narrow' }), title: monthYear(y, m) });
     } else {
       const d = new Date(r.from);
       while (d.getTime() < r.to) {
         const from = d.getTime(), day = d.getDate(), wd = (d.getDay() + 6) % 7;
-        const t = d.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
+        const t = d.toLocaleDateString(LOC, { weekday: 'long', day: 'numeric', month: 'long' }), wdn = d.toLocaleDateString(LOC, { weekday: 'narrow' });
         d.setDate(d.getDate() + 1);
-        out.push({ from, to: d.getTime(), label: H.span === 'week' ? 'LMXJVSD'[wd] : ([1, 5, 10, 15, 20, 25, 30].indexOf(day) >= 0 ? String(day) : ''), title: t });
+        out.push({ from, to: d.getTime(), label: H.span === 'week' ? wdn : ([1, 5, 10, 15, 20, 25, 30].indexOf(day) >= 0 ? String(day) : ''), title: t });
       }
     }
     out.forEach(b => {
@@ -347,13 +351,13 @@
   }
 
   // ───────── listas ─────────
-  const hm = ts => new Date(ts).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+  const hm = ts => new Date(ts).toLocaleTimeString(LOC, { hour: '2-digit', minute: '2-digit' });
   const durTxt = min => min < 60 ? Math.round(min) + ' min' : Math.floor(min / 60) + ' h' + (Math.round(min % 60) ? ' ' + Math.round(min % 60) + ' min' : '');
   function dayTitle(ts) {
     const d = new Date(ts), t = new Date(), y = new Date(); y.setDate(t.getDate() - 1);
     if (d.toDateString() === t.toDateString()) return 'Hoy';
     if (d.toDateString() === y.toDateString()) return 'Ayer';
-    return d.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' }) + (d.getFullYear() !== t.getFullYear() ? ' de ' + d.getFullYear() : '');
+    return d.toLocaleDateString(LOC, d.getFullYear() !== t.getFullYear() ? { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' } : { weekday: 'long', day: 'numeric', month: 'long' });
   }
   function list(s) {
     const items = H.tab === 'trips' ? s.trips : s.charges;
@@ -415,7 +419,7 @@
   const stat = (k, v) => v == null ? '' : '<div><span>' + k + '</span><b>' + v + '</b></div>';
   function openTrip(t) {
     const e = edit('trips', t.id) || {};
-    const when = new Date(t.start).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' }) + ' · ' + hm(t.start) + (t.end ? ' – ' + hm(t.end) : '');
+    const when = new Date(t.start).toLocaleDateString(LOC, { weekday: 'long', day: 'numeric', month: 'long' }) + ' · ' + hm(t.start) + (t.end ? ' – ' + hm(t.end) : '');
     const src = { contador: 'medida por el coche', bateria: 'medida por la batería', soc: 'calculada por el % de batería' }[t.kwhSrc] || 'estimada con tu consumo medio';
     Sheet.open('<h3>' + esc(tripTitle(t, true)) + '</h3><p class="sub">' + esc(when.charAt(0).toUpperCase() + when.slice(1)) + (t.live ? ' · en curso' : '') + '</p>' +
       '<div class="hs-map" id="hsMap"><p class="hint">Cargando el recorrido…</p></div>' +
@@ -472,7 +476,7 @@
   // ───────── detalle de una carga ─────────
   function openCharge(c) {
     const e = edit('charges', c.id) || {}, k = kindOf(c, e);
-    const when = new Date(c.start).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' }) + ' · ' + hm(c.start) + (c.end ? ' – ' + hm(c.end) : '');
+    const when = new Date(c.start).toLocaleDateString(LOC, { weekday: 'long', day: 'numeric', month: 'long' }) + ' · ' + hm(c.start) + (c.end ? ' – ' + hm(c.end) : '');
     let periods = '';
     if (k === 'home' && H.cfg.home.mode === 'periods' && typeof e.costEur !== 'number' && !(typeof c.costEur === 'number' && !e.kind)) {
       const h = hours(c), by = { 1: [0, 0], 2: [0, 0], 3: [0, 0] };
@@ -632,7 +636,7 @@
     if (!s.trips.length && !s.charges.length) {   // primeros días del mes: se enseña el anterior
       const pr = range('month', r.from - DAY), pv = H.cache['month:' + pr.from];
       if (!pv) load('month', pr.from).then(renderMonth).catch(() => {});
-      else { const ps = summarize(pv); if (ps.trips.length || ps.charges.length) { s = ps; label = 'El mes pasado · ' + MONTHS[new Date(pr.from).getMonth()]; } }
+      else { const ps = summarize(pv); if (ps.trips.length || ps.charges.length) { s = ps; label = 'El mes pasado · ' + monthName(new Date(pr.from).getFullYear(), new Date(pr.from).getMonth()); } }
     }
     $('#hsMonthH').textContent = label;
     $('#hsMonthMain').textContent = fmt(s.km, s.km > 0 && s.km < 100 ? 1 : 0) + ' km · ' + eur(s.chEur) + ' en cargas';

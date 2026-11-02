@@ -63,16 +63,16 @@ class PermissionsActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         val root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(24), dp(20), dp(24), dp(24)) }
         val head = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
-        head.addView(TextView(this).apply {
+        head.addView(TrText(this).apply {
             text = "Permisos y arranque"; textSize = 26f; setTextColor(Color.WHITE); setTypeface(typeface, Typeface.BOLD)
         }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
         head.addView(Button(this).apply { text = "Volver"; isAllCaps = false; setOnClickListener { finish() } })
         root.addView(head)
-        root.addView(TextView(this).apply {
+        root.addView(TrText(this).apply {
             text = "Para que BYDLink arranque sola al encender el coche, no se cierre nunca y pueda vigilarlo."
             textSize = 16f; setTextColor(TEXT); setPadding(0, dp(6), 0, dp(14))
         })
-        summary = TextView(this).apply { textSize = 18f; setTypeface(typeface, Typeface.BOLD); setPadding(0, 0, 0, dp(10)) }
+        summary = TrText(this).apply { textSize = 18f; setTypeface(typeface, Typeface.BOLD); setPadding(0, 0, 0, dp(10)) }
         root.addView(summary)
         fixBtn = Button(this).apply {
             text = "Arreglarlo todo"; textSize = 18f; isAllCaps = false; setTextColor(0xFF05240F.toInt())
@@ -221,13 +221,13 @@ class PermissionsActivity : AppCompatActivity() {
             setPadding(dp(18), dp(14), dp(14), dp(14))
             background = GradientDrawable().apply { setColor(CARD); cornerRadius = dp(14).toFloat() }
         }
-        r.addView(TextView(this).apply {
+        r.addView(TrText(this).apply {
             text = "●"; textSize = 22f; setPadding(0, 0, dp(16), 0)
             setTextColor(when (it.st) { St.OK -> ACCENT; St.FALTA -> AMBER; else -> MUTED })
         })
         val col = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        col.addView(TextView(this).apply { text = it.title; textSize = 18f; setTextColor(Color.WHITE); setTypeface(typeface, Typeface.BOLD) })
-        col.addView(TextView(this).apply { text = it.detail; textSize = 14.5f; setTextColor(MUTED); setPadding(0, dp(3), 0, 0); setLineSpacing(0f, 1.1f) })
+        col.addView(TrText(this).apply { text = it.title; textSize = 18f; setTextColor(Color.WHITE); setTypeface(typeface, Typeface.BOLD) })
+        col.addView(TrText(this).apply { text = it.detail; textSize = 14.5f; setTextColor(MUTED); setPadding(0, dp(3), 0, 0); setLineSpacing(0f, 1.1f) })
         r.addView(col, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
         it.actions.forEach { b ->
             r.addView(Button(this).apply { text = b.label; isAllCaps = false; setOnClickListener { b.run() } },

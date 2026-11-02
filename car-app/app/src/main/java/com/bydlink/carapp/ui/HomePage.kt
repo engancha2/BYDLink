@@ -345,7 +345,7 @@ internal fun HomeActivity.searchDestination() {
     val panel = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(Skins.cur.sheet); setPadding(dp(60), dp(40), dp(60), dp(40)) }
     panel.addView(label("¿Adónde vamos?", 34f, INK))
     val box = android.widget.EditText(this).apply {
-        hint = "Calle, sitio o ciudad…"; setHintTextColor(MUTED); setTextColor(INK); textSize = 22f; isSingleLine = true
+        hint = I18n.tr("Calle, sitio o ciudad…"); setHintTextColor(MUTED); setTextColor(INK); textSize = 22f; isSingleLine = true
         inputType = android.text.InputType.TYPE_CLASS_TEXT; imeOptions = android.view.inputmethod.EditorInfo.IME_ACTION_GO
         background = round(CARD2, 14); setPadding(dp(20), 0, dp(20), 0)
     }

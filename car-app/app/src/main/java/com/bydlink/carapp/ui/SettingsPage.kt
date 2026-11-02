@@ -20,6 +20,27 @@ internal fun HomeActivity.settingsPage(): View {
     val left = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
     row.addView(left, LinearLayout.LayoutParams(0, -2, 1f).apply { rightMargin = dp(16) })
 
+    // Idioma de la pantalla: los 13, cada uno con su nombre; se cambia al momento con el mismo círculo que las skins.
+    val langCard = card(); left.addView(langCard, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(16) })
+    langCard.addView(h3("Idioma"))
+    val cols = 4
+    val colW = (resources.displayMetrics.widthPixels - dp(if (portrait) 60 else 110)) / (if (portrait) 1 else 2)
+    val cellW = (colW - dp(40) - dp(8) * cols) / cols
+    val langGrid = android.widget.GridLayout(this).apply { columnCount = cols }
+    var lx = 0f; var ly = 0f
+    I18n.LANGS.forEach { (code, name) ->
+        val on = code == I18n.lang
+        val b = android.widget.TextView(this).apply {   // sin traducir: cada idioma con su propio nombre
+            text = name; textSize = 16f; gravity = android.view.Gravity.CENTER; maxLines = 1
+            setTextColor(if (on) HomeActivity.ON_ACCENT else INK); background = round(if (on) HomeActivity.ACCENT else HomeActivity.CARD2, 13)
+            isClickable = true; contentDescription = name
+            setOnTouchListener { _, e -> if (e.action == android.view.MotionEvent.ACTION_DOWN) { lx = e.rawX; ly = e.rawY }; false }
+            setOnClickListener { if (code != I18n.lang) { I18n.set(this@settingsPage, code); reskin(lx, ly, false) } }
+        }
+        langGrid.addView(b, android.widget.GridLayout.LayoutParams().apply { width = cellW; height = dp(50); setMargins(0, 0, dp(8), dp(8)) })
+    }
+    langCard.addView(langGrid)
+
     val home = card(); left.addView(home)
     home.addView(h3("Pantalla de inicio"))
     val homeTxt = label("", 15f, MUTED).apply { setPadding(0, 0, 0, dp(12)) }; home.addView(homeTxt)

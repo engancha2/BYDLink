@@ -5,7 +5,7 @@
   const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
   const B = window.Backend;
   const ONLINE_MS = 90e3;           // sin datos en este tiempo → coche desconectado
-  const WEB_VERSION = '2.14';        // cambiarla junto con CACHE de sw.js
+  const WEB_VERSION = '2.15';        // cambiarla junto con CACHE de sw.js
   const CAR_APP_MIN = '2.0';        // la app del coche más antigua que no hace falta actualizar
 
   const st = {
@@ -18,7 +18,8 @@
   // ───────── utilidades ─────────
   const num = (v, min, max) => (typeof v === 'number' && isFinite(v) && v >= min && v <= max) ? v : null;
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
-  const fmt = (n, d) => n.toLocaleString('es-ES', { maximumFractionDigits: d || 0, minimumFractionDigits: d || 0 });
+  const LOC = ((window.I18N && I18N.locale) || 'es-ES');   // formato de fechas y números del idioma elegido
+  const fmt = (n, d) => n.toLocaleString(LOC, { maximumFractionDigits: d || 0, minimumFractionDigits: d || 0 });
   const icon = (id, cls) => '<svg' + (cls ? ' class="' + cls + '"' : '') + '><use href="#i-' + id + '"/></svg>';
   function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
   function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
@@ -52,12 +53,12 @@
     const y = new Date(); y.setDate(t.getDate() - 1);
     if (d.toDateString() === t.toDateString()) return 'Hoy';
     if (d.toDateString() === y.toDateString()) return 'Ayer';
-    return d.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
+    return d.toLocaleDateString(LOC, { weekday: 'long', day: 'numeric', month: 'long' });
   }
-  const hhmm = ts => new Date(ts).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+  const hhmm = ts => new Date(ts).toLocaleTimeString(LOC, { hour: '2-digit', minute: '2-digit' });
   const shortDate = ts => {
     const d = new Date(ts);
-    return (d.toDateString() === new Date().toDateString() ? 'Hoy' : d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })) + ' · ' + hhmm(ts);
+    return (d.toDateString() === new Date().toDateString() ? 'Hoy' : d.toLocaleDateString(LOC, { day: 'numeric', month: 'short' })) + ' · ' + hhmm(ts);
   };
 
   // El coche manda valores "centinela" cuando un sensor no está disponible (65535,

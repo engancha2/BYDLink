@@ -6,12 +6,13 @@
   <meta name="theme-color" content="#0a0d12" media="(prefers-color-scheme: dark)">
   <meta name="theme-color" content="#f3f5f8" media="(prefers-color-scheme: light)">
   <meta name="color-scheme" content="dark light">
+  <script>/* Idioma (i18n.js): si no es español, se espera al diccionario para no enseñar el texto sin traducir */try{var L=localStorage.getItem('bydlink_lang')||String(navigator.language||'en').slice(0,2).toLowerCase();if(L!=='es')document.documentElement.classList.add('i18n-wait')}catch(e){}</script>
   <script>/* Apariencia guardada (skins.js): se aplica antes de pintar para que no parpadee */try{var s=localStorage.getItem('bydlink_skin'),r=document.documentElement;if(s&&s!=='clasico'){r.setAttribute('data-skin',s);if(/^(neon|acido|mango|laser|rubi|medianoche)$/.test(s))r.setAttribute('data-neon','');var n={rosa:['#ff2bd6','#2a0022'],verde:['#39ff14','#062200'],naranja:['#ff7a00','#2a1000'],rojo:['#ff1f4b','#2a0008'],azul:['#00a2ff','#001a2b'],violeta:['#a64dff','#1a0033'],amarillo:['#f5ff00','#242600'],cian:['#00f0ff','#002a2c']}[localStorage.getItem('bydlink_neon')]||['#ff2bd6','#2a0022'];r.style.setProperty('--neon',n[0]);r.style.setProperty('--neon-ink',n[1])}}catch(e){}</script>
   <meta name="description" content="BYDLink: controla y vigila tu BYD desde el móvil.">
   <title>BYDLink</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="icon.svg">
+  <link rel="apple-touch-icon" href="icon-192.png">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css"
         integrity="sha512-Zcn6bjR/8RZbLEpLIeOwNtzREBAJnUKESxces60Mpoj+2okopSAcSUIUOseddDm0cxnGQzxIR7vJgsLZbdLE3w==" crossorigin="">
   <link rel="stylesheet" href="style.css">
@@ -404,6 +405,11 @@
           <button type="button" class="btn btn-soft btn-block" id="addCarBtn"><svg><use href="#i-plus"/></svg>Vincular otro coche</button>
         </div>
 
+        <div class="card" id="langCard">
+          <h2 class="card-h">Idioma</h2>
+          <div class="lang-grid" id="langGrid" role="radiogroup" aria-label="Idioma"></div>
+        </div>
+
         <div class="card" id="skinCard">
           <h2 class="card-h">Apariencia</h2>
           <p class="hint" style="margin:-4px 0 12px">El estilo de siempre o el del lanzador del coche. Se guarda en este móvil.</p>
@@ -505,6 +511,7 @@
           integrity="sha512-BwHfrr4c9kmRkLw6iXFdzcdWV/PGkVgiIyIWLLlTSXzWQzxuSg4DiQUCpauz/EWjgk5TYQqX/kvn9pG1NpYfqg==" crossorigin=""></script>
   <script src="backend.js"></script>
   <script src="webrtc.js"></script>
+  <script src="i18n.js"></script>
   <script src="app.js"></script>
   <script src="skins.js"></script>
   <script src="extras.js"></script>

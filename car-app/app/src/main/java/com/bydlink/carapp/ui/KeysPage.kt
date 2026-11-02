@@ -137,7 +137,7 @@ private fun HomeActivity.pickKeyAction(id: String, name: String, press: String) 
             row!!.addView(p, LinearLayout.LayoutParams(0, dp(58), 1f).apply { rightMargin = dp(8) })
         }
         val rest = items.size % 3
-        if (rest != 0) repeat(3 - rest) { row!!.addView(TextView(this), LinearLayout.LayoutParams(0, dp(58), 1f).apply { rightMargin = dp(8) }) }
+        if (rest != 0) repeat(3 - rest) { row!!.addView(TrText(this), LinearLayout.LayoutParams(0, dp(58), 1f).apply { rightMargin = dp(8) }) }
     }
     grid(listOf<Pair<String?, String>>(null to "Lo normal (no tocar)") + WheelKeys.ACTIONS.map { it.key to it.value })
     list.addView(label("Abrir una app", 16f, INK, bold = true).apply { setPadding(0, dp(18), 0, 0) })

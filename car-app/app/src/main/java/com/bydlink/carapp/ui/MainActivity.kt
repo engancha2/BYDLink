@@ -117,7 +117,7 @@ class MainActivity : AppCompatActivity() {
         }, LinearLayout.LayoutParams(dp(110), dp(60)).apply { leftMargin = dp(12) })
         root.addView(homeRow, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(60)).apply { topMargin = dp(12) })
 
-        root.addView(TextView(this).apply {
+        root.addView(TrText(this).apply {
             text = "Diagnóstico y herramientas"; textSize = 15f; setTextColor(MUTED); setPadding(dp(4), dp(28), 0, dp(6))
         })
 
@@ -131,7 +131,7 @@ class MainActivity : AppCompatActivity() {
         btn("SONDEO COMPLETO (enviar)") { sendProbe() }
         btn("Reintentar diagnóstico") { out.text = ""; header(); Thread { runDiagnostics() }.start() }
 
-        out = TextView(this).apply { textSize = 14f; setTextColor(TEXT); setPadding(0, dp(16), 0, 0); gravity = Gravity.START }
+        out = TrText(this).apply { textSize = 14f; setTextColor(TEXT); setPadding(0, dp(16), 0, 0); gravity = Gravity.START }
         root.addView(out)
         setContentView(ScrollView(this).apply { addView(root) })
 
@@ -168,7 +168,7 @@ class MainActivity : AppCompatActivity() {
             background = GradientDrawable().apply { setColor(Color.WHITE); cornerRadius = dp(14).toFloat() }
         }
         qrImg = ImageView(this).apply { scaleType = ImageView.ScaleType.FIT_CENTER }
-        qrWait = TextView(this).apply {
+        qrWait = TrText(this).apply {
             text = "Conectando…"; textSize = 16f; setTextColor(0xFF5B6570.toInt()); gravity = Gravity.CENTER
         }
         qrBox.addView(qrImg, FrameLayout.LayoutParams(dp(QR_DP), dp(QR_DP)))
@@ -176,7 +176,7 @@ class MainActivity : AppCompatActivity() {
         card.addView(qrBox, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT))
 
         val col = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(28), 0, 0, 0) }
-        fun t(s: String, size: Float, color: Int, top: Int = 0, bold: Boolean = false) = TextView(this).apply {
+        fun t(s: String, size: Float, color: Int, top: Int = 0, bold: Boolean = false) = TrText(this).apply {
             text = s; textSize = size; setTextColor(color); setPadding(0, dp(top), 0, 0)
             if (bold) setTypeface(typeface, Typeface.BOLD)
             setLineSpacing(0f, 1.15f)

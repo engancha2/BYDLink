@@ -312,7 +312,7 @@ private fun HomeActivity.videosBody(col: LinearLayout) {
 private fun HomeActivity.videoRows(list: LinearLayout, vids: List<VideoStore.Video>, empty: String) {
     list.removeAllViews()
     if (vids.isEmpty()) { list.addView(label(empty, 15f, MUTED)); return }
-    val fmt = SimpleDateFormat("EEE d MMM · HH:mm:ss", Locale("es", "ES"))
+    val fmt = SimpleDateFormat(I18n.pattern("EEEdMMM") + " · HH:mm:ss", I18n.locale)
     for (v in vids) {
         val r = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL; background = round(CARD2, 12)
@@ -334,7 +334,7 @@ private fun kindName(kind: String) = when (kind) {
 
 private fun size(b: Any?): String {
     val n = (b as? Number)?.toLong() ?: return "--"
-    return if (n >= 1L shl 30) String.format(Locale.getDefault(), "%.1f GB", n / 1073741824.0)
+    return if (n >= 1L shl 30) String.format(I18n.locale, "%.1f GB", n / 1073741824.0)
     else if (n == 0L) "0 MB" else "${maxOf(1, n / 1048576)} MB"
 }
 
@@ -343,7 +343,7 @@ private fun HomeActivity.playVideo(v: VideoStore.Video) {
     val panel = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(0xF5000000.toInt()); setPadding(dp(24), dp(14), dp(24), dp(14)) }
     val head = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
     val (name, _) = kindName(v.kind)
-    head.addView(label("$name · ${SimpleDateFormat("EEEE d MMM · HH:mm:ss", Locale("es", "ES")).format(Date(v.ts))} · ${size(v.bytes)}", 18f, INK),
+    head.addView(label("$name · ${SimpleDateFormat(I18n.pattern("EEEEdMMM") + " · HH:mm:ss", I18n.locale).format(Date(v.ts))} · ${size(v.bytes)}", 18f, INK),
         LinearLayout.LayoutParams(0, -2, 1f))
     fun act(action: String, ok: String) {
         val c = StateHub.camera ?: return
