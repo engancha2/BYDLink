@@ -9,6 +9,7 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
+import com.bydlink.carapp.ui.HomeActivity.Companion.INK
 import com.bydlink.carapp.ui.HomeActivity.Companion.ACCENT
 import com.bydlink.carapp.ui.HomeActivity.Companion.AMBER
 import com.bydlink.carapp.ui.HomeActivity.Companion.CARD2
@@ -32,7 +33,7 @@ internal fun HomeActivity.menuPage(): View {
     col.addView(ScrollView(this).apply { addView(inner); isVerticalScrollBarEnabled = false }, LinearLayout.LayoutParams(-1, 0, 1f))
 
     // ── funciones del vehículo ──
-    inner.addView(label("Funciones del vehículo", 17f, Color.WHITE, bold = true).apply { setPadding(0, 0, 0, dp(10)) })
+    inner.addView(label("Funciones del vehículo", 17f, INK, bold = true).apply { setPadding(0, 0, 0, dp(10)) })
     val f = GridLayout(this).apply { columnCount = 5 }
     inner.addView(f)
     listOf(Triple("Clima", "thermo") { showTab("clima") }, Triple("Batería", "battery") { showTab("bateria") },
@@ -43,7 +44,7 @@ internal fun HomeActivity.menuPage(): View {
     ).forEach { (name, ic, go) -> f.addView(tile(ic, name, go), cell()) }
 
     // ── tus aplicaciones ──
-    inner.addView(label("Tus aplicaciones · mantén pulsado para cambiar", 17f, Color.WHITE, bold = true).apply { setPadding(0, dp(18), 0, dp(10)) })
+    inner.addView(label("Tus aplicaciones · mantén pulsado para cambiar", 17f, INK, bold = true).apply { setPadding(0, dp(18), 0, dp(10)) })
     val apps = GridLayout(this).apply { columnCount = 3 }
     inner.addView(apps)
     fun renderApps() {
@@ -56,7 +57,7 @@ internal fun HomeActivity.menuPage(): View {
                 setOnLongClickListener { pickApp(i) { showTab("menu") }; true }
             }
             t.addView(ImageView(this).apply { setImageDrawable(cn?.let { icon(it) } ?: LineIcon("plus", MUTED)) }, LinearLayout.LayoutParams(dp(40), dp(40)))
-            t.addView(label(cn?.let { appLabel(it) } ?: SLOTS[i].label, 17f, Color.WHITE).apply { gravity = Gravity.CENTER; maxLines = 1; setPadding(dp(6), dp(8), dp(6), 0) })
+            t.addView(label(cn?.let { appLabel(it) } ?: SLOTS[i].label, 17f, INK).apply { gravity = Gravity.CENTER; maxLines = 1; setPadding(dp(6), dp(8), dp(6), 0) })
             apps.addView(t, GridLayout.LayoutParams(GridLayout.spec(GridLayout.UNDEFINED), GridLayout.spec(GridLayout.UNDEFINED, 1f)).apply {
                 width = 0; height = dp(100); setMargins(0, 0, dp(12), dp(12)) })
         }
@@ -64,7 +65,7 @@ internal fun HomeActivity.menuPage(): View {
     renderApps()
 
     // ── Android Auto y CarPlay ──
-    inner.addView(label("Android Auto y CarPlay", 17f, Color.WHITE, bold = true).apply { setPadding(0, dp(18), 0, dp(10)) })
+    inner.addView(label("Android Auto y CarPlay", 17f, INK, bold = true).apply { setPadding(0, dp(18), 0, dp(10)) })
     val proj = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
     inner.addView(proj)
     val aa = card(); proj.addView(aa, LinearLayout.LayoutParams(0, -2, 1f).apply { rightMargin = dp(16) })
@@ -76,7 +77,7 @@ internal fun HomeActivity.menuPage(): View {
     }.start()
 
     // ── instalar una app ──
-    inner.addView(label("Instalar una app", 17f, Color.WHITE, bold = true).apply { setPadding(0, dp(18), 0, dp(10)) })
+    inner.addView(label("Instalar una app", 17f, INK, bold = true).apply { setPadding(0, dp(18), 0, dp(10)) })
     val inst = card().apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
     inner.addView(inst, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(8) })
     inst.addView(iconView("usb", ACCENT), LinearLayout.LayoutParams(dp(30), dp(30)))
@@ -92,16 +93,16 @@ private fun HomeActivity.cell() = GridLayout.LayoutParams(GridLayout.spec(GridLa
 
 private fun HomeActivity.tile(ic: String, name: String, go: () -> Unit) = LinearLayout(this).apply {
     orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER; background = round(CARD2, 14); isClickable = true; setOnClickListener { go() }
-    addView(ImageView(context).apply { setImageDrawable(LineIcon(ic, Color.WHITE)) }, LinearLayout.LayoutParams(dp(26), dp(26)))
-    addView(label(name, 16f, Color.WHITE).apply { gravity = Gravity.CENTER; maxLines = 1; setPadding(dp(4), dp(8), dp(4), 0) })
+    addView(ImageView(context).apply { setImageDrawable(LineIcon(ic, INK)) }, LinearLayout.LayoutParams(dp(26), dp(26)))
+    addView(label(name, 16f, INK).apply { gravity = Gravity.CENTER; maxLines = 1; setPadding(dp(4), dp(8), dp(4), 0) })
 }
 
 /** Tarjeta de Android Auto o CarPlay según lo que haya en el coche. */
 private fun HomeActivity.projCard(c: LinearLayout, name: String, ic: String, found: List<Projection.Found>, aa: Boolean) {
     c.removeAllViews()
     val head = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
-    head.addView(iconView(ic, Color.WHITE), LinearLayout.LayoutParams(dp(22), dp(22)))
-    head.addView(label(name, 19f, Color.WHITE, bold = true).apply { setPadding(dp(10), 0, 0, 0) })
+    head.addView(iconView(ic, INK), LinearLayout.LayoutParams(dp(22), dp(22)))
+    head.addView(label(name, 19f, INK, bold = true).apply { setPadding(dp(10), 0, 0, 0) })
     c.addView(head)
     val ready = found.filter { it.state == Projection.State.READY }
     val hidden = found.filter { it.state == Projection.State.HIDDEN && it.system }
@@ -121,7 +122,7 @@ private fun HomeActivity.projCard(c: LinearLayout, name: String, ic: String, fou
             val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
             row.addView(label("Tu coche no trae Android Auto. Hay una app libre, DiAuto, que lo añade. No es oficial de Google ni de BYD y solo se ha probado en pantallas BYD más nuevas, puede no funcionar. Si la quieres, descárgala tú desde su página (escanea el QR) e instálala con «Instalar una app».",
                 15f, TEXT), LinearLayout.LayoutParams(0, -2, 1f))
-            val qr = ImageView(this).apply { setImageBitmap(qrBitmap("https://github.com/shihabal3amri/DiAuto", dp(120))); background = round(Color.WHITE, 8); setPadding(dp(6), dp(6), dp(6), dp(6)) }
+            val qr = ImageView(this).apply { setImageBitmap(qrBitmap("https://github.com/shihabal3amri/DiAuto", dp(120))); background = round(INK, 8); setPadding(dp(6), dp(6), dp(6), dp(6)) }
             row.addView(qr, LinearLayout.LayoutParams(dp(132), dp(132)).apply { leftMargin = dp(14) })
             c.addView(row, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(10) })
         }
@@ -135,7 +136,7 @@ private fun qrBitmap(text: String, sizePx: Int): Bitmap {
     val hints = mapOf(EncodeHintType.MARGIN to 1, EncodeHintType.ERROR_CORRECTION to ErrorCorrectionLevel.M)
     val m = QRCodeWriter().encode(text, BarcodeFormat.QR_CODE, 0, 0, hints)
     val w = m.width
-    val px = IntArray(w * w) { if (m[it % w, it / w]) Color.BLACK else Color.WHITE }
+    val px = IntArray(w * w) { if (m[it % w, it / w]) Color.BLACK else INK }
     val small = Bitmap.createBitmap(px, w, w, Bitmap.Config.ARGB_8888)
     val k = maxOf(1, sizePx / w)
     return Bitmap.createScaledBitmap(small, w * k, w * k, false)
@@ -143,9 +144,9 @@ private fun qrBitmap(text: String, sizePx: Int): Bitmap {
 
 /** Lista de .apk encontrados para instalar (con confirmación). */
 private fun HomeActivity.apkPanel() {
-    val panel = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(0xF20B1016.toInt()); setPadding(dp(28), dp(16), dp(28), dp(16)) }
+    val panel = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(Skins.cur.sheet); setPadding(dp(28), dp(16), dp(28), dp(16)) }
     val head = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
-    head.addView(label("Instalar una app", 22f, Color.WHITE), LinearLayout.LayoutParams(0, -2, 1f))
+    head.addView(label("Instalar una app", 22f, INK), LinearLayout.LayoutParams(0, -2, 1f))
     head.addView(pill("Cerrar") { closeOverlay() })
     panel.addView(head)
     val list = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
@@ -163,7 +164,7 @@ private fun HomeActivity.apkPanel() {
             apks.forEach { a ->
                 val r = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL; background = round(CARD2, 12); setPadding(dp(16), dp(12), dp(16), dp(12)) }
                 val txt = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-                txt.addView(label(a.label, 18f, Color.WHITE))
+                txt.addView(label(a.label, 18f, INK))
                 txt.addView(label(listOfNotNull("versión ${a.version}", a.installed?.let { "tienes la $it" }, a.where,
                     String.format(Locale.getDefault(), "%.1f MB", a.bytes / 1048576.0)).joinToString(" · "), 14f, MUTED).apply { setPadding(0, dp(4), 0, 0) })
                 txt.addView(label(a.file.path, 12f, MUTED))
@@ -176,8 +177,8 @@ private fun HomeActivity.apkPanel() {
 }
 
 private fun HomeActivity.confirmInstall(a: ApkInstaller.Apk) {
-    val panel = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER; setBackgroundColor(0xF20B1016.toInt()); setPadding(dp(80), dp(40), dp(80), dp(40)) }
-    panel.addView(label("¿Instalar ${a.label}?", 28f, Color.WHITE).apply { gravity = Gravity.CENTER })
+    val panel = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER; setBackgroundColor(Skins.cur.sheet); setPadding(dp(80), dp(40), dp(80), dp(40)) }
+    panel.addView(label("¿Instalar ${a.label}?", 28f, INK).apply { gravity = Gravity.CENTER })
     panel.addView(label("Versión ${a.version} · ${a.pkg}\nInstala solo apps que conozcas y de donde te fíes.", 17f, MUTED).apply { gravity = Gravity.CENTER; setPadding(0, dp(14), 0, dp(24)) })
     val btns = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER }
     val yes = pill("Instalar") {}.apply { background = round(ACCENT, 13); setTextColor(ON_ACCENT) }

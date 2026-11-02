@@ -16,6 +16,7 @@ import com.bydlink.carapp.BuildConfigCompat
 import com.bydlink.carapp.camera.CamError
 import com.bydlink.carapp.camera.VideoStore
 import com.bydlink.carapp.service.StateHub
+import com.bydlink.carapp.ui.HomeActivity.Companion.INK
 import com.bydlink.carapp.ui.HomeActivity.Companion.ACCENT
 import com.bydlink.carapp.ui.HomeActivity.Companion.AMBER
 import com.bydlink.carapp.ui.HomeActivity.Companion.CARD2
@@ -242,7 +243,7 @@ private fun HomeActivity.sentryBody(col: LinearLayout) {
     val left = card(); row.addView(left, LinearLayout.LayoutParams(0, -1, 1f).apply { rightMargin = dp(16) })
     left.addView(h3("Centinela"))
     val ic = iconView("shield", MUTED); left.addView(ic, LinearLayout.LayoutParams(dp(54), dp(54)).apply { topMargin = dp(6) })
-    val st = label("…", 32f, Color.WHITE).apply { setPadding(0, dp(10), 0, 0) }; left.addView(st)
+    val st = label("…", 32f, INK).apply { setPadding(0, dp(10), 0, 0) }; left.addView(st)
     left.addView(label("Con el coche aparcado vigila con la cámara: si ve movimiento graba un clip y te avisa en el móvil.", 16f, MUTED)
         .apply { setPadding(0, dp(10), 0, dp(14)) })
     var on: Boolean? = null
@@ -319,7 +320,7 @@ private fun HomeActivity.videoRows(list: LinearLayout, vids: List<VideoStore.Vid
         }
         val (name, color) = kindName(v.kind)
         r.addView(chip(name, color), LinearLayout.LayoutParams(-2, -2).apply { rightMargin = dp(12) })
-        r.addView(label(fmt.format(Date(v.ts)), 16f, Color.WHITE), LinearLayout.LayoutParams(0, -2, 1f))
+        r.addView(label(fmt.format(Date(v.ts)), 16f, INK), LinearLayout.LayoutParams(0, -2, 1f))
         r.addView(label(size(v.bytes), 14f, MUTED))
         list.addView(r, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(8) })
     }
@@ -342,7 +343,7 @@ private fun HomeActivity.playVideo(v: VideoStore.Video) {
     val panel = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(0xF5000000.toInt()); setPadding(dp(24), dp(14), dp(24), dp(14)) }
     val head = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
     val (name, _) = kindName(v.kind)
-    head.addView(label("$name · ${SimpleDateFormat("EEEE d MMM · HH:mm:ss", Locale("es", "ES")).format(Date(v.ts))} · ${size(v.bytes)}", 18f, Color.WHITE),
+    head.addView(label("$name · ${SimpleDateFormat("EEEE d MMM · HH:mm:ss", Locale("es", "ES")).format(Date(v.ts))} · ${size(v.bytes)}", 18f, INK),
         LinearLayout.LayoutParams(0, -2, 1f))
     fun act(action: String, ok: String) {
         val c = StateHub.camera ?: return

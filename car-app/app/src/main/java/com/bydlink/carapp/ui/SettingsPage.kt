@@ -8,6 +8,7 @@ import android.widget.ScrollView
 import android.widget.TextView
 import com.bydlink.carapp.BuildConfigCompat
 import com.bydlink.carapp.service.StateHub
+import com.bydlink.carapp.ui.HomeActivity.Companion.INK
 import com.bydlink.carapp.ui.HomeActivity.Companion.MUTED
 
 /** Ajustes del lanzador: pantalla de inicio, abrir al arrancar, botones del volante y estado de BYDLink. */
@@ -56,7 +57,7 @@ internal fun HomeActivity.settingsPage(): View {
         rows["Nube (móvil)"]?.text = if (StateHub.cloudOk) "Conectada" else "Sin conexión"
         rows["Música"]?.text = if (currentSessions() != null) "Con permiso" else "Sin permiso (se da solo con ADB)"
         rows["Versión"]?.text = BuildConfigCompat.appVersion(this)
-        rows["Nube (móvil)"]?.setTextColor(if (StateHub.cloudOk) Color.WHITE else MUTED)
+        rows["Nube (móvil)"]?.setTextColor(if (StateHub.cloudOk) INK else MUTED)
     }
     return col
 }

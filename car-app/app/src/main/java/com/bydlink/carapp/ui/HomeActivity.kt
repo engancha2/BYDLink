@@ -92,6 +92,7 @@ class HomeActivity : Activity() {
         // El servicio vive aunque no se abra la app (al ser la pantalla de inicio, arranca con el coche).
         try { ContextCompat.startForegroundService(this, Intent(this, MainService::class.java)) } catch (e: Throwable) {}
         portrait = resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT
+        Skins.load(this)
         build()
         // Qué tiene este coche (multimodelo). En su hilo: pregunta al SDK.
         if (BuildConfigCompat.USE_BYD_SDK) Thread {
@@ -111,36 +112,72 @@ class HomeActivity : Activity() {
     override fun onBackPressed() { if (overlay != null) closeOverlay() else if (tab != "inicio") showTab("inicio") }
 
     // ═════════════════════════ estructura ═════════════════════════
-    private fun build() {
-        val root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(BG) }
-        root.addView(topBar(), LinearLayout.LayoutParams(-1, dp(56)))
-        root.addView(View(this).apply { setBackgroundColor(LINE) }, LinearLayout.LayoutParams(-1, 1))
-        content = FrameLayout(this).apply { setPadding(dp(if (portrait) 14 else 24), dp(14), dp(if (portrait) 14 else 24), dp(12)) }
+    /** Monta toda la pantalla con la skin actual (también al cambiar de skin, en [reskin]). */
+    private fun build(first: String? = null) {
+        tabs.clear()
+        val dm = resources.displayMetrics
+        val root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; background = Skins.scene(Skins.cur, dm.widthPixels, dm.heightPixels) }
+        root.addView(topBar(), LinearLayout.LayoutParams(-1, dp(60)))
+        content = FrameLayout(this).apply { setPadding(dp(if (portrait) 14 else 22), dp(2), dp(if (portrait) 14 else 22), dp(12)) }
         root.addView(content, LinearLayout.LayoutParams(-1, 0, 1f))
-        root.addView(View(this).apply { setBackgroundColor(LINE) }, LinearLayout.LayoutParams(-1, 1))
-        root.addView(dock(), LinearLayout.LayoutParams(-1, dp(if (portrait) 150 else 88)))
+        root.addView(dock(), LinearLayout.LayoutParams(-1, dp(if (portrait) 150 else 84)).apply {
+            leftMargin = dp(if (portrait) 12 else 22); rightMargin = leftMargin; bottomMargin = dp(12)
+        })
         val frame = FrameLayout(this).apply { addView(root, FrameLayout.LayoutParams(-1, -1)) }
         setContentView(frame)
-        showTab(intent?.getStringExtra("tab") ?: "inicio", intent?.getStringExtra("sub"))
+        if (first != null) showTab(first) else showTab(intent?.getStringExtra("tab") ?: "inicio", intent?.getStringExtra("sub"))
+    }
+
+    /** Cambia a la skin ya guardada con un círculo que se abre desde el dedo ([x], [y] en píxeles de pantalla). */
+    internal fun reskin(x: Float, y: Float, reopenPicker: Boolean) {
+        val host = window.decorView.findViewById<ViewGroup>(android.R.id.content)
+        val old = host.getChildAt(0)
+        val loc = IntArray(2); old?.getLocationOnScreen(loc)
+        val snap = try {
+            if (old != null && old.width > 0 && old.height > 0) android.graphics.Bitmap.createBitmap(old.width, old.height, android.graphics.Bitmap.Config.ARGB_8888)
+                .also { old.draw(Canvas(it)) } else null
+        } catch (e: Throwable) { null }
+        closeOverlay()
+        build(tab)
+        if (reopenPicker) openSkins()
+        if (snap != null) {
+            val frame = host.getChildAt(0) as FrameLayout
+            val hole = HoleReveal(this, snap, x - loc[0], y - loc[1])
+            frame.addView(hole, FrameLayout.LayoutParams(-1, -1))
+            hole.start { frame.removeView(hole); snap.recycle() }
+        }
     }
 
     // ── barra de arriba ──
     private fun topBar(): View {
         val bar = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL; setPadding(dp(26), 0, dp(26), 0) }
-        bar.addView(ImageView(this).apply { setImageResource(com.bydlink.carapp.R.drawable.ic_bydlink_mark); setOnClickListener { showTab("inicio") } },
+        bar.addView(ImageView(this).apply { setImageDrawable(BrandMark(Skins.cur)); setOnClickListener { showTab("inicio") } },
             LinearLayout.LayoutParams(dp(30), dp(30)).apply { rightMargin = dp(12) })
-        bar.addView(label("BYDLINK", 17f, Color.WHITE, bold = true).apply { letterSpacing = 0.22f; setOnClickListener { showTab("inicio") } })
+        bar.addView(label("BYDLINK", 17f, INK, bold = true).apply { letterSpacing = 0.22f; setOnClickListener { showTab("inicio") } })
         stateChip = badge("…")
         bar.addView(stateChip, LinearLayout.LayoutParams(-2, -2).apply { leftMargin = dp(20) })
         bar.addView(View(this), LinearLayout.LayoutParams(0, 1, 1f))
+        wxIcon = ImageView(this); bar.addView(wxIcon, LinearLayout.LayoutParams(dp(22), dp(22)))
+        wxTxt = label("", 17f, INK).apply { setPadding(dp(8), 0, dp(20), 0); maxLines = 1 }; bar.addView(wxTxt)
         netIcon = ImageView(this); bar.addView(netIcon, LinearLayout.LayoutParams(dp(20), dp(20)).apply { rightMargin = dp(14) })
         cloudIcon = ImageView(this); bar.addView(cloudIcon, LinearLayout.LayoutParams(dp(22), dp(22)).apply { rightMargin = dp(18) })
-        battTop = label("--%", 17f, Color.WHITE, bold = true); bar.addView(battTop)
-        battIcon = ImageView(this).apply { setImageDrawable(LineIcon("battery", Color.WHITE)) }
-        bar.addView(battIcon, LinearLayout.LayoutParams(dp(24), dp(24)).apply { leftMargin = dp(6); rightMargin = dp(22) })
-        bar.addView(TextClock(this).apply { format24Hour = "HH:mm"; format12Hour = "HH:mm"; textSize = 18f; setTextColor(Color.WHITE); typeface = Typeface.DEFAULT_BOLD })
+        battTop = label("--%", 17f, INK, bold = true); bar.addView(battTop)
+        battIcon = ImageView(this).apply { setImageDrawable(LineIcon("battery", INK)) }
+        bar.addView(battIcon, LinearLayout.LayoutParams(dp(24), dp(24)).apply { leftMargin = dp(6); rightMargin = dp(18) })
+        // Botón de skins: una rueda con los colores de la skin actual.
+        val wheel = View(this).apply {
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.OVAL; setGradientType(GradientDrawable.SWEEP_GRADIENT)
+                setColors(intArrayOf(ACCENT, ACCENT2, OK, ACCENT)); setStroke(dp(2), INK)
+            }
+            isClickable = true; contentDescription = "Cambiar skin"; setOnClickListener { openSkins() }
+        }
+        bar.addView(wheel, LinearLayout.LayoutParams(dp(32), dp(32)).apply { rightMargin = dp(18) })
+        bar.addView(TextClock(this).apply { format24Hour = "HH:mm"; format12Hour = "HH:mm"; textSize = 18f; setTextColor(INK); typeface = Typeface.DEFAULT_BOLD })
         return bar
     }
+    private lateinit var wxIcon: ImageView
+    private lateinit var wxTxt: TextView
 
     /** "P · Aparcado", "D · 52 km/h", "Cargando 7,2 kW"… */
     internal fun stateText(s: CarState?): String = when {
@@ -156,15 +193,26 @@ class HomeActivity : Activity() {
         stateChip.text = stateText(s)
         val soc = s?.soc
         battTop.text = soc?.let { "$it%" } ?: "--%"
-        battIcon.setImageDrawable(LineIcon("battery", when { soc == null -> MUTED; soc <= 15 -> RED; soc <= 30 -> AMBER; else -> Color.WHITE }))
+        battIcon.setImageDrawable(LineIcon("battery", when { soc == null -> MUTED; soc <= 15 -> RED; soc <= 30 -> AMBER; else -> INK }))
         val cm = getSystemService(ConnectivityManager::class.java)
         val nc = try { cm?.getNetworkCapabilities(cm.activeNetwork) } catch (e: Throwable) { null }
         netIcon.setImageDrawable(when {
-            nc == null -> LineIcon("signal", 0x55FFFFFF)
-            nc.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> LineIcon("wifi", Color.WHITE)
-            else -> LineIcon("signal", Color.WHITE)
+            nc == null -> LineIcon("signal", MUTED)
+            nc.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> LineIcon("wifi", INK)
+            else -> LineIcon("signal", INK)
         })
-        cloudIcon.setImageDrawable(LineIcon("cloud", if (StateHub.cloudOk) ACCENT else 0x55FFFFFF))
+        cloudIcon.setImageDrawable(LineIcon("cloud", if (StateHub.cloudOk) ACCENT else MUTED))
+        // El tiempo, arriba (Open-Meteo en la posición del coche; si no, la temperatura que mide el coche).
+        val wx = Weather.last
+        val wxText = when {
+            wx != null -> "${Math.round(wx.temp)}°" + (if (!portrait) wx.place?.let { " $it" } ?: "" else "")
+            s?.outTemp != null -> "${s.outTemp}°"
+            else -> ""
+        }
+        if (wxTxt.text.toString() != wxText) {
+            wxTxt.text = wxText
+            wxIcon.setImageDrawable(if (wxText.isEmpty()) null else LineIcon(wx?.icon ?: "cloud", if (wx?.icon == "sun") AMBER else INK))
+        }
     }
 
     // ── barra de abajo: clima a mano + pestañas ──
@@ -175,7 +223,8 @@ class HomeActivity : Activity() {
     private fun dock(): View {
         val bar = LinearLayout(this).apply {
             orientation = if (portrait) LinearLayout.VERTICAL else LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL
-            setBackgroundColor(DOCK); setPadding(dp(16), dp(10), dp(16), dp(10))
+            background = Skins.glass(Skins.cur, dp(26).toFloat(), maxOf(1, dp(1))); setPadding(dp(12), dp(10), dp(12), dp(10))
+            if (!Skins.cur.dark) elevation = dp(3).toFloat()
         }
         val clima = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
         fun stepper(icon: String, onIcon: () -> Unit, minus: () -> Unit, plus: () -> Unit): TextView {
@@ -183,7 +232,7 @@ class HomeActivity : Activity() {
             box.addView(ImageView(this).apply { setImageDrawable(LineIcon(icon, MUTED)); setPadding(dp(14), dp(18), dp(6), dp(18)); isClickable = true; setOnClickListener { onIcon() } },
                 LinearLayout.LayoutParams(dp(40), -1))
             box.addView(iconBtn("minus", minus), LinearLayout.LayoutParams(dp(42), -1))
-            val v = label("--", 22f, Color.WHITE, bold = true).apply { gravity = Gravity.CENTER; isClickable = true; setOnClickListener { onIcon() } }
+            val v = label("--", 22f, INK, bold = true).apply { gravity = Gravity.CENTER; isClickable = true; setOnClickListener { onIcon() } }
             box.addView(v, LinearLayout.LayoutParams(dp(54), -1))
             box.addView(iconBtn("plus", plus), LinearLayout.LayoutParams(dp(42), -1))
             clima.addView(box, LinearLayout.LayoutParams(-2, -1).apply { rightMargin = dp(10) })
@@ -219,13 +268,13 @@ class HomeActivity : Activity() {
         val c = StateHub.state?.climate
         climaBox.visibility = if (caps["climate"] == false) View.GONE else View.VISIBLE
         tempTxt.text = c?.temp?.let { "$it°" } ?: "--"
-        tempTxt.setTextColor(if (c?.on == true) Color.WHITE else MUTED)
+        tempTxt.setTextColor(if (c?.on == true) INK else MUTED)
         fanTxt.text = when { c == null -> "--"; c.auto == true -> "A"; else -> "${c.fan ?: 0}" }
-        fanTxt.setTextColor(if (c?.on == true) Color.WHITE else MUTED)
+        fanTxt.setTextColor(if (c?.on == true) INK else MUTED)
     }
 
     private fun iconBtn(kind: String, onClick: () -> Unit) = ImageView(this).apply {
-        setImageDrawable(LineIcon(kind, Color.WHITE)); setPadding(dp(11), dp(18), dp(11), dp(18)); isClickable = true; setOnClickListener { onClick() }
+        setImageDrawable(LineIcon(kind, INK)); setPadding(dp(11), dp(18), dp(11), dp(18)); isClickable = true; setOnClickListener { onClick() }
     }
 
     // ═════════════════════════ pestañas ═════════════════════════
@@ -237,9 +286,9 @@ class HomeActivity : Activity() {
         val lit = if (k in tabs) k else "menu"
         tabs.forEach { (key2, v) ->
             val on = key2 == lit
-            v.first.background = round(if (on) ACCENT else TAB_BG, 14)
-            (v.first.getChildAt(1) as TextView).setTextColor(if (on) ON_ACCENT else TAB_TXT)
-            v.second.setImageDrawable(LineIcon(TABS.first { it.first == key2 }.second.second, if (on) ON_ACCENT else TAB_TXT))
+            v.first.background = if (on) Skins.tinted(Skins.cur, dp(16).toFloat(), maxOf(1, dp(1))) else null
+            (v.first.getChildAt(1) as TextView).setTextColor(if (on) INK else TAB_TXT)
+            v.second.setImageDrawable(LineIcon(TABS.first { it.first == key2 }.second.second, if (on) ACCENT else TAB_TXT))
         }
         refreshTab = null; onMusic = null
         leaveTab?.invoke(); leaveTab = null
@@ -256,7 +305,7 @@ class HomeActivity : Activity() {
     /** Cabecera de página como el boceto: título y, si hay, sub-pestañas. Devuelve la sub-pestaña elegida. */
     internal fun pageHead(parent: LinearLayout, title: String, subs: List<Pair<String, String>> = emptyList()): String {
         val cur = subOf[tab]?.takeIf { s -> subs.any { it.first == s } } ?: subs.firstOrNull()?.first ?: ""
-        parent.addView(label(title, 26f, Color.WHITE).apply { setPadding(0, 0, 0, dp(10)) })
+        parent.addView(label(title, 26f, INK).apply { setPadding(0, 0, 0, dp(10)) })
         if (subs.isNotEmpty()) {
             val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
             subs.forEach { (k, name) ->
@@ -377,9 +426,9 @@ class HomeActivity : Activity() {
     /** Elegir la app de un acceso (pulsación larga en Menú → Tus aplicaciones). */
     internal fun pickApp(slot: Int, then: () -> Unit) {
         closeOverlay()
-        val panel = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(0xF20B1016.toInt()); setPadding(dp(28), dp(16), dp(28), dp(16)) }
+        val panel = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(Skins.cur.sheet); setPadding(dp(28), dp(16), dp(28), dp(16)) }
         val head = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
-        head.addView(label("Elige la app para «${SLOTS[slot].label}»", 22f, Color.WHITE), LinearLayout.LayoutParams(0, -2, 1f))
+        head.addView(label("Elige la app para «${SLOTS[slot].label}»", 22f, INK), LinearLayout.LayoutParams(0, -2, 1f))
         if (prefs.contains("slot$slot")) head.addView(pill("Por defecto") { prefs.edit().remove("slot$slot").apply(); closeOverlay(); then() })
         head.addView(pill("Cerrar") { closeOverlay() }, LinearLayout.LayoutParams(-2, -2).apply { leftMargin = dp(10) })
         panel.addView(head)
@@ -443,9 +492,11 @@ class HomeActivity : Activity() {
     }
 
     // ═════════════════════════ piezas ═════════════════════════
+    /** Tarjeta de cristal de la skin. */
     internal fun card() = LinearLayout(this).apply {
-        orientation = LinearLayout.VERTICAL; setPadding(dp(18), dp(16), dp(18), dp(16))
-        background = round(CARD, 18)
+        orientation = LinearLayout.VERTICAL; setPadding(dp(20), dp(18), dp(20), dp(18))
+        background = Skins.glass(Skins.cur, dp(22).toFloat(), maxOf(1, dp(1)))
+        if (!Skins.cur.dark) elevation = dp(2).toFloat()
         isClickable = true
     }
 
@@ -454,10 +505,10 @@ class HomeActivity : Activity() {
     }
 
     /** Título de un panel ("Estado de carga", "Consumo"…). */
-    internal fun h3(t: String) = label(t, 17f, Color.WHITE, bold = true).apply { setPadding(0, 0, 0, dp(8)) }
+    internal fun h3(t: String) = label(t, 17f, INK, bold = true).apply { setPadding(0, 0, 0, dp(8)) }
 
     internal fun pill(t: String, onClick: () -> Unit) = TextView(this).apply {
-        text = t; textSize = 16f; setTextColor(Color.WHITE); gravity = Gravity.CENTER; setPadding(dp(16), dp(10), dp(16), dp(10))
+        text = t; textSize = 16f; setTextColor(INK); gravity = Gravity.CENTER; setPadding(dp(16), dp(10), dp(16), dp(10))
         background = round(CARD2, 13); isClickable = true; setOnClickListener { onClick() }
     }
 
@@ -465,11 +516,11 @@ class HomeActivity : Activity() {
     internal fun iconPill(icon: String, t: String, onClick: () -> Unit) = LinearLayout(this).apply {
         orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER; background = round(CARD2, 13); isClickable = true
         setPadding(dp(14), 0, dp(14), 0); setOnClickListener { onClick() }
-        addView(ImageView(context).apply { setImageDrawable(LineIcon(icon, Color.WHITE)) }, LinearLayout.LayoutParams(dp(20), dp(20)))
-        addView(label(t, 16f, Color.WHITE).apply { setPadding(dp(10), 0, 0, 0); maxLines = 1 })
+        addView(ImageView(context).apply { setImageDrawable(LineIcon(icon, INK)) }, LinearLayout.LayoutParams(dp(20), dp(20)))
+        addView(label(t, 16f, INK).apply { setPadding(dp(10), 0, 0, 0); maxLines = 1 })
     }
 
-    internal fun active(v: TextView, on: Boolean) { v.background = round(if (on) ACCENT else CARD2, 13); v.setTextColor(if (on) ON_ACCENT else Color.WHITE) }
+    internal fun active(v: TextView, on: Boolean) { v.background = round(if (on) ACCENT else CARD2, 13); v.setTextColor(if (on) ON_ACCENT else INK) }
 
     internal fun chip(t: String, color: Int) = TextView(this).apply {
         text = t; textSize = 14f; setTextColor(color); setPadding(dp(12), dp(7), dp(12), dp(7)); background = round(CARD2, 10); maxLines = 1
@@ -484,7 +535,7 @@ class HomeActivity : Activity() {
     internal fun kv(parent: LinearLayout, k: String): TextView {
         val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL; setPadding(0, dp(10), 0, dp(10)) }
         row.addView(label(k, 16f, TEXT), LinearLayout.LayoutParams(0, -2, 1f))
-        val v = label("--", 16f, Color.WHITE).apply { gravity = Gravity.END }; row.addView(v)
+        val v = label("--", 16f, INK).apply { gravity = Gravity.END }; row.addView(v)
         parent.addView(row)
         parent.addView(View(this).apply { setBackgroundColor(LINE2) }, LinearLayout.LayoutParams(-1, 1))
         return v
@@ -525,7 +576,7 @@ class HomeActivity : Activity() {
     }
 
     /** Iconos de música dibujados (sin depender de fuentes del sistema). */
-    internal class MediaIcon(private val kind: Int, color: Int = Color.WHITE) : Drawable() {
+    internal class MediaIcon(private val kind: Int, color: Int = INK) : Drawable() {
         companion object { const val PREV = 0; const val PLAY = 1; const val PAUSE = 2; const val NEXT = 3; const val NOTE = 4 }
         private val p = Paint(Paint.ANTI_ALIAS_FLAG).apply { this.color = color }
         override fun draw(c: Canvas) {
@@ -549,25 +600,29 @@ class HomeActivity : Activity() {
     }
 
     internal companion object {
-        // Colores del boceto (byd-launcher-demo.html): azul marino, paneles, acento verde agua.
-        val BG = 0xFF0B1016.toInt()
-        val DOCK = 0xFF101820.toInt()
-        val CARD = 0xFF151E28.toInt()
-        val CARD2 = 0xFF202C38.toInt()
-        val TAB_BG = 0xFF1A2531.toInt()
-        val TAB_TXT = 0xFFB4C2CF.toInt()
-        val LINE = 0xFF24303C.toInt()
-        val LINE2 = 0xFF27323D.toInt()
-        val METER_BG = 0xFF2C3C47.toInt()
-        val TEXT = 0xFFD3DDE7.toInt()
-        val MUTED = 0xFF93A5B6.toInt()
-        val ACCENT = 0xFF74E1CE.toInt()
-        val ON_ACCENT = 0xFF082D28.toInt()
-        val ACCENT_DIM = 0xFF203A39.toInt()
-        val BADGE_BG = 0xFF1D3835.toInt()
-        val BADGE_TXT = 0xFFA4F0DE.toInt()
-        val AMBER = 0xFFF2C063.toInt()
-        val WARN_BG = 0xFF3A3123.toInt()
-        val RED = 0xFFFF6764.toInt()
+        // Colores de la skin elegida (Skins.kt). Mismos nombres de siempre para que todas las páginas cambien con la skin.
+        private val P: Palette get() = Skins.cur
+        val BG: Int get() = P.base.last()
+        val DOCK: Int get() = P.glass
+        val CARD: Int get() = P.glass
+        val CARD2: Int get() = P.chipHi
+        val TAB_BG: Int get() = Color.TRANSPARENT
+        val TAB_TXT: Int get() = P.ink2
+        val LINE: Int get() = P.glassLine
+        val LINE2: Int get() = P.divider
+        val METER_BG: Int get() = P.chipHi
+        val INK: Int get() = P.ink
+        val TEXT: Int get() = P.ink2
+        val MUTED: Int get() = P.ink3
+        val ACCENT: Int get() = P.accent
+        val ACCENT2: Int get() = P.accent2
+        val ON_ACCENT: Int get() = P.onAccent
+        val ACCENT_DIM: Int get() = Skins.alpha(P.accent, .22f)
+        val BADGE_BG: Int get() = Skins.alpha(P.accent, .16f)
+        val BADGE_TXT: Int get() = P.accent
+        val AMBER: Int get() = P.warn
+        val WARN_BG: Int get() = Skins.alpha(P.warn, .16f)
+        val RED: Int get() = P.alert
+        val OK: Int get() = P.ok
     }
 }

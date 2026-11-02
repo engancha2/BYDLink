@@ -6,6 +6,7 @@ import android.view.View
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import com.bydlink.carapp.service.StateHub
+import com.bydlink.carapp.ui.HomeActivity.Companion.INK
 import com.bydlink.carapp.ui.HomeActivity.Companion.ACCENT
 import com.bydlink.carapp.ui.HomeActivity.Companion.AMBER
 import com.bydlink.carapp.ui.HomeActivity.Companion.MUTED
@@ -37,9 +38,9 @@ private fun HomeActivity.summaryBody(col: LinearLayout) {
     val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
     col.addView(row, LinearLayout.LayoutParams(-1, -2))
     val a = card(); row.addView(a, LinearLayout.LayoutParams(0, -2, 1.15f).apply { rightMargin = dp(16) })
-    a.addView(label("Estado de carga", 17f, Color.WHITE, bold = true))
+    a.addView(label("Estado de carga", 17f, INK, bold = true))
     val big = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.BOTTOM }
-    val pct = label("--%", 46f, Color.WHITE).apply { includeFontPadding = false }; big.addView(pct, LinearLayout.LayoutParams(0, -2, 1f))
+    val pct = label("--%", 46f, INK).apply { includeFontPadding = false }; big.addView(pct, LinearLayout.LayoutParams(0, -2, 1f))
     val km = label("-- km", 36f, ACCENT).apply { includeFontPadding = false }; big.addView(km)
     a.addView(big, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(4) })
     val bar = Bar(ACCENT); a.addView(bar, LinearLayout.LayoutParams(-1, dp(7)).apply { topMargin = dp(10); bottomMargin = dp(6) })
@@ -68,14 +69,14 @@ private fun HomeActivity.summaryBody(col: LinearLayout) {
             else -> "${pw ?: 0} kW · Aparcado"
         }
         aux.text = s?.aux12v?.let { "${fmt1(it)} V · " + if (it < 12.0) "Baja" else "Normal" } ?: "--"
-        aux.setTextColor(if ((s?.aux12v ?: 13.0) < 12.0) AMBER else Color.WHITE)
+        aux.setTextColor(if ((s?.aux12v ?: 13.0) < 12.0) AMBER else INK)
         // Instantáneo: potencia / velocidad (solo en marcha y consumiendo).
         inst.text = if (s != null && s.speed >= 5 && pw != null && pw > 0) "${fmt1(pw * 100.0 / s.speed)} kWh/100 km" else "-- kWh/100 km"
         avg.text = s?.consumptionKwh100?.let { "${fmt1(it)} kWh/100 km" } ?: "--"
         last.text = s?.lastTripKwh100?.let { "${fmt1(it)} kWh/100 km" } ?: "--"
         total.text = s?.totalEnergyKwh?.let { String.format(Locale.getDefault(), "%,d kWh", it.toInt()) } ?: "--"
         regen.text = if (pw != null && pw < 0) "${-pw} kW" else "0 kW"
-        regen.setTextColor(if (pw != null && pw < 0) ACCENT else Color.WHITE)
+        regen.setTextColor(if (pw != null && pw < 0) ACCENT else INK)
     }
 }
 
@@ -84,7 +85,7 @@ private fun HomeActivity.chargeBody(col: LinearLayout) {
     col.addView(row, LinearLayout.LayoutParams(-1, -2))
     val chg = card(); row.addView(chg, LinearLayout.LayoutParams(0, -2, 1.3f).apply { rightMargin = dp(16) })
     val cHead = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
-    val cTitle = label("Carga", 17f, Color.WHITE, bold = true); cHead.addView(cTitle, LinearLayout.LayoutParams(0, -2, 1f))
+    val cTitle = label("Carga", 17f, INK, bold = true); cHead.addView(cTitle, LinearLayout.LayoutParams(0, -2, 1f))
     val cPower = label("", 32f, ACCENT); cHead.addView(cPower)
     chg.addView(cHead)
     val cSub = label("", 16f, TEXT).apply { setPadding(0, dp(6), 0, 0) }; chg.addView(cSub)
@@ -147,7 +148,7 @@ private fun HomeActivity.diagBody(col: LinearLayout) {
         amp.text = s?.bmsAmp?.let { "${fmt1(abs(it))} A" + if (it < -0.2) " (entrando)" else if (it > 0.2) " (saliendo)" else "" } ?: "--"
         bms.text = when (s?.bmsState) { 0 -> "Lista"; 1 -> "Cargando"; 2 -> "Carga terminada"; 3 -> "Descargando"; 4 -> "Carga parada"; 15 -> "En reposo"; null -> "--"; else -> "Código ${s.bmsState}" }
         v12.text = s?.aux12v?.let { "${fmt1(it)} V" } ?: "--"
-        v12.setTextColor(if ((s?.aux12v ?: 13.0) < 12.0) AMBER else Color.WHITE)
+        v12.setTextColor(if ((s?.aux12v ?: 13.0) < 12.0) AMBER else INK)
         pst.text = when (s?.powerState) { "OFF" -> "Apagado"; "ACC" -> "Accesorios"; "ON", "OK" -> "Encendido"; null -> "--"; else -> s.powerState }
         val age = (System.currentTimeMillis() - StateHub.readAt) / 60000
         sdk.text = when { s == null -> "Esperando…"; !StateHub.sdkOk -> "Dormido (hace ${dur(age.toInt())})"; else -> "Al día" }

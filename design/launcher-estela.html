@@ -9,7 +9,8 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Michroma&family=Sora:wght@200;300;400;500;600&display=swap">
 <style>
 /* Layout: one 16:10 car screen (1600x1000 design px; 1000x1600 when the screen is rotated) scaled to fit.
-   The 3D car is the stage; navigation and music float as glass at the edges; a floating dock runs below. */
+   Glass cards on a still, skin-tinted backdrop: navigation left, energy + security + trip in the middle, music right, dock below.
+   Nothing animates on its own: no WebGL, no blur, no loops. Motion only answers a touch. */
 :root {
   /* page around the device (dark-first) */
   --page: #04070b; --page-fg: #c9d4de; --page-muted: #75828f; --page-line: rgba(201, 212, 222, .14);
@@ -25,49 +26,137 @@
 @media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) { --page: #dde3e9; --page-fg: #18222c; --page-muted: #5f6b77; --page-line: rgba(24, 34, 44, .14); color-scheme: light } }
 :root[data-theme="light"] { --page: #dde3e9; --page-fg: #18222c; --page-muted: #5f6b77; --page-line: rgba(24, 34, 44, .14); color-scheme: light }
 
-/* ── skins: every launcher color lives here ── */
+/* ── skins: every launcher color and the still backdrop live here ── */
 .screen {
-  --bg-a: #02131c; --bg-b: #052636;
-  --ink: #e9fbff; --ink-2: rgba(214, 240, 247, .70); --ink-3: rgba(214, 240, 247, .44);
+  --bg-a: #02131c; --bg-b: #0a3346;
+  --ink: #e9fbff; --ink-2: rgba(214, 240, 247, .72); --ink-3: rgba(214, 240, 247, .46);
   --accent: #57f0e0; --accent-2: #4c8dff; --on-accent: #00292b;
-  --glass: rgba(10, 46, 62, .34); --glass-hi: rgba(190, 250, 255, .17); --glass-line: rgba(170, 240, 255, .14);
-  --shadow: rgba(0, 8, 14, .55); --glow: rgba(87, 240, 224, .45);
+  --glass: rgba(12, 52, 70, .52); --glass-hi: rgba(190, 250, 255, .14); --glass-line: rgba(170, 240, 255, .14);
+  --shadow: rgba(0, 8, 14, .5); --glow: rgba(87, 240, 224, .38);
   --warn: #ffb547; --alert: #ff5a5f; --ok: #4ade80;
-  --chip: rgba(255, 255, 255, .06); --chip-hi: rgba(255, 255, 255, .12);
+  --chip: rgba(255, 255, 255, .06); --chip-hi: rgba(255, 255, 255, .11);
+  --num-glow: none;
+  --scene: radial-gradient(70% 55% at 50% -12%, rgba(87, 240, 224, .20), transparent 70%),
+           radial-gradient(55% 60% at 105% 105%, rgba(76, 141, 255, .18), transparent 70%),
+           linear-gradient(180deg, var(--bg-b), var(--bg-a) 75%);
 }
 .screen[data-skin="aurora"] {
-  --bg-a: #040811; --bg-b: #0b1528; --ink: #eef6ff; --ink-2: rgba(220, 232, 255, .70); --ink-3: rgba(220, 232, 255, .44);
+  --bg-a: #040811; --bg-b: #0d1a31; --ink: #eef6ff; --ink-2: rgba(220, 232, 255, .72); --ink-3: rgba(220, 232, 255, .46);
   --accent: #74e1ce; --accent-2: #9a86ff; --on-accent: #04261f;
-  --glass: rgba(16, 26, 48, .36); --glass-hi: rgba(200, 230, 255, .16); --glass-line: rgba(190, 220, 255, .13);
-  --shadow: rgba(0, 3, 10, .55); --glow: rgba(116, 225, 206, .42);
+  --glass: rgba(18, 28, 52, .56); --glass-hi: rgba(200, 230, 255, .13); --glass-line: rgba(190, 220, 255, .13);
+  --shadow: rgba(0, 3, 10, .5); --glow: rgba(116, 225, 206, .36);
+  --scene: radial-gradient(60% 30% at 22% 8%, rgba(116, 225, 206, .20), transparent 72%),
+           radial-gradient(55% 28% at 78% 18%, rgba(154, 134, 255, .20), transparent 72%),
+           linear-gradient(180deg, var(--bg-b), var(--bg-a) 70%);
 }
 .screen[data-skin="horizon"] {
-  --bg-a: #0a0d1a; --bg-b: #26182b; --ink: #fff6ec; --ink-2: rgba(255, 236, 214, .70); --ink-3: rgba(255, 236, 214, .44);
+  --bg-a: #0a0d1a; --bg-b: #26182b; --ink: #fff6ec; --ink-2: rgba(255, 236, 214, .72); --ink-3: rgba(255, 236, 214, .46);
   --accent: #f2c27b; --accent-2: #ff7a5a; --on-accent: #2b1a07;
-  --glass: rgba(42, 25, 40, .34); --glass-hi: rgba(255, 220, 180, .17); --glass-line: rgba(255, 214, 170, .14);
-  --shadow: rgba(8, 4, 10, .55); --glow: rgba(242, 194, 123, .42);
+  --glass: rgba(44, 26, 42, .55); --glass-hi: rgba(255, 220, 180, .14); --glass-line: rgba(255, 214, 170, .14);
+  --shadow: rgba(8, 4, 10, .5); --glow: rgba(242, 194, 123, .36);
+  --scene: radial-gradient(40% 22% at 50% 58%, rgba(255, 154, 90, .34), transparent 75%),
+           linear-gradient(180deg, #0b0e1c 0%, #2a1a30 48%, #5a2c33 57%, #1a1222 60%, #0a0d1a 100%);
 }
 .screen[data-skin="pulse"] {
-  --bg-a: #050b07; --bg-b: #0c1b11; --ink: #f1ffe9; --ink-2: rgba(225, 245, 215, .68); --ink-3: rgba(225, 245, 215, .42);
+  --bg-a: #050b07; --bg-b: #0f2216; --ink: #f1ffe9; --ink-2: rgba(225, 245, 215, .70); --ink-3: rgba(225, 245, 215, .44);
   --accent: #c6f36b; --accent-2: #3cf0a0; --on-accent: #1b2a04;
-  --glass: rgba(18, 34, 22, .38); --glass-hi: rgba(220, 255, 200, .14); --glass-line: rgba(200, 255, 170, .12);
-  --shadow: rgba(0, 5, 2, .55); --glow: rgba(198, 243, 107, .40);
+  --glass: rgba(20, 38, 25, .58); --glass-hi: rgba(220, 255, 200, .12); --glass-line: rgba(200, 255, 170, .12);
+  --shadow: rgba(0, 5, 2, .5); --glow: rgba(198, 243, 107, .34);
+  --scene: radial-gradient(50% 45% at 100% 0%, rgba(198, 243, 107, .14), transparent 70%),
+           radial-gradient(45% 45% at 0% 100%, rgba(60, 240, 160, .10), transparent 70%),
+           linear-gradient(180deg, var(--bg-b), var(--bg-a) 70%);
 }
 .screen[data-skin="porcelana"] {
-  --bg-a: #f4f6f9; --bg-b: #dfe5ec; --ink: #0f1724; --ink-2: rgba(15, 23, 36, .66); --ink-3: rgba(15, 23, 36, .44);
+  --bg-a: #e9eef4; --bg-b: #f7f9fb; --ink: #0f1724; --ink-2: rgba(15, 23, 36, .68); --ink-3: rgba(15, 23, 36, .46);
   --accent: #2557ff; --accent-2: #6f95ff; --on-accent: #ffffff;
-  --glass: rgba(255, 255, 255, .50); --glass-hi: rgba(255, 255, 255, .95); --glass-line: rgba(255, 255, 255, .80);
-  --shadow: rgba(30, 45, 70, .16); --glow: rgba(37, 87, 255, .26);
-  --warn: #b86a00; --alert: #d6262c; --ok: #13873e;
+  --glass: rgba(255, 255, 255, .66); --glass-hi: rgba(255, 255, 255, .95); --glass-line: rgba(255, 255, 255, .85);
+  --shadow: rgba(30, 45, 70, .14); --glow: rgba(37, 87, 255, .24);
+  --warn: #a35f00; --alert: #d6262c; --ok: #13873e;
   --chip: rgba(15, 23, 36, .05); --chip-hi: rgba(15, 23, 36, .09);
+  --scene: radial-gradient(60% 60% at 0% 0%, #ffffff, transparent 70%),
+           radial-gradient(50% 50% at 100% 100%, rgba(37, 87, 255, .10), transparent 70%),
+           linear-gradient(160deg, var(--bg-b), var(--bg-a));
 }
 .screen[data-skin="forma"] {
-  --bg-a: #f3efe9; --bg-b: #e2dace; --ink: #1d1a22; --ink-2: rgba(29, 26, 34, .66); --ink-3: rgba(29, 26, 34, .44);
+  --bg-a: #e6dfd4; --bg-b: #f6f2ec; --ink: #1d1a22; --ink-2: rgba(29, 26, 34, .68); --ink-3: rgba(29, 26, 34, .46);
   --accent: #6a55e0; --accent-2: #e8956a; --on-accent: #ffffff;
-  --glass: rgba(255, 252, 248, .48); --glass-hi: rgba(255, 255, 255, .92); --glass-line: rgba(255, 255, 255, .74);
-  --shadow: rgba(60, 40, 30, .15); --glow: rgba(106, 85, 224, .24);
-  --warn: #a8600a; --alert: #c8302f; --ok: #1d7f45;
+  --glass: rgba(255, 252, 248, .64); --glass-hi: rgba(255, 255, 255, .92); --glass-line: rgba(255, 255, 255, .8);
+  --shadow: rgba(60, 40, 30, .13); --glow: rgba(106, 85, 224, .22);
+  --warn: #9a5708; --alert: #c8302f; --ok: #1d7f45;
   --chip: rgba(29, 26, 34, .05); --chip-hi: rgba(29, 26, 34, .09);
+  --scene: radial-gradient(55% 50% at 100% 0%, rgba(232, 149, 106, .16), transparent 70%),
+           radial-gradient(50% 50% at 0% 100%, rgba(106, 85, 224, .10), transparent 70%),
+           linear-gradient(170deg, var(--bg-b), var(--bg-a));
+}
+/* fluorescent skins: neon accent, card edges lit in the accent, numbers with a soft glow (all still) */
+.screen[data-skin="neon"] {
+  --bg-a: #07030f; --bg-b: #1a0b2e; --ink: #fdf3ff; --ink-2: rgba(250, 225, 255, .74); --ink-3: rgba(250, 225, 255, .48);
+  --accent: #ff2bd6; --accent-2: #00e5ff; --on-accent: #2a0022;
+  --glass: rgba(30, 12, 50, .58); --glass-hi: rgba(255, 180, 245, .14); --glass-line: rgba(255, 43, 214, .32);
+  --shadow: rgba(5, 0, 12, .55); --glow: rgba(255, 43, 214, .52); --num-glow: 0 0 26px rgba(255, 43, 214, .55);
+  --scene: radial-gradient(55% 50% at 0% 0%, rgba(255, 43, 214, .28), transparent 70%),
+           radial-gradient(55% 55% at 100% 100%, rgba(0, 229, 255, .22), transparent 70%),
+           linear-gradient(180deg, var(--bg-b), var(--bg-a) 75%);
+}
+.screen[data-skin="acido"] {
+  --bg-a: #030803; --bg-b: #0c1d0d; --ink: #f4ffe9; --ink-2: rgba(230, 255, 215, .74); --ink-3: rgba(230, 255, 215, .48);
+  --accent: #39ff14; --accent-2: #f5ff00; --on-accent: #062200;
+  --glass: rgba(12, 32, 14, .6); --glass-hi: rgba(200, 255, 180, .12); --glass-line: rgba(57, 255, 20, .28);
+  --shadow: rgba(0, 6, 0, .55); --glow: rgba(57, 255, 20, .46); --num-glow: 0 0 26px rgba(57, 255, 20, .5);
+  --scene: radial-gradient(55% 50% at 100% 0%, rgba(57, 255, 20, .22), transparent 70%),
+           radial-gradient(50% 50% at 0% 100%, rgba(245, 255, 0, .14), transparent 70%),
+           linear-gradient(180deg, var(--bg-b), var(--bg-a) 75%);
+}
+.screen[data-skin="mango"] {
+  --bg-a: #0f0603; --bg-b: #2a0e07; --ink: #fff4ec; --ink-2: rgba(255, 232, 214, .74); --ink-3: rgba(255, 232, 214, .48);
+  --accent: #ff7a00; --accent-2: #ff1f8f; --on-accent: #2a1000;
+  --glass: rgba(48, 18, 10, .58); --glass-hi: rgba(255, 200, 170, .13); --glass-line: rgba(255, 122, 0, .3);
+  --shadow: rgba(10, 3, 0, .55); --glow: rgba(255, 122, 0, .48); --num-glow: 0 0 26px rgba(255, 122, 0, .5);
+  --scene: radial-gradient(55% 50% at 0% 0%, rgba(255, 122, 0, .26), transparent 70%),
+           radial-gradient(55% 55% at 100% 100%, rgba(255, 31, 143, .2), transparent 70%),
+           linear-gradient(180deg, var(--bg-b), var(--bg-a) 75%);
+}
+.screen[data-skin="laser"] {
+  --bg-a: #03041a; --bg-b: #0b1446; --ink: #eef2ff; --ink-2: rgba(220, 228, 255, .74); --ink-3: rgba(220, 228, 255, .48);
+  --accent: #00b3ff; --accent-2: #b14dff; --on-accent: #001a2b;
+  --glass: rgba(14, 22, 70, .58); --glass-hi: rgba(190, 210, 255, .13); --glass-line: rgba(0, 179, 255, .3);
+  --shadow: rgba(0, 2, 14, .55); --glow: rgba(0, 179, 255, .48); --num-glow: 0 0 26px rgba(0, 179, 255, .5);
+  --scene: radial-gradient(60% 50% at 50% -10%, rgba(0, 179, 255, .26), transparent 70%),
+           radial-gradient(55% 55% at 100% 100%, rgba(177, 77, 255, .22), transparent 70%),
+           linear-gradient(180deg, var(--bg-b), var(--bg-a) 75%);
+}
+.screen[data-skin="rubi"] {
+  --bg-a: #0e0307; --bg-b: #2a0714; --ink: #fff0f3; --ink-2: rgba(255, 222, 230, .74); --ink-3: rgba(255, 222, 230, .48);
+  --accent: #ff1f4b; --accent-2: #ff9100; --on-accent: #2a0008;
+  --glass: rgba(46, 10, 22, .58); --glass-hi: rgba(255, 180, 195, .13); --glass-line: rgba(255, 31, 75, .3);
+  --shadow: rgba(10, 0, 4, .55); --glow: rgba(255, 31, 75, .48); --num-glow: 0 0 26px rgba(255, 31, 75, .5);
+  --scene: radial-gradient(55% 50% at 100% 0%, rgba(255, 31, 75, .26), transparent 70%),
+           radial-gradient(50% 50% at 0% 100%, rgba(255, 145, 0, .16), transparent 70%),
+           linear-gradient(180deg, var(--bg-b), var(--bg-a) 75%);
+}
+.screen[data-skin="sorbete"] {
+  --bg-a: #ffe6f2; --bg-b: #fff8fc; --ink: #1f0f1a; --ink-2: rgba(31, 15, 26, .68); --ink-3: rgba(31, 15, 26, .46);
+  --accent: #ff2d95; --accent-2: #7b5cff; --on-accent: #ffffff;
+  --glass: rgba(255, 255, 255, .64); --glass-hi: rgba(255, 255, 255, .95); --glass-line: rgba(255, 45, 149, .26);
+  --shadow: rgba(120, 20, 80, .14); --glow: rgba(255, 45, 149, .3);
+  --warn: #a35f00; --alert: #d6262c; --ok: #13873e;
+  --chip: rgba(31, 15, 26, .05); --chip-hi: rgba(31, 15, 26, .09);
+  --scene: radial-gradient(55% 55% at 0% 0%, rgba(255, 45, 149, .2), transparent 70%),
+           radial-gradient(55% 55% at 100% 100%, rgba(123, 92, 255, .18), transparent 70%),
+           linear-gradient(170deg, var(--bg-b), var(--bg-a));
+}
+/* Medianoche: near-black with ONE neon the driver picks (set as --neon / --neon-2 / --on-neon on .screen) */
+.screen[data-skin="medianoche"] {
+  --bg-a: #000000; --bg-b: #07070a; --ink: #f5f5f7; --ink-2: rgba(245, 245, 247, .72); --ink-3: rgba(245, 245, 247, .46);
+  --accent: var(--neon, #ff2bd6); --accent-2: var(--neon-2, #ff7ae8); --on-accent: var(--on-neon, #2a0022);
+  --glass: rgba(255, 255, 255, .035); --glass-hi: rgba(255, 255, 255, .07);
+  --glass-line: color-mix(in srgb, var(--accent) 34%, transparent);
+  --shadow: rgba(0, 0, 0, .7); --glow: color-mix(in srgb, var(--accent) 52%, transparent);
+  --num-glow: 0 0 28px color-mix(in srgb, var(--accent) 60%, transparent);
+  --card-glow: 0 0 34px -16px color-mix(in srgb, var(--accent) 70%, transparent);
+  --chip: rgba(255, 255, 255, .05); --chip-hi: rgba(255, 255, 255, .09);
+  --scene: radial-gradient(60% 40% at 50% -12%, color-mix(in srgb, var(--accent) 13%, transparent), transparent 72%),
+           linear-gradient(180deg, var(--bg-b), var(--bg-a) 60%);
 }
 
 /* ── page + device ── */
@@ -91,16 +180,10 @@ body {
 
 .screen {
   position: relative; width: 100%; height: 100%; overflow: hidden; border-radius: 30px; isolation: isolate;
-  background: radial-gradient(120% 90% at 50% 0%, var(--bg-b), var(--bg-a) 70%);
-  color: var(--ink); font-family: var(--font-display); font-size: 20px; line-height: 1.35;
+  background: var(--scene); color: var(--ink); font-family: var(--font-display); font-size: 20px; line-height: 1.35;
   font-variant-numeric: tabular-nums; user-select: none; -webkit-user-select: none;
-  transition: color .5s ease;
 }
-.bg-canvas, .car-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
-.car-canvas { z-index: 1; }
-.vignette { position: absolute; inset: 0; z-index: 2; pointer-events: none;
-  background: radial-gradient(140% 100% at 50% 45%, transparent 55%, color-mix(in srgb, var(--bg-a) 70%, transparent)); }
-.ui { position: absolute; inset: 0; z-index: 3; display: grid; padding: 0 30px 26px; gap: 0 30px;
+.ui { position: absolute; inset: 0; display: grid; padding: 0 30px 26px; gap: 0 30px;
   grid-template-columns: 410px 1fr 410px; grid-template-rows: 84px 1fr 118px;
   grid-template-areas: "status status status" "nav stage media" "dock dock dock";
   transition: opacity .25s ease; }
@@ -111,21 +194,20 @@ body {
 button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; -webkit-tap-highlight-color: transparent; }
 :focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; border-radius: 14px; }
 svg.lucide, [data-lucide] { width: 26px; height: 26px; stroke-width: 1.7; flex: none; }
+[hidden] { display: none !important; }
 
-/* ── glass material ── */
+/* ── glass material: translucent fill + top light + hairline. No backdrop blur: the backdrop is still and smooth. ── */
 .glass {
-  position: relative; background: linear-gradient(180deg, var(--glass-hi), transparent 38%), var(--glass);
-  -webkit-backdrop-filter: blur(28px) saturate(150%); backdrop-filter: blur(28px) saturate(150%);
-  border: 1px solid var(--glass-line); border-radius: 30px;
-  box-shadow: inset 0 1px 0 var(--glass-hi), 0 30px 60px -28px var(--shadow);
+  position: relative; background: linear-gradient(180deg, var(--glass-hi), transparent 42%), var(--glass);
+  border: 1px solid var(--glass-line); border-radius: var(--r-panel);
+  box-shadow: inset 0 1px 0 var(--glass-hi), 0 30px 60px -30px var(--shadow), var(--card-glow, 0 0 0 transparent);
 }
-.glass::after { /* specular sheen that follows the finger / pointer */
+.glass::after { /* a soft flash of light where the finger lands */
   content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0; transition: opacity .35s ease;
-  background: radial-gradient(260px circle at var(--mx, 50%) var(--my, 0%), var(--glass-hi), transparent 70%);
-  mix-blend-mode: plus-lighter;
+  background: radial-gradient(240px circle at var(--mx, 50%) var(--my, 0%), var(--glass-hi), transparent 70%);
 }
-.glass.is-touch::after { opacity: .9; }
-@media (hover: hover) and (pointer: fine) { .glass:hover::after { opacity: .9; } }
+.glass.is-touch::after { opacity: 1; }
+@media (hover: hover) and (pointer: fine) { .glass:hover::after { opacity: .8; } }
 </style>
 <style>
 /* ── status bar ── */
@@ -157,8 +239,7 @@ svg.lucide, [data-lucide] { width: 26px; height: 26px; stroke-width: 1.7; flex: 
   color: var(--ink-2); font-size: 21px; text-align: left; transition: transform 160ms var(--ease-out), background-color .2s ease; }
 .map { position: relative; flex: 1; min-height: 120px; border-radius: var(--r-ctl); overflow: hidden; background: var(--chip); }
 .map svg { position: absolute; inset: 0; width: 100%; height: 100%; }
-.map .route { stroke-dasharray: 10 14; animation: route-flow 1.6s linear infinite; }
-@keyframes route-flow { to { stroke-dashoffset: -24; } }
+.map .route { stroke-dasharray: 10 14; }
 .map-eta { position: absolute; left: 16px; bottom: 14px; display: flex; align-items: baseline; gap: 8px; font-size: 17px; color: var(--ink-2); }
 .map-eta b { font-size: 24px; font-weight: 500; color: var(--ink); }
 .places { display: flex; flex-direction: column; }
@@ -179,11 +260,13 @@ svg.lucide, [data-lucide] { width: 26px; height: 26px; stroke-width: 1.7; flex: 
 .art.is-swapping { opacity: 0; filter: blur(2px); }
 .track h3 { margin: 0; font-size: 27px; font-weight: 500; letter-spacing: -.015em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .track p { margin: 4px 0 0; font-size: 18px; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.viz { width: 100%; height: 48px; display: block; }
-.progress { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 14px; font-size: 16px; color: var(--ink-3); }
-.bar { height: 6px; border-radius: var(--r-pill); background: var(--chip-hi); overflow: hidden; }
-.bar i { display: block; height: 100%; width: 40%; border-radius: inherit; background: linear-gradient(90deg, var(--accent-2), var(--accent));
-  box-shadow: 0 0 14px var(--glow); }
+/* still waveform: drawn once per song; progress only moves a clip edge once per second */
+.wave { position: relative; height: 46px; }
+.wave-bars { position: absolute; inset: 0; display: flex; align-items: center; gap: 3px; }
+.wave-bars i { flex: 1; border-radius: 3px; background: var(--chip-hi); min-height: 4px; }
+.wave-bars.played { clip-path: inset(0 calc(100% - var(--p, 40%)) 0 0); transition: clip-path .9s linear; }
+.wave-bars.played i { background: linear-gradient(180deg, var(--accent), var(--accent-2)); }
+.times { display: flex; justify-content: space-between; font-size: 16px; color: var(--ink-3); margin-top: -6px; }
 .controls { display: flex; align-items: center; justify-content: center; gap: 22px; }
 .ctl { width: 66px; height: 66px; border-radius: 50%; display: grid; place-items: center; background: var(--chip); transition: transform 160ms var(--ease-out); }
 .ctl.play { width: 88px; height: 88px; background: var(--accent); color: var(--on-accent); box-shadow: 0 12px 34px -8px var(--glow); }
@@ -234,9 +317,8 @@ svg.lucide, [data-lucide] { width: 26px; height: 26px; stroke-width: 1.7; flex: 
   text-shadow: 0 0 26px var(--temp-glow, transparent); transition: color .3s ease, text-shadow .3s ease; }
 .temp small { display: block; font-size: 14px; letter-spacing: .02em; color: var(--ink-3); margin-top: -4px; }
 .fan-ico { display: grid; place-items: center; gap: 2px; min-width: 70px; font-size: 22px; }
-.fan-ico svg { animation: spin var(--fan-dur, 2s) linear infinite; color: var(--accent); }
-.fan-ico.is-off svg { animation: none; color: var(--ink-3); }
-@keyframes spin { to { transform: rotate(360deg); } }
+.fan-ico svg { color: var(--accent); }
+.fan-ico.is-off svg { color: var(--ink-3); }
 .apps { position: relative; display: flex; justify-content: space-between; padding: 0 10px; border-inline: 1px solid var(--glass-line); height: 92px; }
 .app { position: relative; z-index: 1; width: 104px; height: 92px; border-radius: var(--r-ctl); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
   color: var(--ink-2); font-size: 16px; transition: transform 160ms var(--ease-out), color .25s ease; }
@@ -260,8 +342,8 @@ svg.lucide, [data-lucide] { width: 26px; height: 26px; stroke-width: 1.7; flex: 
   transition: transform 160ms var(--ease-out), border-color .25s ease; }
 .skin-card[aria-checked="true"] { border-color: var(--accent); }
 .skin-prev { height: 118px; border-radius: 16px; position: relative; overflow: hidden; }
-.skin-prev::before { content: ""; position: absolute; inset: auto 18% 22% 18%; height: 26px; border-radius: 60px 70px 14px 14px; background: var(--car, #ddd);
-  box-shadow: 0 10px 18px -6px rgba(0, 0, 0, .5); }
+.skin-prev::before { content: ""; position: absolute; left: 16%; right: 16%; top: 22%; bottom: 30%; border-radius: 12px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, .22), rgba(255, 255, 255, .08)); border: 1px solid rgba(255, 255, 255, .28); }
 .skin-prev::after { content: ""; position: absolute; left: 10%; right: 10%; bottom: 14%; height: 2px; border-radius: 2px; background: var(--acc); box-shadow: 0 0 12px var(--acc); }
 .skin-card b { display: block; margin: 12px 4px 2px; font-size: 20px; font-weight: 500; }
 .skin-card span { display: block; margin: 0 4px; font-size: 15px; color: var(--ink-3); }
@@ -298,8 +380,9 @@ svg.lucide, [data-lucide] { width: 26px; height: 26px; stroke-width: 1.7; flex: 
 @keyframes boot-mark { to { opacity: 1; letter-spacing: .42em; } }
 
 /* entrance: starts visible, settles in (never parked at opacity 0) */
-.screen.is-entering .nav, .screen.is-entering .media, .screen.is-entering .dock, .screen.is-entering .readout { animation: settle .6s var(--ease-out) both; }
-.screen.is-entering .media { animation-delay: 50ms; } .screen.is-entering .dock { animation-delay: 100ms; } .screen.is-entering .readout { animation-delay: 150ms; }
+.screen.is-entering .nav, .screen.is-entering .media, .screen.is-entering .dock, .screen.is-entering .energy, .screen.is-entering .duo { animation: settle .6s var(--ease-out) both; }
+.screen.is-entering .energy { animation-delay: 40ms; } .screen.is-entering .duo { animation-delay: 80ms; }
+.screen.is-entering .media { animation-delay: 120ms; } .screen.is-entering .dock { animation-delay: 160ms; }
 @keyframes settle { from { opacity: .35; transform: translateY(8px); } }
 
 /* ── demo bar (outside the screen) ── */
@@ -326,12 +409,86 @@ svg.lucide, [data-lucide] { width: 26px; height: 26px; stroke-width: 1.7; flex: 
   .frame.is-rotating { transition: none; }
 }
 </style>
+<style>
+/* ── middle column: energy (the one dominant card), then security + trip, then quick actions ── */
+.stage { touch-action: auto; cursor: default; display: flex; flex-direction: column; gap: 16px; margin-block: 8px 22px; }
+.energy { display: grid; grid-template-columns: 292px 1fr; align-items: center; gap: 30px; padding: 26px 32px 26px 26px; }
+.gauge { position: relative; width: 292px; height: 292px; }
+.gauge svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.ring-track { fill: none; stroke: var(--chip-hi); stroke-width: 15; }
+.ring-ticks { fill: none; stroke: var(--ink-3); stroke-width: 6; stroke-dasharray: .25 9.75; opacity: .7; }
+.ring-fill { fill: none; stroke: url(#ringGrad); stroke-width: 15; stroke-linecap: round; transform: rotate(-90deg); transform-origin: 120px 120px;
+  transition: stroke-dasharray .8s var(--ease-out); filter: drop-shadow(0 0 9px var(--glow)); }
+.energy.is-charging .ring-fill { stroke: var(--ok); filter: drop-shadow(0 0 9px color-mix(in srgb, var(--ok) 55%, transparent)); }
+.gauge-in { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+.gauge-k { font-size: 17px; color: var(--ink-2); }
+.big { display: inline-flex; align-items: baseline; font-size: 78px; font-weight: 200; letter-spacing: -.05em; line-height: 1; margin: 4px 0 6px; text-shadow: var(--num-glow); }
+.skins-h { grid-column: 1 / -1; margin: 4px 4px -6px; font-size: 16px; font-weight: 500; color: var(--ink-3); }
+.skins-h:first-child { margin-top: 0; }
+.big .unit { font-size: 22px; font-weight: 300; letter-spacing: 0; color: var(--ink-2); margin-left: 6px; }
+.gauge-sub { font-size: 18px; color: var(--ink-2); }
+.energy-state { display: flex; align-items: center; gap: 12px; margin: 0 0 18px; font-size: 27px; font-weight: 300; letter-spacing: -.015em; text-wrap: balance; }
+.energy-state i { width: 12px; height: 12px; border-radius: 50%; background: var(--ok); flex: none; box-shadow: 0 0 12px color-mix(in srgb, var(--ok) 60%, transparent); }
+.energy-state.is-move i { background: var(--accent); box-shadow: 0 0 12px var(--glow); }
+.kv { margin: 0; display: grid; }
+.kv > div { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; padding: 13px 0; border-top: 1px solid var(--glass-line); }
+.kv dt { font-size: 17px; color: var(--ink-3); }
+.kv dd { margin: 0; font-size: 21px; font-weight: 500; white-space: nowrap; }
+
+.duo { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.duo > .glass { padding: 22px 24px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.card-head h3 { margin: 0; font-size: 20px; font-weight: 500; }
+.card-head span { font-size: 15px; color: var(--ink-3); }
+.pill { padding: 6px 13px; border-radius: var(--r-pill); font-size: 15px; font-weight: 500; }
+.pill.ok { color: var(--ok); background: color-mix(in srgb, var(--ok) 16%, transparent); }
+.pill.warn { color: var(--warn); background: color-mix(in srgb, var(--warn) 16%, transparent); }
+.sec-line { margin: 0; font-size: 17px; color: var(--ink-2); }
+.cams { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.cams span { display: flex; align-items: center; gap: 9px; padding: 9px 12px; border-radius: 14px; background: var(--chip); font-size: 16px; color: var(--ink-2); }
+.cams i { width: 8px; height: 8px; border-radius: 50%; background: var(--ink-3); flex: none; }
+.cams.is-on i { background: var(--ok); }
+.cams span.is-alert { color: var(--ink); background: color-mix(in srgb, var(--alert) 18%, transparent); }
+.cams span.is-alert i { background: var(--alert); }
+.trip-nums { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.trip-nums b { display: block; font-size: 34px; font-weight: 300; letter-spacing: -.03em; line-height: 1.1; }
+.trip-nums small { font-size: 15px; color: var(--ink-3); }
+.tyres { margin: auto 0 0; display: flex; align-items: center; gap: 10px; font-size: 16px; color: var(--ink-2); }
+.tyres svg { width: 20px; height: 20px; color: var(--accent); }
+
+.quick { position: static; transform: none; margin-top: auto; align-self: center; }
+.stage .alert { top: 330px; }
+.frame.portrait .stage { margin: 0; }
+.frame.portrait .energy { grid-template-columns: 300px 1fr; flex: 1; }
+.kv dt { white-space: nowrap; }
+
+/* things that float over other cards get a solid skin-coloured fill (no blur behind them) */
+.sheet-panel.glass, .toast.glass, .alert.glass {
+  background: linear-gradient(180deg, var(--glass-hi), transparent 42%), color-mix(in srgb, var(--bg-b) 72%, var(--bg-a));
+}
+.sheet-scrim { background: rgba(0, 0, 0, .45); }
+.sheet-panel { max-height: calc(100% - 52px); overflow: auto; }
+.skin-card { display: flex; flex-direction: column; justify-content: flex-start; }
+/* Medianoche: the neon picker sits beside its card */
+.neon-pick { grid-column: span 5; display: flex; flex-direction: column; justify-content: center; gap: 16px; padding: 18px 24px; border-radius: 24px; background: var(--chip); }
+.neon-pick h4 { margin: 0; font-size: 20px; font-weight: 500; }
+.neon-pick p { margin: 4px 0 0; font-size: 16px; color: var(--ink-3); }
+.neons { display: flex; flex-wrap: wrap; gap: 14px; }
+.neon-sw { width: 56px; height: 56px; border-radius: 50%; background: var(--c); border: 3px solid transparent; outline-offset: 3px;
+  box-shadow: 0 0 18px -2px var(--c), inset 0 -6px 12px rgba(0, 0, 0, .25); transition: transform 160ms var(--ease-out); }
+.neon-sw:active { transform: scale(.97); }
+.neon-sw[aria-checked="true"] { border-color: var(--ink); box-shadow: 0 0 0 3px var(--bg-a), 0 0 26px 2px var(--c); }
+.frame.portrait .neon-pick { grid-column: span 2; }
+
+@media (prefers-reduced-motion: reduce) { .ring-fill { transition: none; } }
+</style>
 <div class="viewport" id="viewport">
   <div class="stagebox" id="stagebox">
     <div class="frame" id="frame">
       <div class="screen is-entering" id="screen" data-skin="oceano">
         <svg class="defs" width="0" height="0" aria-hidden="true">
           <defs>
+            <linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color: var(--accent-2)"/><stop offset="1" style="stop-color: var(--accent)"/></linearGradient>
             <linearGradient id="bl-grad" x1="12" y1="8" x2="52" y2="56" gradientUnits="userSpaceOnUse">
               <stop offset="0" style="stop-color: var(--accent)"/><stop offset="1" style="stop-color: var(--accent-2)"/>
             </linearGradient>
@@ -345,9 +502,6 @@ svg.lucide, [data-lucide] { width: 26px; height: 26px; stroke-width: 1.7; flex: 
             </symbol>
           </defs>
         </svg>
-        <canvas class="bg-canvas" id="bg" aria-hidden="true"></canvas>
-        <canvas class="car-canvas" id="car" role="img" aria-label="Tu Dolphin Surf en 3D"></canvas>
-        <div class="vignette" aria-hidden="true"></div>
 
         <div class="ui" id="ui">
           <header class="status">
@@ -391,15 +545,35 @@ svg.lucide, [data-lucide] { width: 26px; height: 26px; stroke-width: 1.7; flex: 
           </section>
 
           <section class="stage" id="stage" aria-label="Tu coche">
-            <div class="readout" id="readout">
-              <div class="big"><span id="bigNum">248</span><span class="unit" id="bigUnit">km</span></div>
-              <div class="sub" id="bigSub"><b>78 %</b> · 34,1 kWh · Listo para salir</div>
-            </div>
-            <div class="tags" id="tags">
-              <div class="tag glass" data-wheel="0">2,4 bar<small>24 °C</small></div>
-              <div class="tag glass" data-wheel="1">2,4 bar<small>24 °C</small></div>
-              <div class="tag glass" data-wheel="2">2,3 bar<small>23 °C</small></div>
-              <div class="tag glass" data-wheel="3">2,4 bar<small>23 °C</small></div>
+            <article class="energy glass" id="energy">
+              <div class="gauge">
+                <svg viewBox="0 0 240 240" aria-hidden="true">
+                  <circle class="ring-ticks" cx="120" cy="120" r="116" pathLength="100"/>
+                  <circle class="ring-track" cx="120" cy="120" r="100"/>
+                  <circle class="ring-fill" id="ringFill" cx="120" cy="120" r="100" pathLength="100" style="stroke-dasharray: 78 100"/>
+                </svg>
+                <div class="gauge-in">
+                  <span class="gauge-k" id="gaugeK">Autonomía</span>
+                  <span class="big"><span id="bigNum">248</span><span class="unit" id="bigUnit">km</span></span>
+                  <span class="gauge-sub" id="gaugeSub">78 % de batería</span>
+                </div>
+              </div>
+              <div class="energy-info">
+                <p class="energy-state" id="energyState"><i></i><span id="energyStateTxt">Listo para salir</span></p>
+                <dl class="kv" id="energyKv"></dl>
+              </div>
+            </article>
+            <div class="duo">
+              <article class="glass" id="secCard" aria-label="Seguridad">
+                <div class="card-head"><h3>Seguridad</h3><span class="pill ok" id="lockPill">Cerrado</span></div>
+                <p class="sec-line" id="secLine">Centinela en pausa</p>
+                <div class="cams" id="cams"><span data-cam="f"><i></i>Delantera</span><span data-cam="b"><i></i>Trasera</span><span data-cam="l"><i></i>Izquierda</span><span data-cam="r"><i></i>Derecha</span></div>
+              </article>
+              <article class="glass" aria-label="Último viaje">
+                <div class="card-head"><h3>Último viaje</h3><span>Hoy · 9:12</span></div>
+                <div class="trip-nums"><div><b>26,4</b><small>km</small></div><div><b>42</b><small>min</small></div><div><b>13,8</b><small>kWh/100</small></div></div>
+                <p class="tyres"><i data-lucide="gauge"></i>Neumáticos 2,4 · 2,4 · 2,3 · 2,4</p>
+              </article>
             </div>
             <div class="alert glass" id="alert" role="alert" hidden>
               <span class="ico"><i data-lucide="scan-eye"></i></span>
@@ -407,7 +581,6 @@ svg.lucide, [data-lucide] { width: 26px; height: 26px; stroke-width: 1.7; flex: 
               <span>Cámara trasera · grabando 20 s · <span id="alertTime">10:24</span></span>
               <div class="row"><button type="button" id="alertDismiss">Descartar</button><button type="button" class="primary" id="alertView">Ver cámara</button></div>
             </div>
-            <p class="hint" id="hint">Arrastra el coche para girarlo · tócalo para ver los neumáticos</p>
             <div class="quick" role="group" aria-label="Acciones rápidas">
               <button class="qa glass" id="qaLock" type="button" aria-pressed="true"><i data-lucide="lock" class="ic-locked"></i><i data-lucide="lock-open" class="ic-open"></i><span>Cerrado</span></button>
               <button class="qa glass" id="qaSentinel" type="button" aria-pressed="false"><i data-lucide="radar"></i><span>Centinela</span></button>
@@ -419,8 +592,8 @@ svg.lucide, [data-lucide] { width: 26px; height: 26px; stroke-width: 1.7; flex: 
           <section class="media glass" id="media" aria-label="Música">
             <div class="art-wrap"><div class="art-glow" id="artGlow"></div><canvas class="art" id="art" width="440" height="360"></canvas></div>
             <div class="track"><h3 id="trackTitle">Marea alta</h3><p id="trackArtist">Costa Daurada · Spotify</p></div>
-            <canvas class="viz" id="viz" aria-hidden="true"></canvas>
-            <div class="progress"><span id="tNow">1:42</span><div class="bar"><i id="progFill"></i></div><span id="tEnd">4:03</span></div>
+            <div class="wave" id="wave" aria-hidden="true"><div class="wave-bars" id="waveBase"></div><div class="wave-bars played" id="wavePlayed"></div></div>
+            <div class="times"><span id="tNow">1:42</span><span id="tEnd">4:03</span></div>
             <div class="controls">
               <button class="ctl" id="prevBtn" type="button" aria-label="Anterior"><i data-lucide="skip-back"></i></button>
               <button class="ctl play" id="playBtn" type="button" aria-label="Pausar">
@@ -462,10 +635,6 @@ svg.lucide, [data-lucide] { width: 26px; height: 26px; stroke-width: 1.7; flex: 
             <div class="sheet-head"><h2 id="sheetTitle">Skins</h2><button class="icon-btn" id="sheetClose" type="button" aria-label="Cerrar"><i data-lucide="x"></i></button></div>
             <div class="skins" id="skins" role="radiogroup" aria-label="Skin"></div>
             <div class="sheet-row">
-              <div><h3>Color de tu coche</h3><p id="paintName">Blanco perla</p></div>
-              <div class="swatches" id="swatches" role="radiogroup" aria-label="Color del coche"></div>
-            </div>
-            <div class="sheet-row">
               <div><h3>Automática día / noche</h3><p>Porcelana de día y Océano de noche, siguiendo el modo del sistema</p></div>
               <button class="toggle" id="autoToggle" type="button" role="switch" aria-checked="false" aria-label="Skin automática"></button>
             </div>
@@ -497,497 +666,86 @@ svg.lucide, [data-lucide] { width: 26px; height: 26px; stroke-width: 1.7; flex: 
     <button type="button" id="demoBoot">Arranque</button>
   </div>
 </div>
-<script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
-<script>
-'use strict';
-/* ───────── shared GL helpers ───────── */
-const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const QUAD_VS = 'attribute vec2 p; void main(){ gl_Position = vec4(p, 0.0, 1.0); }';
-function glProgram(gl, fs) {
-  const mk = (type, src) => { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s);
-    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) { console.error(gl.getShaderInfoLog(s)); return null; } return s; };
-  const v = mk(gl.VERTEX_SHADER, QUAD_VS), f = mk(gl.FRAGMENT_SHADER, fs);
-  if (!v || !f) return null;
-  const p = gl.createProgram(); gl.attachShader(p, v); gl.attachShader(p, f); gl.linkProgram(p);
-  if (!gl.getProgramParameter(p, gl.LINK_STATUS)) { console.error(gl.getProgramInfoLog(p)); return null; }
-  gl.useProgram(p);
-  const b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
-  const loc = gl.getAttribLocation(p, 'p'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
-  const u = new Proxy({}, { get: (c, k) => (k in c ? c[k] : (c[k] = gl.getUniformLocation(p, k))) });
-  return { p, u };
-}
-const hex3 = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16) / 255);
-const lin3 = h => hex3(h).map(c => Math.pow(c, 2.2));
-
-/* ───────── animated background, one scene per skin ───────── */
-const BG_FS = `
-precision highp float;
-uniform vec2 uRes; uniform float uTime, uMode, uDrive;
-uniform vec3 uA, uB, uC, uD;
-float h21(vec2 p){ p = fract(p*vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x*p.y); }
-float vnoise(vec2 p){ vec2 i = floor(p), f = fract(p); vec2 u = f*f*(3.0 - 2.0*f);
-  return mix(mix(h21(i), h21(i + vec2(1.0, 0.0)), u.x), mix(h21(i + vec2(0.0, 1.0)), h21(i + vec2(1.0, 1.0)), u.x), u.y); }
-float fbm(vec2 p){ float s = 0.0, a = 0.5; for(int i = 0; i < 5; i++){ s += a*vnoise(p); p = p*2.03 + vec2(1.7, 9.2); a *= 0.5; } return s; }
-vec2 h22(vec2 p){ p = vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3))); return fract(sin(p)*43758.5453); }
-float vedge(vec2 x, float t){ vec2 n = floor(x), f = fract(x); float f1 = 8.0, f2 = 8.0;
-  for(int j = -1; j <= 1; j++) for(int i = -1; i <= 1; i++){
-    vec2 g = vec2(float(i), float(j)); vec2 o = h22(n + g); o = 0.5 + 0.42*sin(t + 6.2831*o);
-    float d = length(g + o - f); if(d < f1){ f2 = f1; f1 = d; } else if(d < f2){ f2 = d; } }
-  return f2 - f1; }
-float caustic(vec2 p, float t){ return pow(1.0 - smoothstep(0.0, 0.22, vedge(p, t)), 3.0)
-  + 0.55*pow(1.0 - smoothstep(0.0, 0.16, vedge(p*1.37 + 3.1, t*0.83 + 1.7)), 3.0); }
-float stars(vec2 uv, float t){ vec2 g = vec2(uv.x*uRes.x/uRes.y, uv.y)*70.0; float r = h21(floor(g));
-  vec2 f = fract(g) - 0.5; float tw = 0.6 + 0.4*sin(t*(1.0 + r*3.0) + r*40.0);
-  return smoothstep(0.16, 0.0, length(f))*tw*step(0.965, r); }
-void main(){
-  vec2 uv = gl_FragCoord.xy/uRes; float t = uTime; float asp = uRes.x/uRes.y; vec2 p = vec2(uv.x*asp, uv.y);
-  vec3 col;
-  if(uMode < 0.5){                                   // Océano: god rays, caustics, marine snow
-    col = mix(uA, uB, smoothstep(0.0, 1.0, uv.y));
-    vec2 q = uv - vec2(0.5 + 0.06*sin(t*0.05), 1.25); float ang = atan(q.x, -q.y);
-    float rays = smoothstep(0.35, 1.0, 0.5 + 0.5*sin(ang*11.0 + t*0.12 + 2.0*sin(ang*3.0 - t*0.07)));
-    rays *= smoothstep(1.5, 0.3, length(q))*smoothstep(0.0, 0.6, uv.y);
-    col += mix(uC, uD, 0.4)*rays*0.16;
-    col += uC*caustic(p*4.5, t*0.55)*0.04*smoothstep(0.35, 1.0, uv.y);
-    vec2 g = vec2(p.x*22.0, uv.y*22.0 - t*0.3); float r = h21(floor(g));
-    vec2 f = fract(g) - vec2(0.5 + 0.3*sin(t*0.5 + r*20.0), 0.5);
-    col += uC*smoothstep(0.09, 0.0, length(f))*step(0.84, r)*0.3;
-  } else if(uMode < 1.5){                            // Aurora: curtains over stars
-    col = mix(uA, uB, smoothstep(0.0, 1.0, uv.y)) + vec3(stars(uv, t))*0.7;
-    for(int k = 0; k < 3; k++){ float fk = float(k); float x = p.x*0.9 + fk*1.7;
-      float base = 0.56 + fk*0.07 + 0.13*(fbm(vec2(x*0.7 + t*0.018, fk*3.1)) - 0.5) + 0.03*sin(x*2.0 + t*0.1);
-      float d = uv.y - base;
-      float curtain = exp(-max(d, 0.0)*(5.0 - fk))*smoothstep(-0.015, 0.02, d);
-      float streak = 0.45 + 0.55*fbm(vec2(x*14.0, t*0.07 + fk*5.0));
-      col += mix(uC, uD, clamp(d*3.0 + fk*0.35, 0.0, 1.0))*curtain*streak*(0.32 - fk*0.07); }
-  } else if(uMode < 2.5){                            // Horizon: sunset over the sea
-    float hy = asp < 1.0 ? 0.62 : 0.45;
-    vec3 sky = mix(uB, uA, smoothstep(hy, 1.0, uv.y));
-    float glow = exp(-abs(uv.y - hy)*7.0)*exp(-abs(uv.x - 0.5)*1.6);
-    sky += mix(uD, uC, smoothstep(0.0, 0.25, uv.y - hy))*glow*0.8;
-    float sd = length(vec2((uv.x - 0.5)*asp, uv.y - hy - 0.02));
-    sky += uC*smoothstep(0.09, 0.08, sd)*0.85 + vec3(stars(uv, t))*smoothstep(0.62, 0.95, uv.y)*0.7;
-    vec3 sea = mix(uA*0.7, uB*0.85, smoothstep(0.0, hy, uv.y));
-    float refl = exp(-abs(uv.x - 0.5)*asp*3.2)*smoothstep(0.0, hy, uv.y);
-    float shim = 0.5 + 0.5*sin(uv.y*380.0 + fbm(vec2(uv.x*6.0, uv.y*40.0 - t*0.3))*7.0);
-    sea += mix(uD, uC, 0.5)*refl*shim*0.4;
-    col = uv.y > hy ? sky : sea;
-    col += uC*exp(-abs(uv.y - hy)*140.0)*0.3;
-  } else if(uMode < 3.5){                            // Pulse: contour lines with travelling energy
-    col = mix(uA, uB, smoothstep(0.0, 1.0, uv.y));
-    float h = fbm(p*1.5 + vec2(t*0.012, -t*0.008));
-    float g = fract(h*14.0); float line = smoothstep(0.07, 0.0, min(g, 1.0 - g));
-    float pulse = pow(0.5 + 0.5*sin(h*38.0 - t*1.4), 10.0);
-    col += uC*line*(0.07 + pulse*0.38) + uD*pulse*0.02;
-  } else if(uMode < 4.5){                            // Porcelana: daylight through leaves
-    col = mix(uB, uA, smoothstep(0.0, 1.0, uv.y*0.65 + (1.0 - uv.x)*0.35));
-    vec2 w = vec2(fbm(p*0.8 + t*0.025), fbm(p*0.8 - t*0.02 + 5.2));
-    float leaf = fbm(p*1.6 + w*1.6 + vec2(sin(t*0.25)*0.12, cos(t*0.21)*0.08));
-    float sh = smoothstep(0.50, 0.66, leaf)*smoothstep(1.3, 0.2, uv.x*0.8 + (1.0 - uv.y)*0.6);
-    col = mix(col, col*vec3(0.87, 0.90, 0.96), sh*0.6);
-    col += uC*0.03*smoothstep(0.8, 0.0, length(uv - vec2(0.12, 1.0)));
-  } else {                                           // Forma: slow silk folds
-    col = mix(uB, uA, smoothstep(0.0, 1.0, uv.y));
-    float f = fbm(p*1.2 + t*0.015);
-    float s = sin(p.x*2.4 + p.y*1.6 + f*5.5 + t*0.04);
-    col += vec3(1.0)*(s*0.5 + 0.5)*0.05;
-    col = mix(col, col*mix(vec3(1.0), uC, 0.12), smoothstep(0.2, -0.8, s)*0.6);
-  }
-  if(uDrive > 0.01){                                 // speed streaks while driving
-    float row = floor(uv.y*70.0); float rr = h21(vec2(row, 3.0));
-    float x = fract(uv.x*0.8 + t*(0.5 + rr) + rr*7.0);
-    col += uC*smoothstep(0.0, 0.6, x)*smoothstep(1.0, 0.7, x)*step(0.92, rr)*0.07*uDrive*smoothstep(0.15, 0.5, abs(uv.y - 0.42));
-  }
-  col += (h21(gl_FragCoord.xy + fract(t)*97.0) - 0.5)*0.014;
-  gl_FragColor = vec4(col, 1.0);
-}`;
-
-const BG = { ok: false, scale: 0.42, t0: performance.now(), last: 0, drive: 0, mode: 0, cols: null };
-function bgInit(canvas) {
-  const gl = canvas.getContext('webgl', { antialias: false, alpha: false, preserveDrawingBuffer: false });
-  if (!gl) return;
-  const pr = glProgram(gl, BG_FS); if (!pr) return;
-  Object.assign(BG, { ok: true, gl, pr, canvas });
-}
-function bgResize(cssW, cssH, px) {
-  if (!BG.ok) return;
-  const w = Math.max(64, Math.round(cssW * px * BG.scale)), h = Math.max(64, Math.round(cssH * px * BG.scale));
-  if (BG.canvas.width !== w || BG.canvas.height !== h) { BG.canvas.width = w; BG.canvas.height = h; BG.gl.viewport(0, 0, w, h); }
-}
-function bgDraw(now) {
-  if (!BG.ok || !BG.cols) return;
-  const { gl, pr } = BG, u = pr.u;
-  gl.uniform2f(u.uRes, BG.canvas.width, BG.canvas.height);
-  gl.uniform1f(u.uTime, REDUCED ? 12.0 : (now - BG.t0) / 1000);
-  gl.uniform1f(u.uMode, BG.mode); gl.uniform1f(u.uDrive, BG.drive);
-  gl.uniform3fv(u.uA, BG.cols[0]); gl.uniform3fv(u.uB, BG.cols[1]); gl.uniform3fv(u.uC, BG.cols[2]); gl.uniform3fv(u.uD, BG.cols[3]);
-  gl.drawArrays(gl.TRIANGLES, 0, 3);
-}
-</script>
-<script>
-'use strict';
-/* ───────── the car: a signed-distance model, ray-marched (units: metres, x forward, y up) ───────── */
-const CAR_FS = `
-precision highp float;
-uniform vec2 uRes, uShift; uniform float uTime, uFocal; uniform vec3 uRo, uTa;
-uniform vec3 uPaint, uEnvTop, uEnvBot, uRim, uAcc, uAcc2; uniform float uStudio, uLightTheme;
-uniform float uSoc, uHalo, uRadar, uCharge, uDrive, uDist, uWheel, uLights, uTail, uWelcome, uReveal, uFade, uCaustic, uSweep, uMetal;
-uniform vec3 uBlip;
-float gGH, gGT;
-vec2 h22(vec2 p){ p = vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3))); return fract(sin(p)*43758.5453); }
-float vedge(vec2 x, float t){ vec2 n = floor(x), f = fract(x); float f1 = 8.0, f2 = 8.0;
-  for(int j = -1; j <= 1; j++) for(int i = -1; i <= 1; i++){
-    vec2 g = vec2(float(i), float(j)); vec2 o = h22(n + g); o = 0.5 + 0.42*sin(t + 6.2831*o);
-    float d = length(g + o - f); if(d < f1){ f2 = f1; f1 = d; } else if(d < f2){ f2 = d; } }
-  return f2 - f1; }
-float caustic(vec2 p, float t){ return pow(1.0 - smoothstep(0.0, 0.32, vedge(p, t)), 2.0); }
-float sdRR(vec2 p, vec2 b, float r){ vec2 q = abs(p) - b + r; return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - r; }
-float extr(float d2, float py, float h, float r){ vec2 w = vec2(d2 + r, abs(py) - h + r); return min(max(w.x, w.y), 0.0) + length(max(w, 0.0)) - r; }
-float smin(float a, float b, float k){ float h = clamp(0.5 + 0.5*(b - a)/k, 0.0, 1.0); return mix(b, a, h) - k*h*(1.0 - h); }
-float smax(float a, float b, float k){ return -smin(-a, -b, k); }
-float sdCap(vec3 p, vec3 a, vec3 b, float r){ vec3 pa = p - a, ba = b - a; float h = clamp(dot(pa, ba)/dot(ba, ba), 0.0, 1.0); return length(pa - ba*h) - r; }
-float sdBox(vec3 p, vec3 b, float r){ vec3 q = abs(p) - b + r; return length(max(q, 0.0)) + min(max(q.x, max(q.y, q.z)), 0.0) - r; }
-vec2 boxHit(vec3 ro, vec3 rd, vec3 c, vec3 h){ vec3 m = 1.0/rd; vec3 n = m*(ro - c); vec3 k = abs(m)*h; vec3 a = -n - k, b = -n + k;
-  return vec2(max(max(a.x, a.y), a.z), min(min(b.x, b.y), b.z)); }
-
-float sdLower(vec3 p){
-  float d = extr(sdRR(p.xz - vec2(0.03, 0.0), vec2(1.96, 0.84), 0.42), p.y - 0.58, 0.36, 0.15);
-  d = smax(d, dot(p - vec3(0.95, 0.95, 0.0), vec3(0.2149, 0.9766, 0.0)), 0.20);    // hood
-  d = smax(d, dot(p - vec3(1.99, 0.36, 0.0), vec3(0.6, -0.8, 0.0)), 0.10);         // chin
-  return smax(d, dot(p - vec3(-1.80, 0.93, 0.0), vec3(-0.3304, 0.9439, 0.0)), 0.12); // rear deck
-}
-float sdCabin(vec3 p){
-  float tb = clamp((p.y - 0.90)/0.58, 0.0, 1.0);
-  vec3 c = p - vec3(-0.42, 1.13, 0.0); c.z *= 1.0 + 0.42*tb*tb;                     // tumblehome
-  float d = extr(sdRR(c.xz, vec2(1.40, 0.76), 0.34), c.y, 0.335, 0.18);
-  d = smax(d, dot(p - vec3(1.06, 0.95, 0.0), vec3(0.4727, 0.8812, 0.0)), 0.12);    // windscreen
-  return smax(d, dot(p - vec3(-1.86, 0.98, 0.0), vec3(-0.78, 0.626, 0.0)), 0.12);   // hatch
-}
-float sdShell(vec3 p){
-  float d = smin(sdLower(p), sdCabin(p), 0.07);
-  vec2 a = vec2(abs(p.x) - 1.25, p.y - 0.31);
-  return smax(d, -max(length(a) - 0.395, 0.40 - abs(p.z)), 0.035);                 // wheel arches
-}
-float sdWheel(vec3 p){ vec3 q = vec3(abs(p.x) - 1.25, p.y - 0.31, abs(p.z) - 0.70);
-  vec2 d = vec2(length(q.xy) - 0.26, abs(q.z) - 0.045); return min(max(d.x, d.y), 0.0) + length(max(d, 0.0)) - 0.05; }
-float sdHead(vec3 p){ return sdCap(vec3(p.x, p.y, abs(p.z)), vec3(1.968, 0.645, 0.34), vec3(1.862, 0.665, 0.69), 0.016); }
-float sdTail(vec3 p){ return min(sdCap(p, vec3(-1.926, 0.80, -0.5), vec3(-1.926, 0.80, 0.5), 0.02),
-  sdCap(vec3(p.x, p.y, abs(p.z)), vec3(-1.926, 0.80, 0.5), vec3(-1.845, 0.80, 0.68), 0.02)); }
-float sdMirror(vec3 p){ return sdBox(vec3(p.x - 0.72, p.y - 1.00, abs(p.z) - 0.88), vec3(0.06, 0.05, 0.11), 0.04); }
-float mapCar(vec3 p){
-  float h = sdHead(p), tl = sdTail(p); gGH = min(gGH, h); gGT = min(gGT, tl);
-  float d = min(min(sdShell(p), sdWheel(p)), min(sdMirror(p), min(h, tl)));
-  return max(d, p.x - uReveal);
-}
-float matAt(vec3 p){
-  if(p.x > uReveal - 0.01) return 8.0;
-  float dh = sdHead(p), dt = sdTail(p), dw = sdWheel(p), dm = sdMirror(p), ds = sdShell(p);
-  float m = min(min(dh, dt), min(dw, min(dm, ds)));
-  if(m == dh) return 5.0; if(m == dt) return 6.0;
-  if(m == dw) return length(vec2(abs(p.x) - 1.25, p.y - 0.31)) < 0.215 ? 4.0 : 3.0;
-  if(m == dm) return 2.0;
-  if(p.y > mix(0.935, 1.0, smoothstep(0.6, -1.6, p.x))) return 2.0;                // glass + floating black roof
-  if(p.y < 0.31 || length(vec2(abs(p.x) - 1.25, p.y - 0.31)) < 0.47) return 7.0;    // cladding
-  if(p.x > 1.80 && p.y < 0.50 && abs(p.z) < 0.56) return 7.0;                      // lower intake
-  return 1.0;
-}
-vec3 nrm(vec3 p){ const vec2 k = vec2(1.0, -1.0); const float e = 0.0015;
-  return normalize(k.xyy*mapCar(p + k.xyy*e) + k.yyx*mapCar(p + k.yyx*e) + k.yxy*mapCar(p + k.yxy*e) + k.xxx*mapCar(p + k.xxx*e)); }
-vec3 env(vec3 rd){
-  vec3 c = mix(uEnvBot, uEnvTop, smoothstep(-0.25, 0.7, rd.y));
-  c += uRim*exp(-abs(rd.y - 0.03)*14.0)*0.55;
-  float strip = smoothstep(0.50, 0.56, rd.y)*(smoothstep(0.075, 0.045, abs(rd.z - 0.22)) + smoothstep(0.075, 0.045, abs(rd.z + 0.22)));
-  c += vec3(strip)*uStudio*1.7;
-  c += vec3(smoothstep(0.80, 0.93, dot(rd, normalize(vec3(0.55, 0.6, -0.58)))))*uStudio*1.2;
-  c += uAcc*smoothstep(0.86, 0.98, dot(rd, normalize(vec3(-0.7, 0.25, 0.65))))*0.7;
-  return c;
-}
-vec3 shade(vec3 p, vec3 rd, float m){
-  vec3 n = nrm(p), r = reflect(rd, n);
-  float ndv = max(dot(n, -rd), 0.0), fr = 0.04 + 0.96*pow(1.0 - ndv, 5.0);
-  float dif = max(dot(n, normalize(vec3(0.35, 1.0, 0.25))), 0.0);
-  float ao = clamp(0.35 + 0.65*mapCar(p + n*0.12)/0.12, 0.0, 1.0);
-  vec3 amb = mix(uEnvBot, uEnvTop, 0.5 + 0.5*n.y), col;
-  if(m < 1.5){                                                      // paint: metallic base + clear coat
-    col = uPaint*(amb*0.9 + dif*0.75)*ao*0.7 + uPaint*env(r)*uMetal + env(r)*fr*0.9;
-    float cy = 0.60 + 0.07*(p.x + 1.9)/3.9, side = step(0.62, abs(p.z));
-    col += vec3(0.22)*smoothstep(0.012, 0.0, abs(p.y - cy - 0.014))*side*ao;
-    col *= 1.0 - 0.35*smoothstep(0.012, 0.0, abs(p.y - cy))*side;
-    if(uCaustic > 0.0) col += uAcc*caustic(p.xz*4.5 + p.y*2.0, uTime*0.55)*0.10*uCaustic*max(n.y, 0.0);
-    col += uAcc*exp(-length(p - vec3(-1.55, 0.80, 0.84))*16.0)*2.2*uCharge;  // charge port
-  } else if(m < 2.5){ col = vec3(0.012, 0.014, 0.018)*(amb + 0.3) + env(r)*(0.06 + 0.85*fr);
-  } else if(m < 3.5){ col = vec3(0.022)*(0.4 + dif)*ao + env(r)*0.02;
-  } else if(m < 4.5){
-    vec2 q = vec2(p.x - sign(p.x)*1.25, p.y - 0.31); float rr = length(q);
-    float sp = smoothstep(0.30, 0.42, abs(fract((atan(q.y, q.x) - uWheel)*0.7958) - 0.5));
-    sp = mix(sp, 0.55, clamp(uDrive*1.2, 0.0, 0.85));
-    vec3 metal = vec3(0.62, 0.65, 0.68)*(env(r)*0.7 + 0.08);
-    col = mix(vec3(0.02), metal, max(sp, step(rr, 0.07)))*ao;
-    col = mix(col, metal*0.8, smoothstep(0.19, 0.205, rr));
-  } else if(m < 5.5){ col = vec3(1.0, 0.97, 0.92)*(0.12 + 3.2*uLights);
-  } else if(m < 6.5){ col = vec3(1.0, 0.08, 0.10)*(0.35 + 2.4*uTail);
-  } else if(m < 7.5){ col = vec3(0.03, 0.032, 0.036)*(amb*0.6 + dif*0.5)*ao + env(r)*fr*0.25;
-  } else { col = uAcc*(0.35 + 1.2*smoothstep(0.9, 1.0, max(fract(p.y*14.0), fract(p.z*14.0)))); }
-  col += uRim*pow(1.0 - ndv, 4.0)*0.35*(m < 2.5 ? 1.0 : 0.4);
-  if(uWelcome > 0.0 && uWelcome < 1.0) col += uAcc*exp(-pow((p.x - mix(-2.6, 2.6, uWelcome))*5.0, 2.0))*1.2*(m < 2.5 ? 1.0 : 0.3);
-  col += uAcc*exp(-abs(p.x - uReveal)*40.0)*1.5*step(uReveal, 2.6);
-  return col;
-}
-vec4 ground(vec3 ro, vec3 rd, float tg){
-  vec3 gp = ro + rd*tg; vec2 x = gp.xz; float t = uTime; vec3 add = vec3(0.0);
-  float fp = sdRR(x - vec2(0.03, 0.0), vec2(1.96, 0.84), 0.42);
-  vec2 wq = vec2(abs(x.x) - 1.25, abs(x.y) - 0.70);
-  float sh = exp(-max(fp, 0.0)*3.2)*0.55 + exp(-max(fp + 0.25, 0.0)*9.0)*0.35 + exp(-length(wq*vec2(1.0, 2.2))*9.0)*0.5;
-  float a = clamp(sh, 0.0, 0.92)*mix(0.85, 0.5, uLightTheme);
-  a = max(a, 0.28*uDrive*smoothstep(3.6, 2.6, abs(x.y))*smoothstep(26.0, 6.0, abs(x.x)));
-  vec3 rgb = vec3(0.0);
-  vec3 rr = vec3(rd.x, -rd.y, rd.z);                                 // floor reflection
-  vec2 rb = boxHit(gp, rr, vec3(0.0, 0.85, 0.0), vec3(2.12, 0.86, 1.02));
-  if(rb.y > max(rb.x, 0.0) && fp < 3.0){
-    float tt = max(rb.x, 0.0), hh = 0.0;
-    for(int i = 0; i < 56; i++){ float d = mapCar(gp + rr*tt); if(d < 0.002){ hh = 1.0; break; } tt += d*0.85; if(tt > rb.y) break; }
-    if(hh > 0.5){ vec3 p = gp + rr*tt; float k = mix(0.26, 0.15, uLightTheme)*exp(-tt*0.9);
-      rgb = shade(p, rr, matAt(p))*k; a = 1.0 - (1.0 - a)*(1.0 - k); }
-  }
-  vec2 e = x/vec2(2.7, 1.85); float er = length(e), dr = abs(er - 1.0)*1.9;   // battery halo
-  float f = fract(-atan(e.y, e.x)/6.2832 + 1.0), lvl = uSoc*uHalo;
-  vec3 rc = mix(uAcc, uAcc2, f*0.6);
-  float flow = 1.0 + uCharge*(0.5*sin(f*70.0 - t*5.0) - 0.2);
-  add += rc*exp(-pow(dr/0.016, 2.0))*(0.16*uHalo + step(f, lvl)*1.4*flow) + rc*exp(-dr*9.0)*step(f, lvl)*0.22;
-  add += rc*smoothstep(0.012, 0.0, abs(fract(f*10.0 + 0.5) - 0.5))*smoothstep(0.1, 0.03, abs(er*1.9 - 2.0))*0.35*uHalo;
-  vec2 hp = vec2(cos(-lvl*6.2832), sin(-lvl*6.2832))*vec2(2.7, 1.85);
-  add += rc*exp(-length(x - hp)*14.0)*2.0*uHalo;
-  add += uAcc*exp(-max(fp, 0.0)*2.2)*0.10*(1.0 - uLightTheme*0.6);         // under-glow
-  if(uRadar > 0.01){                                                       // sentinel radar
-    float rcd = length(x), rings = 0.0;
-    for(int i = 1; i <= 4; i++) rings += exp(-pow((rcd - float(i)*1.15)/0.012, 2.0));
-    float da = mod(uSweep - atan(x.y, x.x), 6.2832);
-    float trail = exp(-da*2.2)*smoothstep(5.2, 1.0, rcd)*smoothstep(0.9, 1.6, rcd);
-    float a0 = abs(atan(x.y, x.x));
-    float cones = smoothstep(0.62, 0.58, a0)*step(1.9, x.x) + smoothstep(0.62, 0.58, 3.1416 - a0)*step(x.x, -1.9)
-      + smoothstep(0.55, 0.51, abs(atan(x.x, abs(x.y))))*step(0.9, abs(x.y));
-    vec3 rcol = mix(uAcc2, uAcc, 0.5);
-    add += rcol*(rings*0.35*smoothstep(5.2, 0.8, rcd) + trail*0.55 + cones*0.07*smoothstep(5.0, 1.5, rcd))*uRadar;
-    if(uBlip.z > 0.0){ float bd = length(x - uBlip.xy), w = fract(t*0.8);
-      add += vec3(1.0, 0.18, 0.2)*(exp(-bd*7.0)*1.8 + exp(-pow((bd - w*1.6)/0.03, 2.0))*(1.0 - w)*1.2)*uBlip.z; }
-  }
-  if(uCharge > 0.01){                                                      // energy rings into the port
-    float pd = length(x - vec2(-1.55, 0.95)), rip = fract(pd*1.6 + t*1.2);
-    add += uAcc*smoothstep(0.0, 0.12, rip)*smoothstep(0.35, 0.12, rip)*exp(-pd*0.9)*0.5*uCharge*smoothstep(0.15, 0.5, pd);
-    add += uAcc*exp(-pd*6.0)*1.0*uCharge;
-  }
-  if(uDrive > 0.01){                                                       // road
-    float far = smoothstep(26.0, 6.0, abs(x.x));
-    float lines = step(0.5, fract((x.x + uDist)/6.0))*smoothstep(0.07, 0.05, abs(x.y + 1.75)) + smoothstep(0.07, 0.05, abs(x.y - 1.85));
-    add += mix(vec3(0.85), uAcc, 0.25)*lines*0.35*uDrive*far;
-    float sid = floor(x.y*6.0), rn = fract(sin(sid*91.7)*4375.5), sx = fract((x.x + uDist)/9.0 + rn);
-    add += uAcc*smoothstep(0.0, 0.7, sx)*smoothstep(1.0, 0.8, sx)*step(0.86, rn)*0.12*uDrive*smoothstep(3.0, 1.2, abs(abs(x.y) - 2.5));
-  }
-  if(uCaustic > 0.0) add += uAcc*caustic(x*2.2, t*0.55)*0.05*uCaustic*exp(-length(x)*0.45);
-  add += uAcc*exp(-abs(x.x - uReveal)*30.0)*step(uReveal, 2.6)*smoothstep(3.5, 1.0, abs(x.y))*0.8;
-  return vec4(rgb + add, a);
-}
-void main(){
-  vec2 uv = (gl_FragCoord.xy - 0.5*uRes)/uRes.y - uShift;
-  vec3 ro = uRo, ww = normalize(uTa - ro), uu = normalize(cross(ww, vec3(0.0, 1.0, 0.0))), vv = cross(uu, ww);
-  vec3 rd = normalize(uv.x*uu + uv.y*vv + uFocal*ww);
-  gGH = 1e3; gGT = 1e3;
-  float tg = rd.y < 0.0 ? -ro.y/rd.y : 1e5, t = 1e5;
-  vec2 bb = boxHit(ro, rd, vec3(0.0, 0.85, 0.0), vec3(2.12, 0.86, 1.02));
-  if(bb.y > max(bb.x, 0.0)){
-    float tt = max(bb.x, 0.0);
-    for(int i = 0; i < 110; i++){ float d = mapCar(ro + rd*tt); if(d < 0.0007*tt){ t = tt; break; } tt += d*0.8; if(tt > bb.y) break; }
-  }
-  vec4 o = vec4(0.0);
-  if(t < tg && t < 1e4){ vec3 p = ro + rd*t; o = vec4(shade(p, rd, matAt(p)), 1.0); }
-  else if(tg < 80.0) o = ground(ro, rd, tg);
-  o.rgb += vec3(1.0, 0.95, 0.88)*exp(-gGH*28.0)*0.5*uLights + vec3(1.0, 0.1, 0.1)*exp(-gGT*30.0)*0.35*uTail;
-  o.rgb = pow(max(o.rgb/(1.0 + o.rgb*0.3), 0.0), vec3(1.0/2.2));
-  gl_FragColor = o*uFade;
-}`;
-
-const CAR = { ok: false, scale: 0.8, cap: 1500 };
-function carInit(canvas) {
-  const gl = canvas.getContext('webgl', { antialias: false, alpha: true, premultipliedAlpha: true, preserveDrawingBuffer: false });
-  if (!gl) return;
-  const pr = glProgram(gl, CAR_FS); if (!pr) return;
-  gl.clearColor(0, 0, 0, 0);
-  Object.assign(CAR, { ok: true, gl, pr, canvas });
-}
-function carResize(cssW, cssH, px) {
-  if (!CAR.ok) return;
-  let w = Math.round(cssW * px * CAR.scale), h = Math.round(cssH * px * CAR.scale);
-  if (w > CAR.cap) { h = Math.round(h * CAR.cap / w); w = CAR.cap; }
-  if (CAR.canvas.width !== w || CAR.canvas.height !== h) { CAR.canvas.width = w; CAR.canvas.height = h; CAR.gl.viewport(0, 0, w, h); }
-}
-function carDraw(U) {
-  if (!CAR.ok) return;
-  const { gl, pr } = CAR, u = pr.u;
-  gl.uniform2f(u.uRes, CAR.canvas.width, CAR.canvas.height);
-  for (const k in U) {
-    const v = U[k];
-    if (typeof v === 'number') gl.uniform1f(u[k], v);
-    else if (v.length === 2) gl.uniform2fv(u[k], v);
-    else gl.uniform3fv(u[k], v);
-  }
-  gl.clear(gl.COLOR_BUFFER_BIT);
-  gl.drawArrays(gl.TRIANGLES, 0, 3);
-}
-</script>
 <style>
 ::view-transition-old(root), ::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
 </style>
+<script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
 <script>
 'use strict';
+/* No render loop: the screen only changes when something happens (a touch, a new song second, a new minute). */
+const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
-/* ───────── skins + paints ───────── */
-const SKINS = {
-  oceano:    { name: 'Océano',    note: 'Oscura · cáusticas', dark: true,  mode: 0, bg: ['#02131c', '#0a3346', '#57f0e0', '#4c8dff'], envTop: '#2a6f86', envBot: '#020a10', rim: '#57f0e0', studio: .9,  caustic: 1, paint: 'perla' },
-  aurora:    { name: 'Aurora',    note: 'Oscura · auroras',   dark: true,  mode: 1, bg: ['#040811', '#0d1a31', '#74e1ce', '#9a86ff'], envTop: '#3a4a7a', envBot: '#03060d', rim: '#9a86ff', studio: .95, caustic: 0, paint: 'acero' },
-  horizon:   { name: 'Horizon',   note: 'Oscura · atardecer', dark: true,  mode: 2, bg: ['#0a0d1a', '#3a1f33', '#f2c27b', '#ff7a5a'], envTop: '#4a3050', envBot: '#07060c', rim: '#ff9a5a', studio: .85, caustic: 0, paint: 'negro' },
-  pulse:     { name: 'Pulse',     note: 'Oscura · eléctrica', dark: true,  mode: 3, bg: ['#050b07', '#0f2216', '#c6f36b', '#3cf0a0'], envTop: '#2f4a36', envBot: '#030704', rim: '#c6f36b', studio: .9,  caustic: 0, paint: 'perla' },
-  porcelana: { name: 'Porcelana', note: 'Clara · luz de día', dark: false, mode: 4, bg: ['#f4f6f9', '#d9e0e9', '#2557ff', '#6f95ff'], envTop: '#ffffff', envBot: '#aab5c4', rim: '#9fb4ff', studio: 1,   caustic: 0, paint: 'azul' },
-  forma:     { name: 'Forma',     note: 'Clara · cálida',     dark: false, mode: 5, bg: ['#f3efe9', '#ddd3c5', '#6a55e0', '#e8956a'], envTop: '#fffaf2', envBot: '#b5a690', rim: '#c9b8ff', studio: 1,   caustic: 0, paint: 'coral' },
-};
-const PAINTS = { perla: ['Blanco perla', '#e6e9ec'], acero: ['Gris acero', '#69737e'], azul: ['Azul surf', '#2f78b7'], menta: ['Verde menta', '#86d3bd'], coral: ['Coral', '#e06a5a'], negro: ['Negro noche', '#15171b'] };
+const fmt1 = n => n.toFixed(1).replace('.', ','), mmss = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 
-/* ───────── state ───────── */
-const S = { skin: 'oceano', paint: null, auto: false, car: 'parked', view: 'inicio', locked: true, sentinel: false, climate: false,
-  temp: 22, fan: 3, playing: true, track: 0, pos: 102, soc: .78, range: 248, speed: 0, portrait: false, tags: false, alert: false };
-const save = () => { try { localStorage.setItem('estela-launcher', JSON.stringify({ skin: S.skin, paint: S.paint, auto: S.auto })); } catch (e) {} };
+const SKINS = {
+  oceano:    { name: 'Océano',    note: 'Oscura · azul marino', prev: ['#0a3346', '#02131c', '#57f0e0'] },
+  aurora:    { name: 'Aurora',    note: 'Oscura · menta',       prev: ['#0d1a31', '#040811', '#74e1ce'] },
+  horizon:   { name: 'Horizon',   note: 'Oscura · atardecer',   prev: ['#5a2c33', '#0a0d1a', '#f2c27b'] },
+  pulse:     { name: 'Pulse',     note: 'Oscura · eléctrica',   prev: ['#0f2216', '#050b07', '#c6f36b'] },
+  porcelana: { name: 'Porcelana', note: 'Clara · luz de día',   prev: ['#f7f9fb', '#e9eef4', '#2557ff'] },
+  forma:     { name: 'Forma',     note: 'Clara · cálida',       prev: ['#f6f2ec', '#e6dfd4', '#6a55e0'] },
+  neon:      { name: 'Neón',      note: 'Magenta y cian',       prev: ['#1a0b2e', '#07030f', '#ff2bd6'] },
+  acido:     { name: 'Ácido',     note: 'Verde y amarillo flúor', prev: ['#0c1d0d', '#030803', '#39ff14'] },
+  mango:     { name: 'Mango',     note: 'Naranja y rosa flúor', prev: ['#2a0e07', '#0f0603', '#ff7a00'] },
+  laser:     { name: 'Láser',     note: 'Azul y violeta', prev: ['#0b1446', '#03041a', '#00b3ff'] },
+  rubi:      { name: 'Rubí',      note: 'Rojo y naranja vivo',  prev: ['#2a0714', '#0e0307', '#ff1f4b'] },
+  sorbete:   { name: 'Sorbete',   note: 'Clara · rosa y violeta', prev: ['#fff8fc', '#ffe6f2', '#ff2d95'] },
+  medianoche: { name: 'Medianoche', note: 'Negro y tu neón',    prev: ['#07070a', '#000000', '#ff2bd6'] },
+};
+const GROUPS = [['Clásicas', ['oceano', 'aurora', 'horizon', 'pulse', 'porcelana', 'forma']], ['Flúor', ['neon', 'acido', 'mango', 'laser', 'rubi', 'sorbete']]];
+const NEONS = {   // [neon, lighter tint of the same neon, ink on top of it]
+  rosa: ['Rosa', '#ff2bd6', '#ff7ae8', '#2a0022'], verde: ['Verde', '#39ff14', '#b6ff3a', '#062200'],
+  naranja: ['Naranja', '#ff7a00', '#ffb347', '#2a1000'], rojo: ['Rojo', '#ff1f4b', '#ff6b81', '#2a0008'],
+  azul: ['Azul', '#00a2ff', '#5ad1ff', '#001a2b'], violeta: ['Violeta', '#a64dff', '#d19bff', '#1a0033'],
+  amarillo: ['Amarillo', '#f5ff00', '#fff176', '#242600'], cian: ['Cian', '#00f0ff', '#7afcff', '#002a2c'],
+};
+const S = { skin: 'oceano', auto: false, neon: 'rosa', car: 'parked', locked: true, sentinel: false, climate: false, temp: 22, fan: 3,
+  playing: true, track: 0, pos: 102, soc: .78, range: 248, speed: 0, portrait: false, alert: false };
 const systemDark = () => { const a = document.documentElement.getAttribute('data-theme'); return a ? a === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches; };
-let savedPrefs = null; try { savedPrefs = localStorage.getItem('estela-launcher'); } catch (e) {}
-if (savedPrefs) { try { const o = JSON.parse(savedPrefs); S.skin = o.skin || S.skin; S.paint = o.paint || null; S.auto = !!o.auto; } catch (e) {} }
-else S.skin = systemDark() ? 'oceano' : 'porcelana';
+const save = () => { try { localStorage.setItem('estela-launcher', JSON.stringify({ skin: S.skin, auto: S.auto, neon: S.neon })); } catch (e) {} };
+let saved = null; try { saved = localStorage.getItem('estela-launcher'); } catch (e) {}
+if (saved) { try { const o = JSON.parse(saved); S.skin = o.skin || S.skin; S.auto = !!o.auto; if (NEONS[o.neon]) S.neon = o.neon; } catch (e) {} } else S.skin = systemDark() ? 'oceano' : 'porcelana';
 if (S.auto) S.skin = systemDark() ? 'oceano' : 'porcelana';
 if (!SKINS[S.skin]) S.skin = 'oceano';
 
-/* ───────── layout: scale the 16:10 screen to the window ───────── */
-const frame = $('#frame'), box = $('#stagebox'), screenEl = $('#screen'), stage = $('#stage');
-let SCALE = .5;
+/* ───────── fit the 16:10 screen to the window ───────── */
+const frame = $('#frame'), box = $('#stagebox'), screenEl = $('#screen');
 const dims = p => (p ? [1000, 1600] : [1600, 1000]);
 const scaleFor = p => { const [W, H] = dims(p); return Math.min(box.clientWidth / (W + 24), box.clientHeight / (H + 24)); };
-function fit() {
-  SCALE = scaleFor(S.portrait); frame.style.setProperty('--s', SCALE);
-  const px = SCALE * (window.devicePixelRatio || 1), [W, H] = dims(S.portrait);
-  bgResize(W, H, px); carResize(W, H, px);
-}
+const fit = () => frame.style.setProperty('--s', scaleFor(S.portrait));
 S.portrait = box.clientWidth / Math.max(1, box.clientHeight) < .9;
 frame.classList.toggle('portrait', S.portrait);
 
-/* ───────── camera + animated uniforms ───────── */
-const V = { az: .62, el: .19, dist: 21, tx: 0, ty: .62, tz: 0, radar: 0, charge: 0, drive: 0, halo: 0, lights: .15, tail: .25, reveal: -2.4, fade: 0, blip: 0 };
-let dragAz = 0, dragEl = 0, velAz = 0, lastTouch = -1e9, welcomeT = -1, revealT = -1, haloT = -1;
-const T0 = performance.now(); let wheel = 0, dist = 0, sweep = 0;
-function goal(now) {
-  const t = (now - T0) / 1000, sway = REDUCED ? 0 : .22 * Math.sin(t * .13);
-  if (S.car === 'driving') return { az: Math.PI + .25, el: .22, dist: 21, tx: 1.4, ty: .7, tz: 0 };
-  if (S.alert) return { az: -2.25, el: .7, dist: 24, tx: -.6, ty: .5, tz: -.3 };
-  if (S.view === 'camara') return { az: .35 + (REDUCED ? 0 : t * .04), el: 1.0, dist: 27, tx: 0, ty: .4, tz: 0 };
-  if (S.view === 'coche') return { az: 1.2, el: .8, dist: 22, tx: 0, ty: .5, tz: 0 };
-  if (S.car === 'charging' || S.view === 'bateria') return { az: 2.3 + sway * .4, el: .28, dist: 19.5, tx: -.4, ty: .62, tz: 0 };
-  if (S.sentinel) return { az: .62 + (REDUCED ? 0 : t * .05), el: .6, dist: 24, tx: 0, ty: .5, tz: 0 };
-  return { az: .62 + sway, el: .19, dist: 21, tx: 0, ty: .62, tz: 0 };
-}
-const approach = (a, b, k, dt) => a + (b - a) * (1 - Math.exp(-k * dt));
-const angApproach = (a, b, k, dt) => { let d = b - a; d = Math.atan2(Math.sin(d), Math.cos(d)); return a + d * (1 - Math.exp(-k * dt)); };
-const CU = {};
-function skinUniforms() {
-  const k = SKINS[S.skin], paint = PAINTS[S.paint || k.paint];
-  Object.assign(CU, { uPaint: lin3(paint[1]), uEnvTop: lin3(k.envTop), uEnvBot: lin3(k.envBot), uRim: lin3(k.rim), uAcc: lin3(k.bg[2]), uAcc2: lin3(k.bg[3]),
-    uStudio: k.studio, uLightTheme: k.dark ? 0 : 1, uCaustic: k.caustic, uMetal: (S.paint || k.paint) === 'negro' ? .25 : .45 });
-  BG.mode = k.mode; BG.cols = k.bg.map(hex3);
-}
-function update(dt, now) {
-  const g = goal(now), k = 2.4;
-  const idle = now - lastTouch > 5000;
-  if (!dragging) { dragAz += velAz * dt; velAz *= Math.exp(-dt * 3.5); if (idle) { dragAz = approach(dragAz, 0, .8, dt); dragEl = approach(dragEl, 0, .8, dt); } }
-  V.az = angApproach(V.az, g.az, k, dt);
-  for (const p of ['el', 'dist', 'tx', 'ty', 'tz']) V[p] = approach(V[p], g[p], k, dt);
-  const sent = S.sentinel || S.view === 'camara';
-  V.radar = approach(V.radar, sent && S.car !== 'driving' ? 1 : 0, 3, dt);
-  V.charge = approach(V.charge, S.car === 'charging' ? 1 : 0, 3, dt);
-  V.drive = approach(V.drive, S.car === 'driving' ? 1 : 0, 2, dt);
-  V.blip = approach(V.blip, S.alert ? 1 : 0, 4, dt);
-  const welcome = welcomeT >= 0 ? (now - welcomeT) / 1300 : -1;
-  const lit = S.car === 'driving' ? 1 : (welcome >= 0 && welcome < 3 ? 1 : (S.locked ? .06 : .3));
-  V.lights = approach(V.lights, lit, 6, dt);
-  V.tail = approach(V.tail, S.car === 'driving' ? .7 : (welcome >= 0 && welcome < 3 ? .9 : .2), 6, dt);
-  if (revealT >= 0) { const r = Math.min(1, (now - revealT) / 1700); V.reveal = -2.4 + 5.4 * (1 - Math.pow(1 - r, 3)); V.fade = Math.min(1, (now - revealT) / 400); if (r >= 1) revealT = -1; }
-  if (haloT >= 0) { const h = Math.min(1, (now - haloT) / 1500); V.halo = 1 - Math.pow(1 - h, 3); if (h >= 1) haloT = -1; }
-  if (S.car === 'driving') { S.speed = 74 + 14 * Math.sin(now / 2300) + 5 * Math.sin(now / 700); dist += S.speed / 3.6 * dt; wheel += S.speed / 3.6 / .31 * dt; }
-  if (S.car === 'charging' && !REDUCED) { S.soc = Math.min(.8, S.soc + dt * .0016); if (S.soc >= .8) S.soc = .78; }
-  sweep += dt * 1.25;
-  const az = V.az + dragAz, el = Math.max(.06, Math.min(1.25, V.el + dragEl)), ce = Math.cos(el);
-  const ta = [V.tx, V.ty, V.tz], ro = [ta[0] + V.dist * ce * Math.cos(az), ta[1] + V.dist * Math.sin(el), ta[2] + V.dist * ce * Math.sin(az)];
-  Object.assign(CU, { uTime: REDUCED ? 8 : (now - T0) / 1000, uFocal: S.portrait ? 1.85 : 3.0, uShift: [0, S.portrait ? .17 : -.045], uRo: ro, uTa: ta,
-    uSoc: S.soc, uHalo: V.halo, uRadar: V.radar, uCharge: V.charge, uDrive: V.drive, uDist: dist, uWheel: wheel, uLights: V.lights, uTail: V.tail,
-    uWelcome: welcome >= 0 && welcome < 1 ? welcome : 0, uReveal: V.reveal, uFade: V.fade, uSweep: sweep, uBlip: [-3.3, -1.7, V.blip] });
-  BG.drive = V.drive;
-}
-
-/* project a point of the car to stage coordinates (for the tyre tags) */
-function project(P) {
-  const ro = CU.uRo, ta = CU.uTa, f = CU.uFocal, [W, H] = dims(S.portrait);
-  const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]], dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
-  const nrm = a => { const l = Math.hypot(...a); return a.map(c => c / l); }, cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
-  const ww = nrm(sub(ta, ro)), uu = nrm(cross(ww, [0, 1, 0])), vv = cross(uu, ww), d = sub(P, ro), z = dot(d, ww);
-  const ux = dot(d, uu) / z * f + CU.uShift[0], uy = dot(d, vv) / z * f + CU.uShift[1];
-  return [ux * H + W / 2, H / 2 - uy * H];
-}
-const WHEELS = [[1.25, .7], [1.25, -.7], [-1.25, .7], [-1.25, -.7]];
-const tagEls = $$('.tag'), tagsBox = $('#tags');
-function placeTags() {
-  const on = (S.tags || S.view === 'coche') && S.car !== 'driving';
-  tagsBox.classList.toggle('is-on', on);
-  if (!on) return;
-  const ox = stage.offsetLeft, oy = stage.offsetTop;
-  tagEls.forEach((el, i) => { const [x, z] = WHEELS[i], [px, py] = project([x, .66, z * 1.12]);
-    el.style.transform = `translate(${(px - ox).toFixed(1)}px, ${(py - oy - 34).toFixed(1)}px)`; });
-}
-
-/* ───────── render loop with adaptive quality ───────── */
-let lastT = performance.now(), dragging = false, perfN = 0, perfSum = 0, running = true;
-function loop(now) {
-  if (!running) return;
-  const dt = Math.min(.05, (now - lastT) / 1000); lastT = now;
-  update(dt, now); carDraw(CU);
-  if (now - BG.last > 40) { bgDraw(now); BG.last = now; }
-  placeTags(); tickUI(dt, now);
-  if (perfN < 90 && now - T0 > 1500) { perfSum += dt; if (++perfN === 90 && perfSum / 90 > .028 && CAR.scale > .5) { CAR.scale = CAR.scale > .7 ? .6 : .45; perfN = 0; perfSum = 0; fit(); } }
-  requestAnimationFrame(loop);
-}
-document.addEventListener('visibilitychange', () => { running = !document.hidden; if (running) { lastT = performance.now(); requestAnimationFrame(loop); } });
-</script>
-<script>
-'use strict';
-const fmt1 = n => n.toFixed(1).replace('.', ','), mmss = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 let toastTimer = 0;
 function toast(msg) { const el = $('#toast'); el.textContent = msg; el.classList.add('is-on'); clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove('is-on'), 2300); }
 
-/* ───────── skins: circular reveal from the finger ───────── */
-function setSkin(name) { S.skin = name; screenEl.dataset.skin = name; skinUniforms(); bgDraw(performance.now()); carDraw(CU); markSheet(); vizColors(); save(); }
-function applySkin(name, ev) {
-  if (name === S.skin) return;
-  if (!document.startViewTransition || REDUCED || !ev) { setSkin(name); return; }
+/* ───────── skins: circular reveal from the finger (one short transition, nothing after) ───────── */
+function setSkin(name) { S.skin = name; screenEl.dataset.skin = name; markSheet(); save(); }
+function setNeonVars() { const n = NEONS[S.neon]; screenEl.style.setProperty('--neon', n[1]); screenEl.style.setProperty('--neon-2', n[2]); screenEl.style.setProperty('--on-neon', n[3]); }
+function reveal(ev, change) {
+  if (!document.startViewTransition || REDUCED || !ev) { change(); return; }
   const x = ev.clientX, y = ev.clientY, r = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
-  const vt = document.startViewTransition(() => setSkin(name));
+  const vt = document.startViewTransition(change);
   vt.ready.then(() => document.documentElement.animate({ clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${r}px at ${x}px ${y}px)`] },
-    { duration: 620, easing: 'cubic-bezier(.77, 0, .175, 1)', pseudoElement: '::view-transition-new(root)' })).catch(() => {});
+    { duration: 560, easing: 'cubic-bezier(.77, 0, .175, 1)', pseudoElement: '::view-transition-new(root)' })).catch(() => {});
 }
-function buildSheet() {
-  $('#skins').innerHTML = Object.entries(SKINS).map(([id, k]) => {
-    const prev = `background: radial-gradient(90% 80% at 50% 110%, ${k.bg[2]}55, transparent 60%), linear-gradient(180deg, ${k.bg[1]}, ${k.bg[0]}); --car: ${PAINTS[k.paint][1]}; --acc: ${k.bg[2]}`;
-    return `<button class="skin-card" type="button" role="radio" data-skin="${id}" aria-checked="false"><div class="skin-prev" style="${prev}"></div><b>${k.name}</b><span>${k.note}</span></button>`;
-  }).join('');
-  $('#swatches').innerHTML = Object.entries(PAINTS).map(([id, p]) => `<button class="swatch" type="button" role="radio" data-paint="${id}" aria-label="${p[0]}" aria-checked="false" style="--paint: ${p[1]}"></button>`).join('');
+function applySkin(name, ev) { if (name !== S.skin) reveal(ev, () => setSkin(name)); }
+function applyNeon(id, ev) {
+  if (id === S.neon && S.skin === 'medianoche') return;
+  reveal(ev, () => { S.neon = id; setNeonVars(); if (S.skin !== 'medianoche') setSkin('medianoche'); else { markSheet(); save(); } });
 }
+const skinCard = id => { const k = SKINS[id];
+  return `<button class="skin-card" type="button" role="radio" data-skin="${id}" aria-checked="false"><div class="skin-prev" style="background: radial-gradient(80% 70% at 50% 0%, ${k.prev[2]}40, transparent 70%), linear-gradient(180deg, ${k.prev[0]}, ${k.prev[1]}); --acc: ${k.prev[2]}"></div><b>${k.name}</b><span>${k.note}</span></button>`; };
+$('#skins').innerHTML = GROUPS.map(([g, ids]) => `<h3 class="skins-h">${g}</h3>` + ids.map(skinCard).join('')).join('')
+  + `<h3 class="skins-h">Medianoche</h3>${skinCard('medianoche')}<div class="neon-pick"><div><h4>Color neón</h4><p>Negro profundo y toda la pantalla en el neón que elijas</p></div>`
+  + `<div class="neons" role="radiogroup" aria-label="Color neón">${Object.entries(NEONS).map(([id, n]) =>
+      `<button class="neon-sw" type="button" role="radio" data-neon="${id}" aria-label="${n[0]}" aria-checked="false" style="--c: ${n[1]}"></button>`).join('')}</div></div>`;
+$('#skins').addEventListener('click', e => { const b = e.target.closest('.neon-sw'); if (!b) return; S.auto = false; applyNeon(b.dataset.neon, e); });
 function markSheet() {
   $$('.skin-card').forEach(b => b.setAttribute('aria-checked', String(b.dataset.skin === S.skin)));
-  const pid = S.paint || SKINS[S.skin].paint;
-  $$('.swatch').forEach(b => b.setAttribute('aria-checked', String(b.dataset.paint === pid)));
-  $('#paintName').textContent = PAINTS[pid][0] + (S.paint ? '' : ' · el de esta skin');
+  $$('.neon-sw').forEach(b => b.setAttribute('aria-checked', String(S.skin === 'medianoche' && b.dataset.neon === S.neon)));
+  const c = NEONS[S.neon][1], mp = $('.skin-card[data-skin="medianoche"] .skin-prev');
+  if (mp) { mp.style.background = `radial-gradient(80% 70% at 50% 0%, ${c}40, transparent 70%), linear-gradient(180deg, #07070a, #000)`; mp.style.setProperty('--acc', c); }
   $('#autoToggle').setAttribute('aria-checked', String(S.auto));
 }
 const sheet = $('#sheet');
@@ -996,37 +754,42 @@ function closeSheet() { sheet.classList.remove('is-open'); setTimeout(() => { if
 $('#skinBtn').addEventListener('click', openSheet);
 $('#sheetClose').addEventListener('click', closeSheet); $('#sheetScrim').addEventListener('click', closeSheet);
 $('#skins').addEventListener('click', e => { const b = e.target.closest('.skin-card'); if (!b) return; S.auto = false; applySkin(b.dataset.skin, e); markSheet(); });
-$('#swatches').addEventListener('click', e => { const b = e.target.closest('.swatch'); if (!b) return; S.paint = b.dataset.paint; skinUniforms(); markSheet(); save(); toast(`Color del coche: ${PAINTS[S.paint][0]}`); });
 $('#autoToggle').addEventListener('click', e => { S.auto = !S.auto; markSheet(); save(); if (S.auto) applySkin(systemDark() ? 'oceano' : 'porcelana', e); });
 const followSystem = () => { if (S.auto) applySkin(systemDark() ? 'oceano' : 'porcelana'); };
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', followSystem);
 new MutationObserver(followSystem).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 
-/* ───────── readout + status ───────── */
-let shownNum = 0, numFrom = 0, numTo = 0, numT0 = 0;
-function readout() {
-  const pct = Math.round(S.soc * 100);
-  if (S.car === 'driving') return [Math.round(S.speed), 'km/h', `<b>${S.range} km</b> de autonomía · 13,8 kWh/100 km`];
-  if (S.car === 'charging') return [pct, '%', `<b>7,4 kW</b> · +${fmt1((S.soc - .62) * 44.9)} kWh · ${Math.max(1, Math.round((.8 - S.soc) * 44.9 / 7.4 * 60))} min para el 80 %`];
-  if (S.view === 'bateria') return [pct, '%', `<b>34,1 kWh</b> disponibles · ${S.range} km · 14,2 kWh/100 km`];
-  if (S.view === 'camara') return [4, 'cámaras', S.sentinel ? '<b>Centinela activo</b> · graba si alguien se acerca' : 'Centinela en pausa · actívalo para vigilar el coche'];
-  if (S.view === 'coche') return [S.range, 'km', `<b>${S.locked ? 'Cerrado' : 'Abierto'}</b> · puertas y ventanas cerradas · neumáticos bien`];
-  return [S.range, 'km', `<b>${pct} %</b> · 34,1 kWh · ${S.sentinel ? 'Centinela activo' : 'Listo para salir'}`];
-}
-function renderReadout(animate) {
-  const [n, unit, sub] = readout();
-  if (n !== numTo) { numFrom = animate && !REDUCED ? shownNum : n; numTo = n; numT0 = performance.now(); }
-  $('#bigUnit').textContent = unit; $('#bigSub').innerHTML = sub;
+/* ───────── energy, security and status ───────── */
+const kv = rows => rows.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('');
+function render() {
+  const pct = Math.round(S.soc * 100), en = $('#energy'), st = $('#energyState');
+  let ring = S.soc, k, num, unit, sub, state, rows;
+  if (S.car === 'driving') {
+    ring = Math.min(1, S.speed / 130); k = 'Velocidad'; num = Math.round(S.speed); unit = 'km/h'; sub = `${S.range} km de autonomía`;
+    state = 'En marcha'; rows = [['Batería', `${pct} %`], ['Consumo', '13,8 kWh/100 km'], ['Llegada a casa', '18 min']];
+  } else if (S.car === 'charging') {
+    k = 'Cargando'; num = pct; unit = '%'; sub = '7,4 kW'; const left = Math.max(1, Math.round((.8 - S.soc) * 44.9 / 7.4 * 60));
+    state = `Cargando · ${left} min para el 80 %`; rows = [['Potencia', '7,4 kW'], ['Añadido', `+${fmt1((S.soc - .62) * 44.9)} kWh`], ['Límite de carga', '80 %']];
+  } else {
+    k = 'Autonomía'; num = S.range; unit = 'km'; sub = `${pct} % de batería`;
+    state = S.sentinel ? 'Aparcado y vigilado' : 'Listo para salir'; rows = [['Energía', `${fmt1(S.soc * 43.7)} kWh`], ['Consumo', '14,2 kWh/100 km'], ['Límite de carga', '80 %']];
+  }
+  $('#ringFill').style.strokeDasharray = `${(ring * 100).toFixed(1)} 100`;
+  $('#gaugeK').textContent = k; $('#bigNum').textContent = num; $('#bigUnit').textContent = unit; $('#gaugeSub').textContent = sub;
+  $('#energyStateTxt').textContent = state; st.classList.toggle('is-move', S.car === 'driving');
+  $('#energyKv').innerHTML = kv(rows); en.classList.toggle('is-charging', S.car === 'charging');
+  const pill = $('#lockPill'); pill.textContent = S.locked ? 'Cerrado' : 'Abierto'; pill.className = `pill ${S.locked ? 'ok' : 'warn'}`;
+  $('#secLine').textContent = S.alert ? 'Movimiento detectado · grabando' : S.sentinel ? 'Centinela activo · graba si alguien se acerca' : 'Centinela en pausa';
+  $('#cams').classList.toggle('is-on', S.sentinel); $('[data-cam="b"]').classList.toggle('is-alert', S.alert);
   $('#gear').textContent = S.car === 'driving' ? 'D' : 'P';
-  const line = $('#stateLine'); line.classList.toggle('is-alert', S.alert);
+  $('#stateLine').classList.toggle('is-alert', S.alert);
   $('#stateText').textContent = S.alert ? 'Movimiento detectado' : S.car === 'charging' ? 'Cargando · 7,4 kW' : S.sentinel ? 'Centinela activo' : 'Móvil conectado';
   const qaS = $('#qaSentinel'); qaS.setAttribute('aria-pressed', String(S.sentinel)); qaS.classList.toggle('is-alert', S.alert);
-  const qaL = $('#qaLock'); qaL.setAttribute('aria-pressed', String(S.locked)); qaL.classList.toggle('is-open', !S.locked);
-  qaL.querySelector('span').textContent = S.locked ? 'Cerrado' : 'Abierto';
+  const qaL = $('#qaLock'); qaL.setAttribute('aria-pressed', String(S.locked)); qaL.classList.toggle('is-open', !S.locked); qaL.querySelector('span').textContent = S.locked ? 'Cerrado' : 'Abierto';
   $('#qaClimate').setAttribute('aria-pressed', String(S.climate));
 }
 
-/* ───────── music ───────── */
+/* ───────── music: art and waveform drawn once per song ───────── */
 const TRACKS = [
   { t: 'Marea alta', a: 'Costa Daurada', len: 243, c: ['#0bd3c8', '#1a3cff', '#06121f'] },
   { t: 'Neón en la C-32', a: 'Los Kilovatios', len: 198, c: ['#ff4fa3', '#6d3bff', '#120818'] },
@@ -1045,29 +808,25 @@ function drawArt(i) {
   actx.fillStyle = '#ffffffee'; actx.beginPath(); actx.arc(W * .7, H * .32, 46, 0, 7); actx.fill();
   $('#artGlow').style.backgroundImage = `url(${art.toDataURL('image/jpeg', .7)})`;
 }
+function drawWave(i) {
+  let seed = (i + 1) * 9301; const rnd = () => ((seed = (seed * 9301 + 49297) % 233280) / 233280);
+  const bars = Array.from({ length: 44 }, (_, k) => { const env = .45 + .55 * Math.sin(Math.PI * (k + .5) / 44); return Math.round((18 + 82 * rnd() * env)); });
+  const html = bars.map(h => `<i style="height:${h}%"></i>`).join('');
+  $('#waveBase').innerHTML = html; $('#wavePlayed').innerHTML = html;
+}
+function showProgress() {
+  const tr = TRACKS[S.track]; $('#wavePlayed').style.setProperty('--p', `${(S.pos / tr.len * 100).toFixed(1)}%`); $('#tNow').textContent = mmss(S.pos);
+}
 function setTrack(i, swap) {
-  S.track = (i + TRACKS.length) % TRACKS.length; S.pos = swap ? 0 : S.pos;
-  const tr = TRACKS[S.track], go = () => { drawArt(S.track); $('#trackTitle').textContent = tr.t; $('#trackArtist').textContent = `${tr.a} · Spotify`; $('#tEnd').textContent = mmss(tr.len); art.classList.remove('is-swapping'); };
+  S.track = (i + TRACKS.length) % TRACKS.length; if (swap) S.pos = 0;
+  const tr = TRACKS[S.track], go = () => { drawArt(S.track); drawWave(S.track); $('#trackTitle').textContent = tr.t; $('#trackArtist').textContent = `${tr.a} · Spotify`;
+    $('#tEnd').textContent = mmss(tr.len); showProgress(); art.classList.remove('is-swapping'); };
   if (swap && !REDUCED) { art.classList.add('is-swapping'); setTimeout(go, 180); } else go();
 }
 function setPlaying(p) { S.playing = p; $('#icPause').toggleAttribute('hidden', !p); $('#icPlay').toggleAttribute('hidden', p); $('#playBtn').setAttribute('aria-label', p ? 'Pausar' : 'Reproducir'); }
 $('#playBtn').addEventListener('click', () => setPlaying(!S.playing));
 $('#nextBtn').addEventListener('click', () => setTrack(S.track + 1, true));
-$('#prevBtn').addEventListener('click', () => (S.pos > 4 ? (S.pos = 0) : setTrack(S.track - 1, true)));
-const viz = $('#viz'), vctx = viz.getContext('2d'); const bars = new Array(36).fill(.1); let vizGrad = null;
-function vizColors() { const cs = getComputedStyle(screenEl); vizGrad = [cs.getPropertyValue('--accent-2').trim(), cs.getPropertyValue('--accent').trim()]; }
-function drawViz(now) {
-  const W = viz.clientWidth * 2, H = viz.clientHeight * 2; if (!W) return;
-  if (viz.width !== W || viz.height !== H) { viz.width = W; viz.height = H; } else vctx.clearRect(0, 0, W, H);
-  const g = vctx.createLinearGradient(0, 0, W, 0); g.addColorStop(0, vizGrad[0]); g.addColorStop(1, vizGrad[1]); vctx.fillStyle = g;
-  const n = bars.length, bw = W / n;
-  for (let i = 0; i < n; i++) {
-    const target = S.playing && !REDUCED ? .18 + .82 * Math.pow(Math.abs(Math.sin(now / (260 + i * 23) + i * 1.7) * Math.sin(now / 900 + i * .4)), 1.4) : .08;
-    bars[i] += (target - bars[i]) * .18;
-    const h = Math.max(4, bars[i] * H), x = i * bw + bw * .22, w = bw * .56;
-    vctx.beginPath(); vctx.roundRect ? vctx.roundRect(x, (H - h) / 2, w, h, w / 2) : vctx.rect(x, (H - h) / 2, w, h); vctx.fill();
-  }
-}
+$('#prevBtn').addEventListener('click', () => { if (S.pos > 4) { S.pos = 0; showProgress(); } else setTrack(S.track - 1, true); });
 
 /* ───────── climate ───────── */
 function renderClimate() {
@@ -1076,7 +835,7 @@ function renderClimate() {
   const c = !S.climate ? '' : t < 21 ? '#5ab8ff' : t > 23 ? '#ff8a4a' : '';
   el.style.setProperty('--temp', c || 'var(--ink)'); el.style.setProperty('--temp-glow', c ? c + '99' : 'transparent');
   el.setAttribute('aria-pressed', String(S.climate)); el.setAttribute('aria-label', S.climate ? 'Apagar el climatizador' : 'Encender el climatizador');
-  const f = $('#fanIco'); f.classList.toggle('is-off', S.fan === 0); f.style.setProperty('--fan-dur', `${(2.6 / Math.max(1, S.fan)).toFixed(2)}s`); $('#fanVal').textContent = S.fan;
+  $('#fanIco').classList.toggle('is-off', S.fan === 0); $('#fanVal').textContent = S.fan;
   $('#qaClimate').setAttribute('aria-pressed', String(S.climate));
 }
 $('#tDown').addEventListener('click', () => { S.temp = Math.max(16, S.temp - .5); renderClimate(); });
@@ -1085,7 +844,7 @@ $('#tempBtn').addEventListener('click', () => { S.climate = !S.climate; renderCl
 $('#fDown').addEventListener('click', () => { S.fan = Math.max(0, S.fan - 1); renderClimate(); });
 $('#fUp').addEventListener('click', () => { S.fan = Math.min(7, S.fan + 1); renderClimate(); });
 
-/* ───────── dock with a liquid indicator ───────── */
+/* ───────── dock with a liquid indicator (moves only when tapped) ───────── */
 const blob = $('#blob'); let blobX = 0;
 function moveBlob(btn, instant) {
   const x = btn.offsetLeft;
@@ -1095,79 +854,56 @@ function moveBlob(btn, instant) {
     { duration: 300, easing: 'cubic-bezier(.77, 0, .175, 1)' });
   blob.style.transform = `translateX(${x}px)`; blobX = x;
 }
-function setView(v) {
-  S.view = v; S.tags = false;
-  $$('.app[data-view]').forEach(b => { if (b.dataset.view === v) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
-  moveBlob($(`.app[data-view="${v}"]`)); renderReadout(true);
-}
-$('#apps').addEventListener('click', e => { const b = e.target.closest('.app'); if (!b) return; if (b.dataset.view) setView(b.dataset.view); else toast(`Abriendo ${b.dataset.open}`); });
+$('#apps').addEventListener('click', e => {
+  const b = e.target.closest('.app'); if (!b) return;
+  $$('.app').forEach(a => a.removeAttribute('aria-current')); b.setAttribute('aria-current', 'page'); moveBlob(b);
+  if (b.dataset.view !== 'inicio') toast(b.dataset.open ? `Abriendo ${b.dataset.open}` : `Abriendo ${b.textContent.trim()}`);
+});
 
 /* ───────── quick actions ───────── */
-$('#qaWindows').removeAttribute('aria-pressed');
 $('#qaLock').addEventListener('click', () => {
   if (S.car === 'driving') { toast('En marcha no se puede cerrar'); return; }
-  S.locked = !S.locked; welcomeT = performance.now(); renderReadout(true);
-  toast(S.locked ? 'Coche cerrado' : 'Coche abierto · luces de bienvenida');
+  S.locked = !S.locked; render(); toast(S.locked ? 'Coche cerrado' : 'Coche abierto');
 });
 $('#qaSentinel').addEventListener('click', () => {
   if (S.car === 'driving') { toast('El centinela funciona con el coche aparcado'); return; }
-  S.sentinel = !S.sentinel; if (!S.sentinel) dismissAlert(); renderReadout(true);
+  S.sentinel = !S.sentinel; if (!S.sentinel) dismissAlert(); render();
   toast(S.sentinel ? 'Centinela activo · vigila con las 4 cámaras' : 'Centinela en pausa');
 });
 $('#qaClimate').addEventListener('click', () => { S.climate = !S.climate; renderClimate(); toast(S.climate ? `Climatizando a ${fmt1(S.temp)} °C` : 'Climatizador apagado'); });
 $('#qaWindows').addEventListener('click', () => toast('Ventanas subidas'));
 $('#searchBtn').addEventListener('click', () => toast(S.car === 'driving' ? 'En marcha, dile el destino a tu navegador' : 'Escribe el destino o usa la voz'));
 $$('.place').forEach(b => b.addEventListener('click', () => toast(b.dataset.toast)));
-function dismissAlert() { S.alert = false; $('#alert').hidden = true; renderReadout(true); }
+function dismissAlert() { S.alert = false; $('#alert').hidden = true; render(); }
 $('#alertDismiss').addEventListener('click', dismissAlert);
-$('#alertView').addEventListener('click', () => { dismissAlert(); setView('camara'); toast('Cámara trasera en directo'); });
+$('#alertView').addEventListener('click', () => { dismissAlert(); toast('Cámara trasera en directo'); });
 
-/* ───────── drag to orbit, tap to show tyres ───────── */
-let sx = 0, sy = 0, moved = 0, lastX = 0, lastMT = 0;
-stage.addEventListener('pointerdown', e => { if (e.target.closest('button, .alert')) return; dragging = true; moved = 0; sx = lastX = e.clientX; sy = e.clientY; lastMT = performance.now(); stage.setPointerCapture(e.pointerId); stage.classList.add('is-dragging'); });
-stage.addEventListener('pointermove', e => {
-  if (!dragging) return; const k = 3.2 / (1600 * SCALE), now = performance.now();
-  const dx = e.clientX - lastX; dragAz += dx * k; velAz = dx * k / Math.max(.008, (now - lastMT) / 1000); lastX = e.clientX; lastMT = now;
-  dragEl = Math.max(-.15, Math.min(.9, dragEl + (e.movementY || 0) * k * .6)); moved += Math.abs(dx) + Math.abs(e.movementY || 0); lastTouch = now;
+/* glass: a flash of light where the finger lands (event-driven only) */
+screenEl.addEventListener('pointerdown', e => {
+  const g = e.target.closest('.glass'); if (!g) return; const r = g.getBoundingClientRect();
+  g.style.setProperty('--mx', `${((e.clientX - r.left) / r.width * 100).toFixed(1)}%`); g.style.setProperty('--my', `${((e.clientY - r.top) / r.height * 100).toFixed(1)}%`);
+  g.classList.add('is-touch'); setTimeout(() => g.classList.remove('is-touch'), 420);
 });
-const endDrag = () => { if (!dragging) return; dragging = false; stage.classList.remove('is-dragging'); lastTouch = performance.now();
-  if (moved < 6) { S.tags = !S.tags; } $('#hint').style.opacity = 0; };
-stage.addEventListener('pointerup', endDrag); stage.addEventListener('pointercancel', endDrag);
-
-/* glass sheen follows the finger */
-screenEl.addEventListener('pointermove', e => { const g = e.target.closest('.glass'); if (!g) return; const r = g.getBoundingClientRect();
-  g.style.setProperty('--mx', `${((e.clientX - r.left) / r.width * 100).toFixed(1)}%`); g.style.setProperty('--my', `${((e.clientY - r.top) / r.height * 100).toFixed(1)}%`); });
-screenEl.addEventListener('pointerdown', e => { const g = e.target.closest('.glass'); if (g) { g.classList.add('is-touch'); setTimeout(() => g.classList.remove('is-touch'), 420); } });
 
 /* ───────── simulation bar ───────── */
 function setCar(state) {
-  S.car = state; if (state === 'driving') { S.locked = false; S.sentinel = false; dismissAlert(); }
+  S.car = state; if (state === 'driving') { S.locked = false; S.sentinel = false; S.speed = 72; dismissAlert(); }
   if (state === 'charging') S.soc = .64;
   if (state === 'parked') S.soc = .78;
   $$('#demo [data-state]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.state === state)));
-  renderReadout(true);
+  render();
 }
 $('#demo').addEventListener('click', e => { const b = e.target.closest('[data-state]'); if (b) setCar(b.dataset.state); });
 $('#demoMotion').addEventListener('click', () => {
   if (S.car === 'driving') setCar('parked');
-  S.sentinel = true; S.alert = true; S.view = 'inicio'; setView('inicio');
-  $('#alertTime').textContent = $('#clock').textContent; $('#alert').hidden = false; renderReadout(true);
+  S.sentinel = true; S.alert = true; $('#alertTime').textContent = $('#clock').textContent; $('#alert').hidden = false; render();
 });
-$('#demoBoot').addEventListener('click', boot);
-function boot() {
-  const b = $('#boot');
-  if (REDUCED) { return; }
+$('#demoBoot').addEventListener('click', () => {
+  const b = $('#boot'); if (REDUCED) return;
   b.hidden = false; b.classList.remove('is-out'); void b.offsetWidth; b.classList.add('is-run');
-  V.fade = 0; V.reveal = -2.4; V.halo = 0;
-  setTimeout(() => { b.classList.add('is-out'); intro(); }, 1500);
+  setTimeout(() => { b.classList.add('is-out'); screenEl.classList.remove('is-entering'); void screenEl.offsetWidth; screenEl.classList.add('is-entering'); }, 1500);
   setTimeout(() => { b.hidden = true; b.classList.remove('is-run', 'is-out'); }, 2050);
-}
-function intro() {
-  revealT = REDUCED ? -1 : performance.now(); haloT = REDUCED ? -1 : performance.now() + 500;
-  if (REDUCED) { V.reveal = 3; V.fade = 1; V.halo = 1; }
-  shownNum = 0; numTo = -1; renderReadout(true);
-  screenEl.classList.remove('is-entering'); void screenEl.offsetWidth; screenEl.classList.add('is-entering');
-}
+});
 
 /* ───────── rotate the screen (the Dolphin Surf display turns) ───────── */
 $('#rotateBtn').addEventListener('click', () => {
@@ -1181,27 +917,21 @@ $('#rotateBtn').addEventListener('click', () => {
   }, 640);
 });
 
-/* ───────── per-frame UI ───────── */
-let clockAcc = 0, readAcc = 0;
-function tickUI(dt, now) {
-  if (numTo >= 0) { const k = Math.min(1, (now - numT0) / 700), e = 1 - Math.pow(1 - k, 3); const v = Math.round(numFrom + (numTo - numFrom) * e);
-    if (v !== shownNum) { shownNum = v; $('#bigNum').textContent = v; } }
-  if (S.playing) { S.pos += dt; if (S.pos >= TRACKS[S.track].len) setTrack(S.track + 1, true); }
-  $('#progFill').style.width = `${(S.pos / TRACKS[S.track].len * 100).toFixed(2)}%`; $('#tNow').textContent = mmss(S.pos);
-  drawViz(now);
-  if ((readAcc += dt) > .25 && (S.car !== 'parked')) { readAcc = 0; renderReadout(false); }
-  if ((clockAcc += dt) > 5) { clockAcc = 0; tickClock(); }
-}
+/* ───────── one quiet tick per second ───────── */
 function tickClock() { $('#clock').textContent = new Intl.DateTimeFormat('es-ES', { hour: '2-digit', minute: '2-digit' }).format(new Date()); }
+let secs = 0;
+setInterval(() => {
+  if (document.hidden) return;
+  if (S.playing) { S.pos += 1; if (S.pos >= TRACKS[S.track].len) setTrack(S.track + 1, true); else showProgress(); }
+  if (S.car === 'driving') { S.speed = Math.max(40, Math.min(110, S.speed + (Math.random() - .5) * 6)); render(); }
+  if (S.car === 'charging' && ++secs % 3 === 0) { S.soc = Math.min(.8, S.soc + .01); render(); }
+  if (new Date().getSeconds() === 0) tickClock();
+}, 1000);
 
 /* ───────── start ───────── */
 if (window.lucide) lucide.createIcons();
-screenEl.dataset.skin = S.skin;
-bgInit($('#bg')); carInit($('#car'));
-if (!CAR.ok) { $('#hint').textContent = 'La vista 3D necesita WebGL'; }
-buildSheet(); skinUniforms(); vizColors(); fit(); new ResizeObserver(fit).observe(box);
-setTrack(S.track, false); setPlaying(true); renderClimate(); tickClock();
+setNeonVars(); screenEl.dataset.skin = S.skin;
+fit(); new ResizeObserver(fit).observe(box);
+setTrack(S.track, false); setPlaying(true); renderClimate(); tickClock(); render();
 moveBlob($('.app[data-view="inicio"]'), true);
-intro();
-requestAnimationFrame(loop);
 </script>

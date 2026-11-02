@@ -8,6 +8,7 @@ import com.bydlink.carapp.App
 import com.bydlink.carapp.BuildConfigCompat
 import com.bydlink.carapp.data.Tariff
 import com.bydlink.carapp.service.StateHub
+import com.bydlink.carapp.ui.HomeActivity.Companion.INK
 import com.bydlink.carapp.ui.HomeActivity.Companion.ACCENT
 import com.bydlink.carapp.ui.HomeActivity.Companion.MUTED
 import com.bydlink.carapp.ui.HomeActivity.Companion.TEXT
@@ -32,7 +33,7 @@ internal fun HomeActivity.historyCard(col: LinearLayout, first: Boolean = false)
     val sRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; setPadding(0, dp(8), 0, 0) }
     fun stat(k: String): TextView {
         val c = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        val v = label("--", 22f, Color.WHITE, bold = true); c.addView(v); c.addView(label(k, 13f, MUTED))
+        val v = label("--", 22f, INK, bold = true); c.addView(v); c.addView(label(k, 13f, MUTED))
         sRow.addView(c, LinearLayout.LayoutParams(0, -2, 1f)); return v
     }
     val km = stat("kilómetros"); val used = stat("kWh gastados"); val charged = stat("kWh cargados")
@@ -119,7 +120,7 @@ private fun HomeActivity.line(list: LinearLayout, whenTxt: String, main: String,
     val row = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(0, dp(7), 0, dp(7)) }
     val top = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
     top.addView(label(whenTxt, 15f, if (live) ACCENT else TEXT), LinearLayout.LayoutParams(0, -2, 1f))
-    top.addView(label(main, 15f, Color.WHITE, bold = true))
+    top.addView(label(main, 15f, INK, bold = true))
     row.addView(top)
     row.addView(label(sub, 13f, MUTED))
     list.addView(row)
@@ -134,7 +135,7 @@ internal fun HomeActivity.savingsCard(col: LinearLayout) {
     val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
     col.addView(row, LinearLayout.LayoutParams(-1, -2))
     val big = card(); row.addView(big, LinearLayout.LayoutParams(0, -2, 1f).apply { rightMargin = dp(16) })
-    big.addView(label("Ahorrado en $month", 17f, Color.WHITE, bold = true))
+    big.addView(label("Ahorrado en $month", 17f, INK, bold = true))
     val saved = label("--", 52f, ACCENT).apply { includeFontPadding = false; setPadding(0, dp(10), 0, dp(4)) }; big.addView(saved)
     val savedSub = label("frente a un coche de gasolina", 15f, MUTED); big.addView(savedSub)
     val co2 = label("", 16f, TEXT).apply { setPadding(0, dp(16), 0, 0) }; big.addView(co2)
@@ -168,7 +169,7 @@ internal fun HomeActivity.savingsCard(col: LinearLayout) {
         e100.text = if (kmSum >= 10) String.format(Locale.getDefault(), "%.2f €", cost / kmSum * 100) else "--"
         g100.text = String.format(Locale.getDefault(), "%.2f €", l100 * eurL)
         saved.text = String.format(Locale.getDefault(), "%.2f €", gasCost - cost)
-        saved.setTextColor(if (gasCost - cost >= 0) ACCENT else Color.WHITE)
+        saved.setTextColor(if (gasCost - cost >= 0) ACCENT else INK)
         co2.text = if (kmSum >= 1) String.format(Locale.getDefault(), "≈ %.0f kg de CO₂ que no ha salido por un tubo de escape", kmSum * l100 / 100 * 2.31) else ""
     }
     fun once(k: String, q: Query, asList: Boolean) = q.addListenerForSingleValueEvent(object : ValueEventListener {

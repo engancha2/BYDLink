@@ -17,6 +17,7 @@ import android.widget.TextView
 import com.bydlink.carapp.BuildConfigCompat
 import com.bydlink.carapp.model.CarState
 import com.bydlink.carapp.service.StateHub
+import com.bydlink.carapp.ui.HomeActivity.Companion.INK
 import com.bydlink.carapp.ui.HomeActivity.Companion.ACCENT
 import com.bydlink.carapp.ui.HomeActivity.Companion.AMBER
 import com.bydlink.carapp.ui.HomeActivity.Companion.CARD2
@@ -50,7 +51,7 @@ private fun HomeActivity.statusBody(col: LinearLayout) {
     col.addView(row, LinearLayout.LayoutParams(-1, 0, 1f))
     val left = card(); row.addView(left, LinearLayout.LayoutParams(0, -1, 1.25f).apply { rightMargin = dp(16) })
     val lh = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
-    lh.addView(label("Estado del vehículo", 17f, Color.WHITE, bold = true), LinearLayout.LayoutParams(0, -2, 1f))
+    lh.addView(label("Estado del vehículo", 17f, INK, bold = true), LinearLayout.LayoutParams(0, -2, 1f))
     val lock = label("", 15f, MUTED); lh.addView(lock)
     left.addView(lh)
     val car = CarTopView(this); left.addView(car, LinearLayout.LayoutParams(-1, 0, 1f).apply { topMargin = dp(4) })
@@ -93,7 +94,7 @@ private fun HomeActivity.statusBody(col: LinearLayout) {
         val ty = s?.tyres
         val low = listOfNotNull(ty?.fl, ty?.fr, ty?.rl, ty?.rr).any { it < 2.0 || it > 3.0 }
         rTyres.text = if (ty == null || listOfNotNull(ty.fl, ty.fr, ty.rl, ty.rr).isEmpty()) "--" else if (low) "Revisa la presión" else "Sin avisos"
-        rTyres.setTextColor(if (low) AMBER else Color.WHITE)
+        rTyres.setTextColor(if (low) AMBER else INK)
         rLock.text = when (s?.locked) { true -> "Cerrado"; false -> "Abierto"; null -> "--" }
         closeWin.visibility = if (caps["windows"] == false || openWins.isEmpty()) View.GONE else View.VISIBLE
     }
@@ -107,11 +108,11 @@ internal fun HomeActivity.comfortBody(col: LinearLayout) {
     val clima = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
     climaCard.addView(ScrollView(this).apply { addView(clima); isVerticalScrollBarEnabled = false }, LinearLayout.LayoutParams(-1, -1))
     val cHead = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
-    val cState = label("Clima", 17f, Color.WHITE, bold = true); cHead.addView(cState, LinearLayout.LayoutParams(0, -2, 1f))
+    val cState = label("Clima", 17f, INK, bold = true); cHead.addView(cState, LinearLayout.LayoutParams(0, -2, 1f))
     val onBtn = pill("Encender") {}; cHead.addView(onBtn, LinearLayout.LayoutParams(dp(150), dp(52)))
     clima.addView(cHead)
     val tRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
-    val minus = pill("−") {}.apply { textSize = 26f }; val tTxt = label("--°", 40f, Color.WHITE).apply { gravity = Gravity.CENTER }
+    val minus = pill("−") {}.apply { textSize = 26f }; val tTxt = label("--°", 40f, INK).apply { gravity = Gravity.CENTER }
     val plus = pill("+") {}.apply { textSize = 26f }
     tRow.addView(minus, LinearLayout.LayoutParams(dp(72), dp(52))); tRow.addView(tTxt, LinearLayout.LayoutParams(dp(120), -2)); tRow.addView(plus, LinearLayout.LayoutParams(dp(72), dp(52)))
     val inT = label("", 15f, MUTED).apply { setPadding(dp(20), 0, 0, 0) }; tRow.addView(inT)
@@ -207,7 +208,7 @@ private fun HomeActivity.lightsBody(col: LinearLayout) {
         .associate { (k, name) ->
             val t = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; background = round(CARD2, 14); setPadding(dp(16), dp(14), dp(16), dp(14)) }
             val ic = iconView("light", MUTED); t.addView(ic, LinearLayout.LayoutParams(dp(26), dp(26)))
-            t.addView(label(name, 17f, Color.WHITE).apply { setPadding(0, dp(10), 0, 0) })
+            t.addView(label(name, 17f, INK).apply { setPadding(0, dp(10), 0, 0) })
             val v = label("--", 15f, MUTED); t.addView(v)
             grid.addView(t, GridLayout.LayoutParams(GridLayout.spec(GridLayout.UNDEFINED), GridLayout.spec(GridLayout.UNDEFINED, 1f)).apply {
                 width = 0; setMargins(0, 0, dp(10), dp(10)) })
@@ -252,14 +253,14 @@ private fun HomeActivity.drivingBody(col: LinearLayout) {
         gear.text = s?.gear ?: "--"
         brake.text = s?.parkBrake?.let { if (it) "Echado" else "Quitado" } ?: "--"
         power.text = s?.power?.let { if (it < 0) "${-it} kW recuperando" else "$it kW" } ?: "--"
-        power.setTextColor(if ((s?.power ?: 0) < 0) ACCENT else Color.WHITE)
+        power.setTextColor(if ((s?.power ?: 0) < 0) ACCENT else INK)
         pState.text = when (s?.powerState) { "OFF" -> "Apagado"; "ACC" -> "Accesorios"; "ON", "OK" -> "Encendido"; null -> "--"; else -> s.powerState }
         mode.text = s?.driveMode?.let { "Código $it" } ?: "--"
         cons.text = s?.consumptionKwh100?.let { "${fmt1(it)} kWh/100 km" } ?: "--"
         last.text = s?.lastTripKwh100?.let { "${fmt1(it)} kWh/100 km" } ?: "--"
         odo.text = s?.odometer?.let { String.format(Locale.getDefault(), "%,d km", it) } ?: "--"
         belt.text = s?.seatbelts?.driver?.let { if (it) "Puesto" else "Sin poner" } ?: "--"
-        belt.setTextColor(if (s?.seatbelts?.driver == false && moving(s)) AMBER else Color.WHITE)
+        belt.setTextColor(if (s?.seatbelts?.driver == false && moving(s)) AMBER else INK)
         belt2.text = s?.seatbelts?.passenger?.let { if (it) "Puesto" else "Sin poner" } ?: "--"
         ver.text = BuildConfigCompat.appVersion(this)
     }
@@ -284,7 +285,7 @@ internal class CarTopView(a: HomeActivity) : View(a) {
     private val openEdge = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE; color = AMBER; strokeWidth = 2.5f * dpx; strokeJoin = Paint.Join.ROUND }
     private val lead = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE; color = 0xFF3A4856.toInt(); strokeWidth = 1.2f * dpx }
     private val leadW = Paint(lead).apply { color = AMBER }
-    private val big = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE; textSize = 24f * dpx }
+    private val big = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = INK; textSize = 24f * dpx }
     private val small = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = MUTED; textSize = 13f * dpx }
     private val warn = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = AMBER; textSize = 15f * dpx }
     private val brand = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFDCE3EA.toInt(); textSize = 13f * dpx; textAlign = Paint.Align.CENTER; letterSpacing = 0.3f; typeface = Typeface.DEFAULT_BOLD }
@@ -362,7 +363,7 @@ internal class CarTopView(a: HomeActivity) : View(a) {
             val xText = if (left) xWheel - gap else xWheel + gap
             c.drawLine(xWheel + (if (left) -6 else 6) * dpx, yMid, xText + (if (left) 8 else -8) * dpx, yMid, lead)
             val bad = p != null && (p < 2.0 || p > 3.0)
-            val bp = Paint(big).apply { color = if (bad) AMBER else Color.WHITE; textAlign = if (left) Paint.Align.RIGHT else Paint.Align.LEFT }
+            val bp = Paint(big).apply { color = if (bad) AMBER else INK; textAlign = if (left) Paint.Align.RIGHT else Paint.Align.LEFT }
             val sp = Paint(small).apply { textAlign = if (left) Paint.Align.RIGHT else Paint.Align.LEFT }
             c.drawText(p?.let { String.format(Locale.getDefault(), "%.1f bar", it) } ?: "-- bar", xText, yMid - 4 * dpx, bp)
             c.drawText(listOfNotNull(temp?.let { "$it °C" }, name).joinToString(" · "), xText, yMid + 16 * dpx, sp)

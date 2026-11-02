@@ -15,6 +15,7 @@ import android.webkit.WebViewClient
 import android.widget.EditText
 import android.widget.LinearLayout
 import com.bydlink.carapp.service.StateHub
+import com.bydlink.carapp.ui.HomeActivity.Companion.INK
 import com.bydlink.carapp.ui.HomeActivity.Companion.CARD2
 import com.bydlink.carapp.ui.HomeActivity.Companion.MUTED
 
@@ -56,7 +57,7 @@ internal fun HomeActivity.mapPage(): View {
     homeRow.addView(pill("Trabajo") { goFavorite("work") }.apply { textSize = 18f }, LinearLayout.LayoutParams(0, -1, 1f))
 
     val search = EditText(this).apply {
-        hint = "Buscar destino…"; setHintTextColor(MUTED); setTextColor(Color.WHITE); textSize = 17f; isSingleLine = true
+        hint = "Buscar destino…"; setHintTextColor(MUTED); setTextColor(INK); textSize = 17f; isSingleLine = true
         inputType = InputType.TYPE_CLASS_TEXT; imeOptions = EditorInfo.IME_ACTION_GO
         background = round(CARD2, 14); setPadding(dp(16), 0, dp(16), 0)
     }

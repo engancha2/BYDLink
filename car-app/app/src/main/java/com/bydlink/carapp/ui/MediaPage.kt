@@ -14,6 +14,7 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.SeekBar
 import com.bydlink.carapp.service.StateHub
+import com.bydlink.carapp.ui.HomeActivity.Companion.INK
 import com.bydlink.carapp.ui.HomeActivity.Companion.ACCENT
 import com.bydlink.carapp.ui.HomeActivity.Companion.CARD2
 import com.bydlink.carapp.ui.HomeActivity.Companion.MUTED
@@ -34,10 +35,10 @@ internal fun HomeActivity.mediaPage(): View {
     val art = ImageView(this).apply { scaleType = ImageView.ScaleType.CENTER_CROP; background = round(0xFF3A5468.toInt(), 18); clipToOutline = true }
     row.addView(art, LinearLayout.LayoutParams(dp(170), dp(170)))
     val info = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(22), 0, 0, 0) }
-    val src = label("", 14f, MUTED, bold = true); val title = label("Nada sonando", 26f, Color.WHITE, bold = true).apply { maxLines = 2 }
+    val src = label("", 14f, MUTED, bold = true); val title = label("Nada sonando", 26f, INK, bold = true).apply { maxLines = 2 }
     val artist = label("", 18f, TEXT).apply { maxLines = 1 }
     info.addView(src); info.addView(title); info.addView(artist)
-    val bar = Bar(Color.WHITE); info.addView(bar, LinearLayout.LayoutParams(-1, dp(6)).apply { topMargin = dp(16) })
+    val bar = Bar(INK); info.addView(bar, LinearLayout.LayoutParams(-1, dp(6)).apply { topMargin = dp(16) })
     val times = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
     val tPos = label("", 13f, MUTED); val tDur = label("", 13f, MUTED).apply { gravity = Gravity.END }
     times.addView(tPos, LinearLayout.LayoutParams(0, -2, 1f)); times.addView(tDur, LinearLayout.LayoutParams(0, -2, 1f))
@@ -111,13 +112,13 @@ internal fun HomeActivity.mediaPage(): View {
         artist.text = md?.getString(MediaMetadata.METADATA_KEY_ARTIST) ?: md?.getString(MediaMetadata.METADATA_KEY_ALBUM) ?: ""
         val bmp = md?.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART) ?: md?.getBitmap(MediaMetadata.METADATA_KEY_ART)
         if (bmp != null) { art.setImageBitmap(bmp); art.setPadding(0, 0, 0, 0) }
-        else { art.setImageDrawable(LineIcon("music", Color.WHITE)); art.setPadding(dp(50), dp(50), dp(50), dp(50)) }
+        else { art.setImageDrawable(LineIcon("music", INK)); art.setPadding(dp(50), dp(50), dp(50), dp(50)) }
         val st = c?.playbackState
         play.setImageDrawable(HomeActivity.MediaIcon(if (st?.state == PlaybackState.STATE_PLAYING) HomeActivity.MediaIcon.PAUSE else HomeActivity.MediaIcon.PLAY))
         val dur = md?.getLong(MediaMetadata.METADATA_KEY_DURATION) ?: 0L
         var pos = st?.position ?: 0L
         if (st?.state == PlaybackState.STATE_PLAYING && st.lastPositionUpdateTime > 0) pos += ((SystemClock.elapsedRealtime() - st.lastPositionUpdateTime) * st.playbackSpeed).toLong()
-        bar.set(if (dur > 0) (pos * 100 / dur).toInt() else 0, Color.WHITE)
+        bar.set(if (dur > 0) (pos * 100 / dur).toInt() else 0, INK)
         tPos.text = if (dur > 0) mmss(pos) else ""; tDur.text = if (dur > 0) mmss(dur) else ""
         if (!vol.isPressed) vol.progress = am.getStreamVolume(AudioManager.STREAM_MUSIC)
         // botones de las apps que suenan

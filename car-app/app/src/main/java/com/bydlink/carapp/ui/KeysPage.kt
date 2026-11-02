@@ -6,6 +6,7 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import com.bydlink.carapp.keys.WheelKeys
+import com.bydlink.carapp.ui.HomeActivity.Companion.INK
 import com.bydlink.carapp.ui.HomeActivity.Companion.ACCENT
 import com.bydlink.carapp.ui.HomeActivity.Companion.AMBER
 import com.bydlink.carapp.ui.HomeActivity.Companion.MUTED
@@ -22,7 +23,7 @@ internal fun HomeActivity.keysPanel() {
     WheelKeys.start(applicationContext)
     val panel = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(0xF00B0F14.toInt()); setPadding(dp(28), dp(16), dp(28), dp(16)) }
     val head = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
-    head.addView(label("Botones del volante", 22f, Color.WHITE, bold = true), LinearLayout.LayoutParams(0, -2, 1f))
+    head.addView(label("Botones del volante", 22f, INK, bold = true), LinearLayout.LayoutParams(0, -2, 1f))
     val onBtn = pill("") { WheelKeys.setEnabled(!WheelKeys.enabled) }
     head.addView(onBtn, LinearLayout.LayoutParams(-2, dp(50)))
     head.addView(pill("Cerrar") { closeOverlay() }, LinearLayout.LayoutParams(-2, dp(50)).apply { leftMargin = dp(10) })
@@ -41,7 +42,7 @@ internal fun HomeActivity.keysPanel() {
     val learnHint = label("", 13f, MUTED).apply { setPadding(0, dp(8), 0, 0) }; st.addView(learnHint)
 
     val logCard = card(); left.addView(logCard, LinearLayout.LayoutParams(-1, 0, 1f).apply { topMargin = dp(12) })
-    logCard.addView(label("Lo último que ha llegado", 16f, Color.WHITE, bold = true))
+    logCard.addView(label("Lo último que ha llegado", 16f, INK, bold = true))
     val logBox = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
     logCard.addView(ScrollView(this).apply { addView(logBox) }, LinearLayout.LayoutParams(-1, -1).apply { topMargin = dp(8) })
     val hhmmss = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
@@ -59,7 +60,7 @@ internal fun HomeActivity.keysPanel() {
     // ── derecha: botones vistos y su acción ──
     val rightCard = card()
     body.addView(rightCard, LinearLayout.LayoutParams(0, -1, 1.25f))
-    rightCard.addView(label("Botones vistos", 16f, Color.WHITE, bold = true))
+    rightCard.addView(label("Botones vistos", 16f, INK, bold = true))
     val keysBox = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
     rightCard.addView(ScrollView(this).apply { addView(keysBox) }, LinearLayout.LayoutParams(-1, -1).apply { topMargin = dp(8) })
     var shownIds = ""
@@ -71,7 +72,7 @@ internal fun HomeActivity.keysPanel() {
         keys.forEach { k ->
             val id = k["id"].toString()
             val b = WheelKeys.bindings[id]
-            keysBox.addView(label(k["name"].toString(), 16f, Color.WHITE, bold = true).apply { setPadding(0, dp(10), 0, 0) })
+            keysBox.addView(label(k["name"].toString(), 16f, INK, bold = true).apply { setPadding(0, dp(10), 0, 0) })
             keysBox.addView(label("$id · ${(k["count"] as? Number)?.toInt() ?: 0} veces", 12f, MUTED))
             val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
             // Del SDK no se sabe cuándo se suelta el botón: no hay pulsación larga.
@@ -116,7 +117,7 @@ private fun HomeActivity.pickKeyAction(id: String, name: String, press: String) 
     val panel = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(0xF00B0F14.toInt()); setPadding(dp(28), dp(16), dp(28), dp(16)) }
     val head = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
     val pressName = when (press) { WheelKeys.LONG -> "pulsación larga"; WheelKeys.DOUBLE -> "doble pulsación"; else -> "pulsación corta" }
-    head.addView(label("«$name», $pressName", 22f, Color.WHITE, bold = true), LinearLayout.LayoutParams(0, -2, 1f))
+    head.addView(label("«$name», $pressName", 22f, INK, bold = true), LinearLayout.LayoutParams(0, -2, 1f))
     head.addView(pill("Volver") { keysPanel() }, LinearLayout.LayoutParams(-2, dp(50)))
     panel.addView(head)
     val list = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
@@ -139,7 +140,7 @@ private fun HomeActivity.pickKeyAction(id: String, name: String, press: String) 
         if (rest != 0) repeat(3 - rest) { row!!.addView(TextView(this), LinearLayout.LayoutParams(0, dp(58), 1f).apply { rightMargin = dp(8) }) }
     }
     grid(listOf<Pair<String?, String>>(null to "Lo normal (no tocar)") + WheelKeys.ACTIONS.map { it.key to it.value })
-    list.addView(label("Abrir una app", 16f, Color.WHITE, bold = true).apply { setPadding(0, dp(18), 0, 0) })
+    list.addView(label("Abrir una app", 16f, INK, bold = true).apply { setPadding(0, dp(18), 0, 0) })
     grid(WheelKeys.apps().map { "app:${it["pkg"]}" to (it["label"] ?: "") })
     openOverlay(panel)
 }

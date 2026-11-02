@@ -15,8 +15,8 @@ android {
         targetSdk = 34
         // Subir los dos en cada versión nueva (el coche se actualiza si versionCode es mayor).
         // Se pueden forzar al compilar: gradle assembleDebug -PvCode=3 -PvName=2.1
-        versionCode = (findProperty("vCode") as String?)?.toInt() ?: 34
-        versionName = (findProperty("vName") as String?) ?: "2.31"
+        versionCode = (findProperty("vCode") as String?)?.toInt() ?: 35
+        versionName = (findProperty("vName") as String?) ?: "2.32"
     }
     buildTypes {
         release {

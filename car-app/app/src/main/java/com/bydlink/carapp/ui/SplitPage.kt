@@ -7,6 +7,7 @@ import android.view.View
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
+import com.bydlink.carapp.ui.HomeActivity.Companion.INK
 import com.bydlink.carapp.ui.HomeActivity.Companion.ACCENT
 import com.bydlink.carapp.ui.HomeActivity.Companion.CARD2
 import com.bydlink.carapp.ui.HomeActivity.Companion.MUTED
@@ -43,7 +44,7 @@ internal fun HomeActivity.splitPage(): View {
         pill("$r / ${100 - r}") { ratio = r; prefs.edit().putInt("splitRatio", r).apply(); doRender() }.apply { textSize = 17f }
             .also { ctl.addView(it, LinearLayout.LayoutParams(dp(98), dp(54)).apply { leftMargin = dp(8) }) }
     }
-    val swap = ImageView(this).apply { setImageDrawable(LineIcon("swap", Color.WHITE)); background = round(CARD2, 13); setPadding(dp(15), dp(15), dp(15), dp(15)); isClickable = true }
+    val swap = ImageView(this).apply { setImageDrawable(LineIcon("swap", INK)); background = round(CARD2, 13); setPadding(dp(15), dp(15), dp(15), dp(15)); isClickable = true }
     ctl.addView(swap, LinearLayout.LayoutParams(dp(54), dp(54)).apply { leftMargin = dp(14) })
 
     // ── vista previa con las proporciones ──
@@ -52,13 +53,13 @@ internal fun HomeActivity.splitPage(): View {
     fun side(): Pair<LinearLayout, Triple<ImageView, TextView, TextView>> {
         val p = card().apply { setPadding(0, 0, 0, 0) }
         val head = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL; setPadding(dp(16), dp(12), dp(16), dp(12)) }
-        val hName = label("", 16f, Color.WHITE); head.addView(hName, LinearLayout.LayoutParams(0, -2, 1f))
+        val hName = label("", 16f, INK); head.addView(hName, LinearLayout.LayoutParams(0, -2, 1f))
         head.addView(iconView("expand", MUTED), LinearLayout.LayoutParams(dp(18), dp(18)))
         p.addView(head)
         p.addView(View(this).apply { setBackgroundColor(HomeActivity.LINE) }, LinearLayout.LayoutParams(-1, 1))
         val body = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER }
         val ic = ImageView(this); body.addView(ic, LinearLayout.LayoutParams(dp(64), dp(64)))
-        val name = label("", 19f, Color.WHITE).apply { gravity = Gravity.CENTER; setPadding(dp(10), dp(12), dp(10), 0) }; body.addView(name)
+        val name = label("", 19f, INK).apply { gravity = Gravity.CENTER; setPadding(dp(10), dp(12), dp(10), 0) }; body.addView(name)
         body.addView(label("Se abrirá en esta parte de la pantalla", 14f, MUTED).apply { gravity = Gravity.CENTER; setPadding(dp(10), dp(6), dp(10), 0) })
         p.addView(body, LinearLayout.LayoutParams(-1, 0, 1f))
         return p to Triple(ic, name, hName)
@@ -78,7 +79,7 @@ internal fun HomeActivity.splitPage(): View {
     fun fill(b: LinearLayout, cn: ComponentName?) {
         b.removeAllViews()
         b.addView(ImageView(this).apply { setImageDrawable(cn?.let { icon(it) } ?: LineIcon("plus", MUTED)) }, LinearLayout.LayoutParams(dp(30), dp(30)))
-        b.addView(label(cn?.let { appLabel(it) } ?: "Elegir app", 16f, Color.WHITE).apply { setPadding(dp(12), 0, 0, 0); maxLines = 1 }, LinearLayout.LayoutParams(0, -2, 1f))
+        b.addView(label(cn?.let { appLabel(it) } ?: "Elegir app", 16f, INK).apply { setPadding(dp(12), 0, 0, 0); maxLines = 1 }, LinearLayout.LayoutParams(0, -2, 1f))
         b.addView(iconView("right", MUTED), LinearLayout.LayoutParams(dp(16), dp(16)))
     }
     fun render() {
@@ -95,9 +96,9 @@ internal fun HomeActivity.splitPage(): View {
     }
     doRender = { render() }
     fun choose(key: String, set: (ComponentName) -> Unit) {
-        val panel = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(0xF20B1016.toInt()); setPadding(dp(28), dp(16), dp(28), dp(16)) }
+        val panel = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(Skins.cur.sheet); setPadding(dp(28), dp(16), dp(28), dp(16)) }
         val head = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
-        head.addView(label("Elige la app", 22f, Color.WHITE), LinearLayout.LayoutParams(0, -2, 1f))
+        head.addView(label("Elige la app", 22f, INK), LinearLayout.LayoutParams(0, -2, 1f))
         head.addView(pill("Cerrar") { closeOverlay() })
         panel.addView(head)
         panel.addView(appsGrid(8, resources.displayMetrics.widthPixels - dp(56)) { cn ->
