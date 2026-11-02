@@ -11,7 +11,7 @@ import com.bydlink.carapp.service.StateHub
 import com.bydlink.carapp.ui.HomeActivity.Companion.INK
 import com.bydlink.carapp.ui.HomeActivity.Companion.MUTED
 
-/** Ajustes del lanzador: pantalla de inicio, abrir al arrancar, botones del volante y estado de BYDLink. */
+/** Ajustes del lanzador: idioma, pantalla de inicio, abrir al arrancar, pantalla completa, botones del volante y estado de BYDLink. */
 internal fun HomeActivity.settingsPage(): View {
     val col = page()
     pageHead(col, "Ajustes")
@@ -57,6 +57,15 @@ internal fun HomeActivity.settingsPage(): View {
     openRefresh()
     openBtn.setOnClickListener { OpenOnStart.set(this, !OpenOnStart.enabled(this)); openRefresh() }
     home.addView(openBtn, LinearLayout.LayoutParams(-1, dp(54)).apply { topMargin = dp(10) })
+    // Pantalla completa: sin la barra de estado ni los botones de Android del coche (ver HomeActivity.fullscreen).
+    val fullBtn = pill("") {}
+    fun fullRefresh() { fullBtn.text = if (fullscreenOn) "✓ Ocultar las barras de Android" else "Ocultar las barras de Android: no"; active(fullBtn, fullscreenOn) }
+    fullRefresh()
+    fullBtn.setOnClickListener {
+        fullscreenOn = !fullscreenOn; fullRefresh()
+        if (fullscreenOn) toast("Para ver las barras de Android un momento, desliza desde el borde de la pantalla.")
+    }
+    home.addView(fullBtn, LinearLayout.LayoutParams(-1, dp(54)).apply { topMargin = dp(10) })
 
     val keys = card(); left.addView(keys, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(16) })
     keys.addView(h3("Botones del volante"))

@@ -28,6 +28,7 @@ import android.os.Looper
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
+import android.view.WindowManager
 import android.widget.FrameLayout
 import android.widget.GridLayout
 import android.widget.ImageView
@@ -95,6 +96,12 @@ class HomeActivity : Activity() {
         Skins.load(this)
         I18n.load(this)
         build()
+        fullscreen()
+        // Si algo devuelve las barras de Android (el modo pegajoso no lo hace, pero algún DiLink podría), se van a los 3 s.
+        @Suppress("DEPRECATION")
+        window.decorView.setOnSystemUiVisibilityChangeListener { vis ->
+            if (fullscreenOn && vis and View.SYSTEM_UI_FLAG_HIDE_NAVIGATION == 0) { ui.removeCallbacks(rehide); ui.postDelayed(rehide, 3000) }
+        }
         // Qué tiene este coche (multimodelo). En su hilo: pregunta al SDK.
         if (BuildConfigCompat.USE_BYD_SDK) Thread {
             try { caps = Capabilities.local(applicationContext); ui.post { renderDock() } } catch (e: Throwable) {}
@@ -102,9 +109,11 @@ class HomeActivity : Activity() {
     }
 
     override fun onResume() {
-        super.onResume(); startMusic(); ui.post(tick)
+        super.onResume(); fullscreen(); startMusic(); ui.post(tick)
         resumeTab?.let { if (it == "camara" && tab == "camara") showTab(it) }; resumeTab = null
     }
+    // Al recuperar el foco (tras la cortina de avisos, un diálogo del sistema…) Android puede haber devuelto las barras.
+    override fun onWindowFocusChanged(hasFocus: Boolean) { super.onWindowFocusChanged(hasFocus); if (hasFocus) fullscreen() }
     override fun onPause() { super.onPause(); ui.removeCallbacks(tick); stopMusic(); leaveTab?.invoke(); leaveTab = null; resumeTab = tab }
     /** Página a rehacer al volver (si soltó algo al salir, como la cámara). */
     private var resumeTab: String? = null
@@ -148,6 +157,28 @@ class HomeActivity : Activity() {
             frame.addView(hole, FrameLayout.LayoutParams(-1, -1))
             hole.start { frame.removeView(hole); snap.recycle() }
         }
+    }
+
+    // ── pantalla completa ──
+    /** Ajustes → "Ocultar las barras de Android". De fábrica, sí: el lanzador ya trae su barra de arriba y su dock. */
+    internal var fullscreenOn: Boolean
+        get() = prefs.getBoolean("fullscreen", true)
+        set(v) { prefs.edit().putBoolean("fullscreen", v).apply(); fullscreen() }
+    private val rehide = Runnable { if (hasWindowFocus()) fullscreen() }
+
+    /**
+     * Tapa las barras de Android del coche (la de arriba y la de los botones) con el modo inmersivo "pegajoso":
+     * deslizar desde el borde las enseña un momento y se vuelven a ir solas. Son las banderas de siempre porque el
+     * coche es Android 10; en Android 11+ siguen funcionando (el sistema las traduce).
+     */
+    @Suppress("DEPRECATION")
+    internal fun fullscreen() {
+        val on = fullscreenOn
+        if (on) window.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN) else window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
+        val bars = View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY or View.SYSTEM_UI_FLAG_FULLSCREEN or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
+            View.SYSTEM_UI_FLAG_LAYOUT_STABLE or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+        val d = window.decorView
+        d.systemUiVisibility = (d.systemUiVisibility and bars.inv()) or (if (on) bars else 0)
     }
 
     // ── barra de arriba ──
