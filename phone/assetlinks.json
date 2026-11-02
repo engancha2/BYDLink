@@ -1,0 +1,8 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "com.bydlink.movil",
+    "sha256_cert_fingerprints": ["11:2B:A1:A4:A2:58:B7:74:B8:97:2C:46:55:4C:97:C1:40:83:60:D8:85:85:66:71:CA:C7:8E:38:03:DF:8B:C4"]
+  }
+}]

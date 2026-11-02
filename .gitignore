@@ -23,6 +23,10 @@ car-app/app/build/
 car-app/byd-stubs/build/
 car-app/local.properties
 car-app/.idea/
+phone-android/.gradle/
+phone-android/build/
+phone-android/app/build/
+phone-android/local.properties
 *.iml
 *.apk
 *.keystore

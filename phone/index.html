@@ -6,6 +6,7 @@
   <meta name="theme-color" content="#0a0d12" media="(prefers-color-scheme: dark)">
   <meta name="theme-color" content="#f3f5f8" media="(prefers-color-scheme: light)">
   <meta name="color-scheme" content="dark light">
+  <script>/* Apariencia guardada (skins.js): se aplica antes de pintar para que no parpadee */try{var s=localStorage.getItem('bydlink_skin'),r=document.documentElement;if(s&&s!=='clasico'){r.setAttribute('data-skin',s);if(/^(neon|acido|mango|laser|rubi|medianoche)$/.test(s))r.setAttribute('data-neon','');var n={rosa:['#ff2bd6','#2a0022'],verde:['#39ff14','#062200'],naranja:['#ff7a00','#2a1000'],rojo:['#ff1f4b','#2a0008'],azul:['#00a2ff','#001a2b'],violeta:['#a64dff','#1a0033'],amarillo:['#f5ff00','#242600'],cian:['#00f0ff','#002a2c']}[localStorage.getItem('bydlink_neon')]||['#ff2bd6','#2a0022'];r.style.setProperty('--neon',n[0]);r.style.setProperty('--neon-ink',n[1])}}catch(e){}</script>
   <meta name="description" content="BYDLink: controla y vigila tu BYD desde el móvil.">
   <title>BYDLink</title>
   <link rel="manifest" href="manifest.webmanifest">
@@ -403,6 +404,20 @@
           <button type="button" class="btn btn-soft btn-block" id="addCarBtn"><svg><use href="#i-plus"/></svg>Vincular otro coche</button>
         </div>
 
+        <div class="card" id="skinCard">
+          <h2 class="card-h">Apariencia</h2>
+          <p class="hint" style="margin:-4px 0 12px">El estilo de siempre o el del lanzador del coche. Se guarda en este móvil.</p>
+          <div class="skin-grid" id="skinGrid" role="radiogroup" aria-label="Estilo de la app"></div>
+          <div class="neon-row" id="neonRow" role="radiogroup" aria-label="Color neón de Medianoche"></div>
+        </div>
+
+        <div class="card" id="apkCard" hidden>
+          <h2 class="card-h">App para Android</h2>
+          <p class="hint" style="margin:-4px 0 12px">BYDLink como una app más del móvil: se abre a pantalla completa con su icono y te avisa igual que la web.</p>
+          <a class="btn btn-soft btn-block" href="descargas/BYDLink-movil.apk" download="BYDLink-movil.apk"><svg><use href="#i-download"/></svg>Descargar la app (APK, 0,5 MB)</a>
+          <p class="hint" style="margin-top:10px">Al abrir el archivo, Android te pedirá permiso para instalar apps de fuera de Google Play.</p>
+        </div>
+
         <div class="card" id="autoCard">
           <h2 class="card-h">Automatizaciones</h2>
           <label class="row-switch">
@@ -491,6 +506,7 @@
   <script src="backend.js"></script>
   <script src="webrtc.js"></script>
   <script src="app.js"></script>
+  <script src="skins.js"></script>
   <script src="extras.js"></script>
   <script src="videos.js"></script>
   <script src="history.js"></script>

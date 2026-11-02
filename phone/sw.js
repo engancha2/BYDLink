@@ -1,8 +1,8 @@
 /* Service worker: "red primero" para los archivos propios (siempre la última versión
  * publicada) y caché solo como respaldo sin conexión. Firebase, mapas y CDNs van
  * directos a la red. */
-const CACHE = 'bydlink-2.13';   // cambiarla junto con WEB_VERSION de app.js
-const SHELL = ['./', './style.css', './backend.js', './webrtc.js', './app.js', './extras.js', './videos.js', './history.js', './history.css', './keys.js', './autos.js', './firebase-config.js',
+const CACHE = 'bydlink-2.14';   // cambiarla junto con WEB_VERSION de app.js
+const SHELL = ['./', './style.css', './backend.js', './webrtc.js', './app.js', './skins.js', './extras.js', './videos.js', './history.js', './history.css', './keys.js', './autos.js', './firebase-config.js',
                './manifest.webmanifest', './icon.svg'];
 
 self.addEventListener('install', e => {
@@ -30,6 +30,7 @@ self.addEventListener('fetch', e => {
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
+  if (url.pathname.indexOf('/descargas/') !== -1) return;   // el APK va directo, sin caché
   e.respondWith(
     fetch(req, { cache: 'no-cache' }).then(res => {
       if (res.ok && res.type === 'basic' && !res.redirected) {
