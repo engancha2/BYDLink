@@ -29,6 +29,7 @@ phone-android/app/build/
 phone-android/local.properties
 *.iml
 *.apk
+!downloads/BYDLink-movil.apk
 *.keystore
 
 # --- SO / editores ---
